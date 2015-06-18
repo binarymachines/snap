@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+#
+# Generated Flask routing module for SNAP microservice framework
+#
+
+
+
+from flask import Flask, request
+from main import app
+
+
+import {{ router.handler_module_name }}
+
+main.setup(app)
+service_registry = app.config['services']
+logger = app.logger
+
+
+{% for r in router.routes %}
+@app.route('{{ r.path }}', methods=[{{ r.methods }}])
+def {{r.name}}():
+    return {{ router.handler_module_name }}.{{ router.function_name_for_handler(r.handler_name) }}(request, service_registry, logger)
+
+{% endfor %}
