@@ -6,17 +6,17 @@
 
 [uwsgi]
 #application's base folder
-base = {{ config.home_dir }}
+base = {{ uwsgi_config.base_dir }}
 
 #python module to import
 app = main
 module = %(app)
 
-home = {{ config.virtual_env_dir }}
+home = {{ uwsgi_config.virtualenv_dir }}
 pythonpath = %(base)
 
 #socket file's location
-socket = {{ config.socket_dir }}/%n.sock
+socket = {{ uwsgi_config.socket_dir }}/%n.sock
 
 #permissions for the socket file
 chmod-socket    = 666
@@ -25,4 +25,4 @@ chmod-socket    = 666
 callable = app
 
 #location of log files
-logto = {{ config.uwsgi_log_dir }}/%n.log
+logto = {{ uwsgi_config.log_dir }}/%n.log

@@ -11,19 +11,11 @@ from flask import Flask
 import argparse
 import sys, os
 import yaml
-from common import ServiceObjectRegistry
+import common
 
 
 
 
-def read_init_file(initfileName):
-    '''Load a YAML initfile by name, returning the dictionary of its contents
-
-    '''
-    config = None
-    with open(initfileName, 'r') as f:
-        config = yaml.load(f) 
-    return config   
 
 
 
@@ -32,15 +24,9 @@ def load_snap_config():
     parser.add_argument("--snap_config_file", metavar='<snap config file>', required=True, nargs=1, help='YAML config file for snap endpoint')
 
     args = parser.parse_args()
-    config_filename = args.snap_config_file[0]
+    config_file_path = common.full_path(args.snap_config_file[0])
 
-    config_file_path = None
-    if config_filename.startswith(os.path.sep):
-        config_file_path = config_filename
-    else:
-        config_file_path = os.path.join(os.getcwd(), config_filename)
-    
-    return read_init_file(config_file_path)
+    return common.read_config_file(config_file_path)
     
 
 
@@ -52,14 +38,6 @@ def initialize_logging(yaml_config_obj, app):
     app.logger.addHandler(handler)
     app.logger.setLevel(logging.INFO)
     logging.getLogger('wekzeug').addHandler(handler)
-
-
-
-def load_service_object_class(class_name, module_name):
-    module = __import__(module_name)    
-    return getattr(module, class_name)
-
-    
 
 
 def initialize_services(yaml_config_obj, app):
@@ -76,7 +54,7 @@ def initialize_services(yaml_config_obj, app):
             param_value = param['value']
             param_tbl[param_name] = param_value
 
-        klass = load_service_object_class(service_object_classname, service_module_name)
+        klass = common.load_class(service_object_classname, service_module_name)
         service_object = klass(app.logger, **param_tbl)
         service_objects[service_object_name] = service_object
     return service_objects
@@ -93,7 +71,7 @@ def setup(app):
     
     # load the service objects into the app
     #
-    app.config['services'] = ServiceObjectRegistry(service_object_tbl) 
+    app.config['services'] = common.ServiceObjectRegistry(service_object_tbl) 
     app.config['initialized'] = True
     
 

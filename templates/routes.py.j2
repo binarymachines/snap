@@ -23,3 +23,5 @@ def {{r.name}}():
     return {{ router.handler_module_name }}.{{ router.function_name_for_handler(r.handler_name) }}(request, service_registry, logger)
 
 {% endfor %}
+
+

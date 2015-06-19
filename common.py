@@ -1,12 +1,57 @@
 #!/usr/bin/env python
 
 
+import yaml
+import os
+
 
 class UnregisteredServiceObjectException(Exception):
       def __init__(self, alias):
             Exception.__init__(self, 'No ServiceObject registered under the alias "%s".' % alias)
 
 
+
+def read_config_file(filename):
+    '''Load a YAML initfile by name, returning a dictionary of its contents
+
+    '''
+    config = None
+    with open(filename, 'r') as f:
+        config = yaml.load(f)
+    return config  
+
+
+
+def full_path(filename):
+    if filename.startswith(os.sep):
+        return filename
+    return os.path.join(os.getcwd(), filename)
+
+
+
+def load_var(var_string):
+      if var_string.startswith('$'):
+            return os.environ.get(var_string[1:])
+      return var_string
+
+      
+
+
+
+
+def load_class(class_name, module_name):
+    module = __import__(module_name)    
+    return getattr(module, class_name)
+
+
+
+class JinjaTemplateManager:
+    def __init__(self, j2_environment):
+        self.environment = j2_environment
+        
+    def get_template(self, filename):
+        return self.environment.get_template(filename)
+        
 
 
 class ServiceObjectRegistry():
@@ -19,3 +64,4 @@ class ServiceObjectRegistry():
             if not sobj:
                   raise UnregisteredServiceObjectException(service_object_name)
             return sobj
+

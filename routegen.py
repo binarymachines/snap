@@ -4,6 +4,7 @@ import os, sys
 import argparse
 import yaml
 import jinja2
+import common
 
 default_config_filename = 'snap.conf'
 
@@ -18,15 +19,6 @@ class NoSuchHandlerException(Exception):
         Exception.__init__(self, 'No handler registered under the alias "%s".' % handler_name)
 
 
-
-
-class JinjaTemplateManager:
-    def __init__(self, j2_environment):
-        self.environment = j2_environment
-        
-    def get_template(self, filename):
-        return self.environment.get_template(filename)
-        
 
 
 class Route(object):
@@ -120,18 +112,6 @@ class RouteGenerator():
         return self.route_table.values()
         
 
-
-def read_config_file(filename):
-    '''Load a YAML initfile by name, returning the dictionary of its contents
-
-    '''
-    config = None
-    with open(filename, 'r') as f:
-        config = yaml.load(f)
-    return config  
-
-
-
 def main(argv):
     parser = argparse.ArgumentParser(description='route generator for snap HTTP endpoints')
     parser.add_argument('-p', action='store_true', required=False, help='preview (show but do not generate) routes')
@@ -142,11 +122,11 @@ def main(argv):
     if args.initfile:
        config_filename = args.initfile[0]
 
-    yaml_config = read_config_file(config_filename)    
+    yaml_config = common.read_config_file(config_filename)    
     route_gen = RouteGenerator(yaml_config)
     
-    j2env = jinja2.Environment(loader = jinja2.FileSystemLoader(os.getcwd()))
-    template_mgr = JinjaTemplateManager(j2env)
+    j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
+    template_mgr = common.JinjaTemplateManager(j2env)
     routing_module_template = template_mgr.get_template('routes.py.j2')
  
     print routing_module_template.render(router=route_gen)
