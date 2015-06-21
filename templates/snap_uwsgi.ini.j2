@@ -12,7 +12,8 @@ base = {{ uwsgi_config.base_dir }}
 app = main
 module = %(app)
 
-home = {{ uwsgi_config.virtualenv_dir }}
+# the python home (if using virtualenvs, this should be your venv directory)
+home = {{ uwsgi_config.python_home }}
 pythonpath = %(base)
 
 #socket file's location

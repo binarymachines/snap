@@ -3,6 +3,8 @@
 
 import yaml
 import os
+from os.path import expanduser
+
 
 
 class UnregisteredServiceObjectException(Exception):
@@ -29,9 +31,13 @@ def full_path(filename):
 
 
 
-def load_var(var_string):
+def load_config_var(var_string):
       if var_string.startswith('$'):
             return os.environ.get(var_string[1:])
+      elif var_string.startswith('~%s' % os.path.sep):
+            home_dir = expanduser(var_string[0])
+            path_stub = var_string[2:]
+            return os.path.join(home_dir, path_stub)
       return var_string
 
       
