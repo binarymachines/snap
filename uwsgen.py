@@ -7,15 +7,14 @@
 #
 
 """Usage: 
-        uwsgen.py [--env=<environment>] <configfile> 
-        uwsgen.py -l | --list
+        uwsgen.py [--env=<environment> | --list] <configfile> 
         uwsgen.py -h | --help
 
 Arguments:
         <configfile>      yaml configuration filename
 Options:
-        --env=<environment>       named execution context in config file
-
+        --env=<environment>       named configuration context in config file
+        --list                    list the available contexts
 """
 
 
@@ -61,14 +60,21 @@ def load_uwsgi_environments(yaml_config):
 if __name__ == '__main__':
 
     args =  docopt(__doc__)
+
+
     config_filename = common.full_path(args['<configfile>'])
-    
+
     env = args['--env']
     yaml_config = common.read_config_file(config_filename)
     env_table = load_uwsgi_environments(yaml_config)
     
     if not len(env_table.keys()):
         print 'No uWSGI environment found in config file. Exiting.\n'
+        exit(0)
+
+    if args['--list']:
+        print 'Available uWSGI environments in %s:' % config_filename
+        print '\n'.join(env_table.keys()) 
         exit(0)
     
     target_env = None
