@@ -9,7 +9,6 @@
 """Usage: 
         ngen.py [--env=<environment>] <configfile> 
         ngen.py (-l | --list) <configfile>
-        ngen.py (-d | --describe) <environment> <configfile>
         ngen.py (-h | --help)
 
 Arguments:
@@ -36,30 +35,65 @@ class NginxConfig():
 
 
     def __repr__(self):
-        return '--%s:\nhostname: %s\port: %s\nuWSGI socket: %s' % (self.name, 
+        return '%s:\n--hostname: %s\n--port: %s\n--uWSGI socket: %s' % (self.name, 
                                                                    self.hostname, 
                                                                    self.port, 
                                                                    self.uwsgi_sockfile)
 
 
 
-def get_nginx_configs_as_list(yaml_config_obj):
-    
+def load_nginx_config_table(yaml_config_obj):
+    configs = {}
+    config_section = yaml_config_obj['nginx_servers']
+    for server_name in config_section:
+        host = config_section[server_name]['hostname']
+        port = config_section[server_name]['port']
+        uwsgi_socketfile = config_section[server_name]['uwsgi_sock']
+        configs[server_name] = NginxConfig(server_name, host, port, uwsgi_socketfile)
+
+    return configs
+        
+        
 
 
 
 def main():
     args = docopt(__doc__)
-    
-    #print args
 
-    config_filename = common.full_path(args.configfile)
+    config_filename = common.full_path(args['<configfile>'])
     yaml_config = common.read_config_file(config_filename)
+    configs = load_nginx_config_table(yaml_config)
+    template_mgr = common.get_template_mgr_for_location('templates')
+    config_template = template_mgr.get_template('nginx_config.j2')
 
-    if args.l:
-        configs = get_nginx_configs_as_list(yaml_config)
-        print '\n'.join(configs)
+    # show all the configurations
+    #
+    if args['-l'] or args['--list']:        
+        for key in configs.keys():
+            print configs[key]
+
         exit(0)
+        
+    # we can generate without a specific nginx config, iff there's just one
+    #
+    output = None
+    config_name = args['--env']
+
+    if args['<configfile>'] and not config_name:
+        if len(configs.keys()) > 1:
+            print 'Multiple configurations found. Please specify one.'
+            exit(0)        
+        output = config_template.render(nginx_config=configs.values()[0])
+        
+    else:
+        if not configs.get(config_name):
+            print 'No nginx configuration labeled "%s" in %s.' % (config_name, config_filename)
+            exit(0)
+        output = config_template.render(nginx_config=configs[config_name])
+        
+    print output
+    exit(0)
+        
 
 
     

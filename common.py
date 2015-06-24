@@ -3,6 +3,7 @@
 
 import yaml
 import os
+import jinja2
 from os.path import expanduser
 
 
@@ -42,12 +43,10 @@ def load_config_var(var_string):
 
       
 
-
-
-
 def load_class(class_name, module_name):
     module = __import__(module_name)    
     return getattr(module, class_name)
+
 
 
 
@@ -58,6 +57,14 @@ class JinjaTemplateManager:
     def get_template(self, filename):
         return self.environment.get_template(filename)
         
+
+
+def get_template_mgr_for_location(directory):
+      j2env = jinja2.Environment(loader = jinja2.FileSystemLoader(directory))
+      return JinjaTemplateManager(j2env)
+      
+
+
 
 
 class ServiceObjectRegistry():
