@@ -8,6 +8,7 @@ import common
 
 default_config_filename = 'snap.conf'
 
+RESERVED_ROUTES = ['smp']
 
 class MissingHandlerFunctionException(Exception):
     def __init__(self, handler_name, handler_module_name):
@@ -18,6 +19,10 @@ class NoSuchHandlerException(Exception):
     def __init__(self, handler_name):
         Exception.__init__(self, 'No handler registered under the alias "%s".' % handler_name)
 
+
+class ReservedRouteException(Exception):
+    def __init__(self, path):
+        Exception.__init__(self, 'The URL route "%s" is reserved for internal use; please select a different path.' % path)
 
 
 
@@ -85,12 +90,26 @@ class RouteGenerator():
         '''
         return val_name[1:]
 
-    
+
+    def is_reserved_route(self, route_path):
+        for path_element in RESERVED_ROUTES:
+            if route_path.lstrip('/').startswith(path_element):
+                return True
+        return False
+
+                
     def generate_routes(self, yaml_config):
         routes = {}
         yaml_segment =  yaml_config['routes']
         for route_name in yaml_segment:
             path = yaml_segment[route_name]['path']
+
+            # certain routes are reserved for internal usage;
+            # reject if found
+            #
+            if self.is_reserved_route(path):
+                raise ReservedRouteException(path)
+
             methods = yaml_segment[route_name]['method'].upper()
             handler_name = yaml_segment[route_name]['handler']
             
