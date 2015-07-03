@@ -11,9 +11,8 @@
 
 '''
 dependencies:
-    - serpentine
-    - sqlalchemy
-    - mysql-python
+    - sh
+    - flask   
 
 methods:
     - GET
@@ -58,7 +57,7 @@ def main():
 
     frame = ModuleFrame()
     frame.load(tmod, 'test')
-    #frame.install_dependencies('test')
+    frame.install_dependencies('test')
     print frame.get_route('test')
 
 
