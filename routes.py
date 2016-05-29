@@ -12,12 +12,9 @@ from flask import Flask, request
 #
 app = Flask(__name__)
 import main
-import handlers
+
 
 main.setup(app)
-
-
-
 service_registry = app.config.get('services')
 logger = app.logger
 

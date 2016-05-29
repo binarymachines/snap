@@ -27,11 +27,11 @@ class ReservedRouteException(Exception):
 
 
 class Route(object):
-    def __init__(self, name, urlPath, method_string, handler_name):
+    def __init__(self, name, urlPath, method_string, output_type):
         self.name = name
         self.path = urlPath
         self._methods = [method_name.strip() for method_name in method_string.split(',')]
-        self.handler_name = handler_name
+        self.output_type = output_type
 
 
     @property
@@ -59,11 +59,21 @@ class RouteHandlerRef():
         
 class RouteGenerator():
     def __init__(self, yaml_config):
-        self.route_table = self.generate_routes(yaml_config)        
+        #self.route_table = self.generate_routes_for_transforms(yaml_config)        
         self.handler_module_name = yaml_config['globals']['handler_module']
-        self.handler_table = self.load_handler_refs(self.handler_module_name, yaml_config)
+        #self.skeleton_transforms = self.generate_skeleton_transforms(self.route_table)
+        
+        #self.handler_table = self.load_handler_refs(self.handler_module_name, yaml_config)
 
 
+
+    def generate_skeleton_transform_functions(self, yaml_config):
+        route_table = self.generate_routes_for_transforms(yaml_config)
+        
+            
+        
+
+    '''
     def load_handler_refs(self, handler_module_name, yaml_config):
 
         handler_module = __import__(self.handler_module_name)
@@ -81,7 +91,8 @@ class RouteGenerator():
             refs[handler_alias] = new_ref
 
         return refs
-
+    '''
+    
 
     def read_environment_value(self, val_name):
         '''Read a value (i.e. from a YAML file) in the standard format
@@ -97,34 +108,35 @@ class RouteGenerator():
                 return True
         return False
 
-                
-    def generate_routes(self, yaml_config):
+
+            
+    def generate_routes_for_transforms(self, yaml_config):
         routes = {}
-        yaml_segment =  yaml_config['routes']
-        for route_name in yaml_segment:
-            path = yaml_segment[route_name]['path']
+        transforms_segment =  yaml_config['transforms']
+        for transform_name in transforms_segment:
+            current_transform = transforms_segment[transform_name]
+            route = current_transform['route']
 
             # certain routes are reserved for internal usage;
             # reject if found
             #
-            if self.is_reserved_route(path):
+            if self.is_reserved_route(route):
                 raise ReservedRouteException(path)
 
-            methods = yaml_segment[route_name]['method'].upper()
-            handler_name = yaml_segment[route_name]['handler']
+            methods = current_transform['method'].upper()
+            output_mime_type = current_transform['output_mimetype']
             
-            new_route = Route(route_name, path, methods, handler_name)
-            routes[route_name] = new_route
+            new_route = Route(transform_name, route, methods, output_mime_type)
+            routes[transform_name] = new_route
             
         return routes
 
-    def function_name_for_handler(self, handler_name):
-        handler_ref = self.handler_table.get(handler_name)
-        if not handler_ref:
-            raise NoSuchHandlerException(handler_name)
-
-        return handler_ref.function_name
-
+    
+    def generate_transform_function_names(self, yaml_config):
+        transforms_segment = yaml_config['transforms']
+        return ['%s_transform' % f for f in transforms_segment]
+        
+        
 
     @property
     def routes(self):
@@ -148,7 +160,9 @@ def main(argv):
     template_mgr = common.JinjaTemplateManager(j2env)
     routing_module_template = template_mgr.get_template('routes.py.j2')
  
-    print routing_module_template.render(router=route_gen)
+    print routing_module_template.render(routes=route_gen.generate_routes_for_transforms(yaml_config),
+                                         transforms=route_gen.generate_transform_function_names(yaml_config),
+                                         handler_module = route_gen.handler_module_name)
 
 
 if __name__ == '__main__':

@@ -7,20 +7,49 @@
 
 
 from flask import Flask, request
-from main import app
+#from main import app 
+import main
 
 
-import {{ router.handler_module_name }}
+import {{ handler_module_name }}
 
 main.setup(app)
-service_registry = app.config['services']
-logger = app.logger
+logger = main.logger
+xformer = main.xformer
 
 
-{% for r in router.routes %}
+{% for t in transforms %}
+def {{t}}(input_data, service_objects):
+    # return a TransformStatus, or raise an exception
+
+{% endfor %}
+
+
+
+{% for r in routes %}
 @app.route('{{ r.path }}', methods=[{{ r.methods }}])
 def {{r.name}}():
-    return {{ router.handler_module_name }}.{{ router.function_name_for_handler(r.handler_name) }}(request, service_registry, logger)
+    try:
+        {% if r.methods == ['POST'] %}
+        transform_status = xformer.transform('{{ r.name }}', request.json)
+        {% elif r.methods == ['GET'] %}        
+        input_data = {}
+        input_data.update(request.args)
+        {% for path_variable in r.path_variables %}        
+        input_data['{{path_var}}'] = path_var
+        {% endfor %}
+        transform_status = xformer.transform('{{ r.name }}', convert_multidict(input_data))
+        {% else %}
+        {% endif %}
+        
+        output_mimetype = xformer.target_mimetype_for_transform('{{ r.name }}')
+
+        if transform_status.ok:
+            return Response(transform_status.output_data, status=HTTP_OK, mimetype=output_mimetype)
+        return Response(json.dumps(transform_status.user_data), status=transform_status.get_error_code() or HTTP_DEFAULT_ERRORCODE, mimetype=output_mimetype) 
+    except Exception, err:
+        logger.error("Exception thrown: ", exc_info=1)        
+        raise err
 
 {% endfor %}
 

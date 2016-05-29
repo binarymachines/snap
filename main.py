@@ -15,13 +15,9 @@ import common
 
 
 
-
-
-
-
 def load_snap_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--snap_config_file", metavar='<snap config file>', required=True, nargs=1, help='YAML config file for snap endpoint')
+    parser.add_argument("--snap_config_file", metavar='<snap config file>', required=True, nargs=1, help='YAML config file for snap endpoints')
 
     args = parser.parse_args()
     config_file_path = common.full_path(args.snap_config_file[0])
@@ -57,6 +53,7 @@ def initialize_services(yaml_config_obj, app):
         klass = common.load_class(service_object_classname, service_module_name)
         service_object = klass(app.logger, **param_tbl)
         service_objects[service_object_name] = service_object
+        
     return service_objects
     
 
