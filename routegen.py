@@ -5,6 +5,7 @@ import argparse
 import yaml
 import jinja2
 import common
+import re
 
 default_config_filename = 'snap.conf'
 
@@ -27,9 +28,9 @@ class ReservedRouteException(Exception):
 
 
 class Route(object):
-    def __init__(self, name, urlPath, method_string, output_type):
+    def __init__(self, name, path, method_string, output_type):
         self.name = name
-        self.path = urlPath
+        self.path = path
         self._methods = [method_name.strip() for method_name in method_string.split(',')]
         self.output_type = output_type
 
@@ -38,12 +39,13 @@ class Route(object):
     def methods(self):
         method_list = ["'%s'" % m for m in self._methods]
         return ', '.join(method_list)
+   
 
-
-    def __repr__(self):
-        full_path = ''.join(['http://<base_url>'.rstrip('/'), self.path])        
-        return '%s %s, handler: %s' % (self.methods, full_path, self.handler)
-        
+    
+    @property
+    def path_variables(self):
+        path_var_regex = re.compile(r'<[a-z]+>')
+        return [match.group().lstrip('<').rstrip('>') for match in re.finditer(path_var_regex, self.path)]
 
 
 
@@ -64,14 +66,6 @@ class RouteGenerator():
         #self.skeleton_transforms = self.generate_skeleton_transforms(self.route_table)
         
         #self.handler_table = self.load_handler_refs(self.handler_module_name, yaml_config)
-
-
-
-    def generate_skeleton_transform_functions(self, yaml_config):
-        route_table = self.generate_routes_for_transforms(yaml_config)
-        
-            
-        
 
     '''
     def load_handler_refs(self, handler_module_name, yaml_config):
@@ -114,19 +108,22 @@ class RouteGenerator():
         routes = {}
         transforms_segment =  yaml_config['transforms']
         for transform_name in transforms_segment:
+
+            print '>>> Reading transform config %s...' % transform_name
+            
             current_transform = transforms_segment[transform_name]
-            route = current_transform['route']
+            path = current_transform['route']
 
             # certain routes are reserved for internal usage;
             # reject if found
             #
-            if self.is_reserved_route(route):
+            if self.is_reserved_route(path):
                 raise ReservedRouteException(path)
 
             methods = current_transform['method'].upper()
             output_mime_type = current_transform['output_mimetype']
             
-            new_route = Route(transform_name, route, methods, output_mime_type)
+            new_route = Route(transform_name, path, methods, output_mime_type)
             routes[transform_name] = new_route
             
         return routes
@@ -136,11 +133,8 @@ class RouteGenerator():
         transforms_segment = yaml_config['transforms']
         return ['%s_transform' % f for f in transforms_segment]
         
-        
 
-    @property
-    def routes(self):
-        return self.route_table.values()
+
         
 
 def main(argv):
@@ -159,11 +153,14 @@ def main(argv):
     j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
     template_mgr = common.JinjaTemplateManager(j2env)
     routing_module_template = template_mgr.get_template('routes.py.j2')
- 
+
+    print route_gen.generate_routes_for_transforms(yaml_config)
+    
+    
     print routing_module_template.render(routes=route_gen.generate_routes_for_transforms(yaml_config),
                                          transforms=route_gen.generate_transform_function_names(yaml_config),
                                          handler_module = route_gen.handler_module_name)
-
-
+                                        
+                                         
 if __name__ == '__main__':
    main(sys.argv[1:])

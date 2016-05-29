@@ -6,42 +6,42 @@
 
 
 
-from flask import Flask, request
-#from main import app 
-import main
+from flask import Flask, request, Response
+import snap
 
 
-import {{ handler_module_name }}
-
-main.setup(app)
-logger = main.logger
-xformer = main.xformer
+snap.setup(app)
+logger = snap.logger
+xformer = snap.xformer
 
 
 {% for t in transforms %}
 def {{t}}(input_data, service_objects):
-    # return a TransformStatus, or raise an exception
-
+    raise snap.TransformNotImplementedException('{{t}}')
 {% endfor %}
 
 
+xformer.register_error_code(snap.NullTransformInputDataException, snap.HTTP_BAD_REQUEST)
+xformer.register_error_code(snap.MissingInputFieldException, snap.HTTP_BAD_REQUEST)
+xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT_IMPLEMENTED)
 
-{% for r in routes %}
+
+{% for r in routes.values() %}
 @app.route('{{ r.path }}', methods=[{{ r.methods }}])
 def {{r.name}}():
     try:
-        {% if r.methods == ['POST'] %}
+        {%- if r.methods == "'POST'" %}
         transform_status = xformer.transform('{{ r.name }}', request.json)
-        {% elif r.methods == ['GET'] %}        
+        {%- elif r.methods == "'GET'" or r.methods == "'DELETE'" %}        
         input_data = {}
         input_data.update(request.args)
-        {% for path_variable in r.path_variables %}        
-        input_data['{{path_var}}'] = path_var
-        {% endfor %}
-        transform_status = xformer.transform('{{ r.name }}', convert_multidict(input_data))
-        {% else %}
-        {% endif %}
+        {%- for path_variable in r.path_variables %}        
+        input_data['{{path_variable}}'] = {{ path_variable }}
+        {%- endfor %}
         
+        transform_status = xformer.transform('{{ r.name }}', convert_multidict(input_data))
+        {%- else %}
+        {%- endif %}        
         output_mimetype = xformer.target_mimetype_for_transform('{{ r.name }}')
 
         if transform_status.ok:
