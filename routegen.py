@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import core
 import os, sys
 import argparse
 import yaml
@@ -27,66 +28,38 @@ class ReservedRouteException(Exception):
 
 
 
-class Route(object):
-    def __init__(self, name, path, method_string, output_type):
+class Transform(object):
+    def __init__(self, name, input_shape, route, method_string, output_type):
         self.name = name
-        self.path = path
+        self.input_shape = input_shape
+        self.route = route
         self._methods = [method_name.strip() for method_name in method_string.split(',')]
         self.output_type = output_type
 
-
-    @property
-    def methods(self):
+    def get_methods(self):
         method_list = ["'%s'" % m for m in self._methods]
         return ', '.join(method_list)
-   
 
+    methods = property(get_methods)
     
-    @property
-    def path_variables(self):
-        path_var_regex = re.compile(r'<[a-z]+>')
-        return [match.group().lstrip('<').rstrip('>') for match in re.finditer(path_var_regex, self.path)]
+    def get_function_name(self):
+        return '%s_func' % self.name
 
+    function_name = property(get_function_name)
+    
+    
+    def get_route_variables(self):
+        route_var_regex = re.compile(r'<[a-z]+>')
+        return [match.group().lstrip('<').rstrip('>') for match in re.finditer(route_var_regex, self.route)]
 
+    route_variables = property(get_route_variables)
 
-class RouteHandlerRef():
-    def __init__(self, function_name):
-        self.function_name = function_name
-
-
-    def __repr__(self):
-        return 'handler function "%s" ' % (self.function_name)
-        
 
         
 class RouteGenerator():
-    def __init__(self, yaml_config):
-        #self.route_table = self.generate_routes_for_transforms(yaml_config)        
+    def __init__(self, yaml_config):        
         self.handler_module_name = yaml_config['globals']['handler_module']
-        #self.skeleton_transforms = self.generate_skeleton_transforms(self.route_table)
         
-        #self.handler_table = self.load_handler_refs(self.handler_module_name, yaml_config)
-
-    '''
-    def load_handler_refs(self, handler_module_name, yaml_config):
-
-        handler_module = __import__(self.handler_module_name)
-        handler_module_functions = dir(handler_module)
-        
-        refs = {}
-        yaml_handlers_segment = yaml_config['handlers']
-        for handler_alias in yaml_handlers_segment:
-            handler_function_name = yaml_handlers_segment[handler_alias]['function']
-            
-            if handler_function_name not in handler_module_functions:
-                raise MissingHandlerFunctionException(handler_function_name, handler_module_name)
-            
-            new_ref = RouteHandlerRef(handler_function_name)
-            refs[handler_alias] = new_ref
-
-        return refs
-    '''
-    
 
     def read_environment_value(self, val_name):
         '''Read a value (i.e. from a YAML file) in the standard format
@@ -103,35 +76,55 @@ class RouteGenerator():
         return False
 
 
+    def load_shapes(self, yaml_config):
+        data_shapes = {}
+
+        shapes_segment = yaml_config['data_shapes']
+
+        for shape_name in shapes_segment:
+            if not shape_name.endswith('shape'):
+                internal_shape_name = '%s_shape' % shape_name
+            input_shape = core.InputShape(internal_shape_name)
             
-    def generate_routes_for_transforms(self, yaml_config):
-        routes = {}
+            input_field_tables = shapes_segment[shape_name]['fields']
+
+            for tbl in input_field_tables:
+                input_shape.add_field(tbl['name'], bool(tbl.get('required')))
+            data_shapes[shape_name] = input_shape
+            
+        return data_shapes
+                
+
+            
+    def load_transforms(self, yaml_config):
+        
+        data_shapes = self.load_shapes(yaml_config)
+        transforms = {}
+
         transforms_segment =  yaml_config['transforms']
         for transform_name in transforms_segment:
-
-            print '>>> Reading transform config %s...' % transform_name
-            
             current_transform = transforms_segment[transform_name]
-            path = current_transform['route']
+            route = current_transform['route']
 
             # certain routes are reserved for internal usage;
             # reject if found
             #
-            if self.is_reserved_route(path):
-                raise ReservedRouteException(path)
+            if self.is_reserved_route(route):
+                raise ReservedRouteException(route)
 
             methods = current_transform['method'].upper()
             output_mime_type = current_transform['output_mimetype']
             
-            new_route = Route(transform_name, path, methods, output_mime_type)
-            routes[transform_name] = new_route
+            new_transform = Transform(transform_name, data_shapes.get(transform_name) or data_shapes.get('default'), route, methods, output_mime_type)
+            transforms[transform_name] = new_transform
             
-        return routes
+        return transforms
 
+    
     
     def generate_transform_function_names(self, yaml_config):
         transforms_segment = yaml_config['transforms']
-        return ['%s_transform' % f for f in transforms_segment]
+        return ['%s_func' % f for f in transforms_segment]
         
 
 
@@ -153,13 +146,10 @@ def main(argv):
     j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
     template_mgr = common.JinjaTemplateManager(j2env)
     routing_module_template = template_mgr.get_template('routes.py.j2')
-
-    print route_gen.generate_routes_for_transforms(yaml_config)
     
-    
-    print routing_module_template.render(routes=route_gen.generate_routes_for_transforms(yaml_config),
-                                         transforms=route_gen.generate_transform_function_names(yaml_config),
-                                         handler_module = route_gen.handler_module_name)
+    print routing_module_template.render(transforms=route_gen.load_transforms(yaml_config),                                                                                  
+                                         handler_module = route_gen.handler_module_name, 
+                                         transform_functions=route_gen.generate_transform_function_names(yaml_config))
                                         
                                          
 if __name__ == '__main__':

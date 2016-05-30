@@ -11,6 +11,7 @@ from flask import Flask
 import argparse
 import sys, os
 import yaml
+import core
 import common
 
 
@@ -22,6 +23,10 @@ HTTP_NOT_IMPLEMENTED = 500
 
 MIMETYPE_JSON = 'application/json'
 CONFIG_FILE_ENV_VAR = 'BUTTONIZE_CFG'
+
+
+app = Flask(__name__)
+
 
 
 class MissingDataStatus():
@@ -55,10 +60,10 @@ class TransformNotImplementedException(Exception):
 
 def load_snap_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--snap_config_file", metavar='<snap config file>', required=True, nargs=1, help='YAML config file for snap endpoints')
+    parser.add_argument("--configfile", metavar='<configfile>', required=True, nargs=1, help='YAML config file for snap endpoints')
 
     args = parser.parse_args()
-    config_file_path = common.full_path(args.snap_config_file[0])
+    config_file_path = common.full_path(args.configfile[0])
 
     return common.read_config_file(config_file_path)
     
@@ -108,9 +113,15 @@ def setup(app):
     
 
 
-from routes import app
 setup(app)
+
+# the container for all our data transforms
+xformer = core.Transformer(app.config['services']) 
+
+
+import routes
     
+
 
 if __name__ == '__main__':
     '''If we are loading from command line,

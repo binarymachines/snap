@@ -10,39 +10,70 @@ from flask import Flask, request, Response
 import snap
 
 
-snap.setup(app)
-logger = snap.logger
+
+snap.setup(snap.app)
+logger = snap.app.logger
 xformer = snap.xformer
 
 
-{% for t in transforms %}
-def {{t}}(input_data, service_objects):
-    raise snap.TransformNotImplementedException('{{t}}')
+#_snap_transforms
+
+{% for f in transform_functions %}
+def {{ f }}(input_data, service_objects):
+    raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
 
+#_
+
+
+#_snap_exception_handlers
 
 xformer.register_error_code(snap.NullTransformInputDataException, snap.HTTP_BAD_REQUEST)
 xformer.register_error_code(snap.MissingInputFieldException, snap.HTTP_BAD_REQUEST)
 xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT_IMPLEMENTED)
 
+#_
 
-{% for r in routes.values() %}
-@app.route('{{ r.path }}', methods=[{{ r.methods }}])
-def {{r.name}}():
+
+
+#_snap_data_shapes
+
+{% for transform in transforms.values() %}
+{{ transform.input_shape.name }} = core.InputShape()
+{%- for field in transform.input_shape.fields %}
+{{ transform.input_shape.name }}.add_field('{{ field.name }}', {{ field.is_required }})
+{%- endfor %}
+{% endfor %}
+
+#_
+
+
+#_snap_transform_loading
+
+{%- for transform in transforms.values() %}
+xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }}, {{ transform.function_name }}, {{ transform.output_type }})
+{%- endfor %}
+
+#_
+
+
+{% for t in transforms.values() %}
+@app.route('{{ t.path }}', methods=[{{ t.methods }}])
+def {{t.name}}():
     try:
-        {%- if r.methods == "'POST'" %}
-        transform_status = xformer.transform('{{ r.name }}', request.json)
-        {%- elif r.methods == "'GET'" or r.methods == "'DELETE'" %}        
+        {%- if t.methods == "'POST'" %}
+        transform_status = xformer.transform('{{ t.name }}', request.json)
+        {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}        
         input_data = {}
         input_data.update(request.args)
-        {%- for path_variable in r.path_variables %}        
+        {%- for path_variable in t.path_variables %}        
         input_data['{{path_variable}}'] = {{ path_variable }}
         {%- endfor %}
         
-        transform_status = xformer.transform('{{ r.name }}', convert_multidict(input_data))
+        transform_status = xformer.transform('{{ t.name }}', convert_multidict(input_data))
         {%- else %}
         {%- endif %}        
-        output_mimetype = xformer.target_mimetype_for_transform('{{ r.name }}')
+        output_mimetype = xformer.target_mimetype_for_transform('{{ t.name }}')
 
         if transform_status.ok:
             return Response(transform_status.output_data, status=HTTP_OK, mimetype=output_mimetype)
@@ -52,5 +83,3 @@ def {{r.name}}():
         raise err
 
 {% endfor %}
-
-
