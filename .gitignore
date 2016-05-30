@@ -1,4 +1,6 @@
 *.log
+*.log.*
 *.pyc
 *~
 .*
+main.py

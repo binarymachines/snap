@@ -8,11 +8,13 @@
 
 from flask import Flask, request, Response
 import snap
+import core
+import json
+import argparse
 
 
-
-snap.setup(snap.app)
-logger = snap.app.logger
+app = core.setup(Flask(__name__))
+logger = app.logger
 xformer = snap.xformer
 
 
@@ -51,26 +53,26 @@ xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT
 #_snap_transform_loading
 
 {%- for transform in transforms.values() %}
-xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }}, {{ transform.function_name }}, {{ transform.output_type }})
+xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }}, {{ transform.function_name }}, '{{ transform.output_type }}')
 {%- endfor %}
 
 #_
 
 
 {% for t in transforms.values() %}
-@app.route('{{ t.path }}', methods=[{{ t.methods }}])
-def {{t.name}}():
+@app.route('{{ t.route }}', methods=[{{ t.methods }}])
+def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
         {%- if t.methods == "'POST'" %}
         transform_status = xformer.transform('{{ t.name }}', request.json)
         {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}        
         input_data = {}
         input_data.update(request.args)
-        {%- for path_variable in t.path_variables %}        
-        input_data['{{path_variable}}'] = {{ path_variable }}
+        {%- for route_variable in t.route_variables %}        
+        input_data['{{ route_variable }}'] = {{ route_variable }}
         {%- endfor %}
         
-        transform_status = xformer.transform('{{ t.name }}', convert_multidict(input_data))
+        transform_status = xformer.transform('{{ t.name }}', core.convert_multidict(input_data))
         {%- else %}
         {%- endif %}        
         output_mimetype = xformer.target_mimetype_for_transform('{{ t.name }}')
@@ -83,3 +85,14 @@ def {{t.name}}():
         raise err
 
 {% endfor %}
+
+
+
+if __name__ == '__main__':
+    '''If we are loading from command line,
+    run the Flask app explicitly
+    '''
+    port = 5000
+    app.run(host='0.0.0.0', port=port)
+
+

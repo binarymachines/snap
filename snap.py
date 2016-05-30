@@ -25,10 +25,6 @@ MIMETYPE_JSON = 'application/json'
 CONFIG_FILE_ENV_VAR = 'BUTTONIZE_CFG'
 
 
-app = Flask(__name__)
-
-
-
 class MissingDataStatus():
     def __init__(self, field_name):
         self.message = 'The field "%s" is missing or empty.' % field_name
@@ -101,25 +97,22 @@ def initialize_services(yaml_config_obj, app):
 
 def setup(app):
     if app.config.get('initialized'):
-        return
+        return app
     yaml_config = load_snap_config() 
     initialize_logging(yaml_config, app)
     service_object_tbl = initialize_services(yaml_config, app)
-    
+    #
     # load the service objects into the app
     #
     app.config['services'] = common.ServiceObjectRegistry(service_object_tbl) 
     app.config['initialized'] = True
+    return app
     
 
 
-setup(app)
-
-# the container for all our data transforms
-xformer = core.Transformer(app.config['services']) 
-
 
 import routes
+from routes import *
     
 
 
@@ -127,8 +120,9 @@ if __name__ == '__main__':
     '''If we are loading from command line,
     run the Flask app explicitly
     '''
-    
-    app.run()
+    port = 5000
+    routes.app.run(host='0.0.0.0', port=port)
+
 
 
 
