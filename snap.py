@@ -80,7 +80,7 @@ def initialize_services(yaml_config_obj, app):
         config_segment = yaml_config_obj['service_objects'][service_object_name]
         service_object_classname = config_segment['class']
         service_module_name = yaml_config_obj['globals']['service_module']
-        parameter_array = config_segment['init_params']
+        parameter_array = config_segment['init_params'] or []
 
         param_tbl = {}
         for param in parameter_array:
@@ -110,18 +110,6 @@ def setup(app):
     
 
 
-
-import routes
-from routes import *
-    
-
-
-if __name__ == '__main__':
-    '''If we are loading from command line,
-    run the Flask app explicitly
-    '''
-    port = 5000
-    routes.app.run(host='0.0.0.0', port=port)
 
 
 

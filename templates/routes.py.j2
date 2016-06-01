@@ -12,10 +12,14 @@ import core
 import json
 import argparse
 
+{%- if transform_module %}
+import {{ transform_module }}
+{%- endif %}
 
-app = core.setup(Flask(__name__))
+app = snap.setup(Flask(__name__))
 logger = app.logger
-xformer = snap.xformer
+xformer = core.Transformer(app.config['services'])
+
 
 
 #_snap_transforms
@@ -78,8 +82,8 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         output_mimetype = xformer.target_mimetype_for_transform('{{ t.name }}')
 
         if transform_status.ok:
-            return Response(transform_status.output_data, status=HTTP_OK, mimetype=output_mimetype)
-        return Response(json.dumps(transform_status.user_data), status=transform_status.get_error_code() or HTTP_DEFAULT_ERRORCODE, mimetype=output_mimetype) 
+            return Response(transform_status.output_data, status=snap.HTTP_OK, mimetype=output_mimetype)
+        return Response(json.dumps(transform_status.user_data), status=transform_status.get_error_code() or snap.HTTP_DEFAULT_ERRORCODE, mimetype=output_mimetype) 
     except Exception, err:
         logger.error("Exception thrown: ", exc_info=1)        
         raise err

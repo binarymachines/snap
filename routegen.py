@@ -29,12 +29,14 @@ class ReservedRouteException(Exception):
 
 
 class Transform(object):
-    def __init__(self, name, input_shape, route, method_string, output_type):
+    def __init__(self, name, input_shape, route, method_string, output_type, transform_function_module=None):
         self.name = name
         self.input_shape = input_shape
         self.route = route
         self._methods = [method_name.strip() for method_name in method_string.split(',')]
         self.output_type = output_type
+        self.function_module_name = transform_function_module
+        
 
     def get_methods(self):
         method_list = ["'%s'" % m for m in self._methods]
@@ -43,6 +45,8 @@ class Transform(object):
     methods = property(get_methods)
     
     def get_function_name(self):
+        if self.function_module_name: 
+            return '%s.%s_func' % (self.function_module_name, self.name)
         return '%s_func' % self.name
 
     function_name = property(get_function_name)
@@ -58,7 +62,7 @@ class Transform(object):
         
 class RouteGenerator():
     def __init__(self, yaml_config):        
-        self.handler_module_name = yaml_config['globals']['handler_module']
+        self.transform_function_module = yaml_config['globals'].get('transform_function_module')
         
 
     def read_environment_value(self, val_name):
@@ -115,7 +119,13 @@ class RouteGenerator():
             methods = current_transform['method'].upper()
             output_mime_type = current_transform['output_mimetype']
             
-            new_transform = Transform(transform_name, data_shapes.get(transform_name) or data_shapes.get('default'), route, methods, output_mime_type)
+            new_transform = Transform(transform_name, 
+                                      data_shapes.get(transform_name) or data_shapes.get('default'), 
+                                      route, 
+                                      methods, 
+                                      output_mime_type,
+                                      self.transform_function_module)
+                              
             transforms[transform_name] = new_transform
             
         return transforms
@@ -147,8 +157,7 @@ def main(argv):
     template_mgr = common.JinjaTemplateManager(j2env)
     routing_module_template = template_mgr.get_template('routes.py.j2')
     
-    print routing_module_template.render(transforms=route_gen.load_transforms(yaml_config),                                                                                  
-                                         handler_module = route_gen.handler_module_name, 
+    print routing_module_template.render(transforms=route_gen.load_transforms(yaml_config),                                                                                                         transform_module = route_gen.transform_function_module, 
                                          transform_functions=route_gen.generate_transform_function_names(yaml_config))
                                         
                                          
