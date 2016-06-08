@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-'''Usage: routegen.py (-g | -p | -e) [--handlers=<handler_module>] [-m <main_module>] [-i <initfile>]
+'''Usage: routegen.py <initfile>
+
+
 
 
 '''
