@@ -1,16 +1,28 @@
 #!/usr/bin/env python
 
+'''Usage: routegen.py (-g | -p | -e) [--handlers=<handler_module>] [-m <main_module>] [-i <initfile>]
+
+
+'''
+
 import core
 import os, sys
 import argparse
+import docopt
 import yaml
 import jinja2
 import common
 import re
 
+
 default_config_filename = 'snap.conf'
 
 RESERVED_ROUTES = ['smp']
+
+
+        
+        
+    
 
 class MissingHandlerFunctionException(Exception):
     def __init__(self, handler_name, handler_module_name):
@@ -137,28 +149,38 @@ class RouteGenerator():
         return ['%s_func' % f for f in transforms_segment]
         
 
+ProgramMode = common.Enum(['GENERATE', 'EXTEND'])
 
         
 
 def main(argv):
-    parser = argparse.ArgumentParser(description='route generator for snap HTTP endpoints')
-    parser.add_argument('-p', action='store_true', required=False, help='preview (show but do not generate) routes')
-    parser.add_argument('-i', '--initfile', metavar='<initfile>', required=False, nargs=1, help='use the specified init file')
-    args = parser.parse_args()
+    try:
+        args = docopt.docopt(__doc__)
+        
+        preview = args.get('--preview') or False        
+        config_filename = args.get('initfile') or default_config_filename                    
+        yaml_config = common.read_config_file(config_filename)    
 
-    config_filename = default_config_filename
-    if args.initfile:
-       config_filename = args.initfile[0]
+        
+        if args.get('--extend'):
+            mode = ProgramMode.EXTEND
+        elif args.get('--generate'):
+            mode = ProgramMode.GENERATE
 
-    yaml_config = common.read_config_file(config_filename)    
-    route_gen = RouteGenerator(yaml_config)
+        
+        
+        route_gen = RouteGenerator(yaml_config)
     
-    j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
-    template_mgr = common.JinjaTemplateManager(j2env)
-    routing_module_template = template_mgr.get_template('routes.py.j2')
+        j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
+        template_mgr = common.JinjaTemplateManager(j2env)
+        routing_module_template = template_mgr.get_template('routes.py.j2')
     
-    print routing_module_template.render(transforms=route_gen.load_transforms(yaml_config),                                                                                                         transform_module = route_gen.transform_function_module, 
-                                         transform_functions=route_gen.generate_transform_function_names(yaml_config))
+        print routing_module_template.render(transforms=route_gen.load_transforms(yaml_config),
+                                             transform_module = route_gen.transform_function_module, 
+                                             transform_functions=route_gen.generate_transform_function_names(yaml_config))
+
+    except docopt.DocoptExit as e:
+        print e.message
                                         
                                          
 if __name__ == '__main__':

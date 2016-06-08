@@ -18,7 +18,7 @@ import {{ transform_module }}
 
 app = snap.setup(Flask(__name__))
 logger = app.logger
-xformer = core.Transformer(app.config['services'])
+xformer = core.Transformer(app.config.get('services'))
 
 
 
@@ -83,7 +83,9 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
 
         if transform_status.ok:
             return Response(transform_status.output_data, status=snap.HTTP_OK, mimetype=output_mimetype)
-        return Response(json.dumps(transform_status.user_data), status=transform_status.get_error_code() or snap.HTTP_DEFAULT_ERRORCODE, mimetype=output_mimetype) 
+        return Response(json.dumps(transform_status.user_data), 
+                        status=transform_status.get_error_code() or snap.HTTP_DEFAULT_ERRORCODE, 
+                        mimetype=output_mimetype) 
     except Exception, err:
         logger.error("Exception thrown: ", exc_info=1)        
         raise err

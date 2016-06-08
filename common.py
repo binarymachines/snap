@@ -13,6 +13,12 @@ class UnregisteredServiceObjectException(Exception):
             Exception.__init__(self, 'No ServiceObject registered under the alias "%s".' % alias)
 
 
+class Enum(set):
+    def __getattr__(self, name):
+        if name in self:
+            return name
+        raise AttributeError
+            
 
 def read_config_file(filename):
     '''Load a YAML initfile by name, returning a dictionary of its contents
