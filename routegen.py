@@ -158,7 +158,7 @@ def main(argv):
         args = docopt.docopt(__doc__)
         
         preview = args.get('--preview') or False        
-        config_filename = args.get('initfile') or default_config_filename                    
+        config_filename = args.get('<initfile>') or default_config_filename                    
         yaml_config = common.read_config_file(config_filename)    
 
         
