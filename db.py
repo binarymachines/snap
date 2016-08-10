@@ -3,9 +3,8 @@
 #------ Database module --------
 
 import sqlalchemy as sqla
-#from sqlalchemy import *
-from sqla.orm import mapper, scoped_session, sessionmaker, relation, clear_mappers
-from wtforms import Form
+import sqlalchemy.orm
+from sqlalchemy.orm import mapper, scoped_session, sessionmaker, relation, clear_mappers
 
 import types
 import os
@@ -13,16 +12,12 @@ import exceptions
 import sys
 
 
-
-#from core import *
-
-
 class NoSuchTableError(Exception):
     def __init__(self, tableName, schemaName):
         Exception.__init__(self, "No table named '%s' exists in database schema '%s'." % (tableName, schemaName))
 
 
-Session = sqla.scoped_session(sessionmaker(autoflush=False, autocommit=False, expire_on_commit=False))
+Session = scoped_session(sessionmaker(autoflush=False, autocommit=False, expire_on_commit=False))
 
 class Database:
     """A wrapper around the basic SQLAlchemy DB connect logic.
@@ -79,7 +74,6 @@ class Database:
         return self.engine
 
     def getSession(self):        
-        #return self.Session()
         return Session()
 
     def listTables(self):
@@ -165,8 +159,9 @@ class PersistenceManager:
     def loadTable(self, tableName):
         """Retrieve table data using SQLAlchemy reflection"""
 
-        return Table(tableName, self.metaData, autoload = True)
+        return sqlalchemy.schema.Table(tableName, self.metaData, autoload = True)
 
+    
     def str_to_class(self, objectTypeName):
         """A rudimentary class loader function.
 
