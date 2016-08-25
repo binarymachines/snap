@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
-'''Usage: routegen.py <initfile>
+'''Usage: routegen.py -g <initfile>
+          routegen.py -g --transforms=transform_module <initfile>
+          routegen.py -e --transforms=transform_module <initfile>
 
-
-
+-g --generate  generate all code 
+-e --extend    extend existing code
+-p --preview   preview code generation
 
 '''
 
@@ -93,7 +96,7 @@ class RouteGenerator():
                 return True
         return False
 
-
+    
     def load_shapes(self, yaml_config):
         data_shapes = {}
 
@@ -112,8 +115,7 @@ class RouteGenerator():
             
         return data_shapes
                 
-
-            
+        
     def load_transforms(self, yaml_config):
         
         data_shapes = self.load_shapes(yaml_config)
@@ -169,8 +171,7 @@ def main(argv):
         elif args.get('--generate'):
             mode = ProgramMode.GENERATE
 
-        
-        
+                
         route_gen = RouteGenerator(yaml_config)
     
         j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
