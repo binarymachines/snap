@@ -16,11 +16,19 @@ import argparse
 import {{ transform_module }}
 {%- endif %}
 
-app = snap.setup(Flask(__name__))
+f_runtime = Flask(__name__)
+
+if __name__ == '__main__':
+    print 'starting SNAP microservice in standalone (debug) mode...'
+    f_runtime.config['startup_mode'] = 'standalone'
+    
+else:
+    print 'starting SNAP microservice in wsgi mode...'
+    f_runtime.config['startup_mode'] = 'server'
+
+app = snap.setup(f_runtime)
 logger = app.logger
 xformer = core.Transformer(app.config.get('services'))
-
-
 
 #_snap_transforms
 
