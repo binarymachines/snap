@@ -54,14 +54,31 @@ class TransformNotImplementedException(Exception):
         Exception.__init__(self, 'transform function %s exists but performs no action. Time to add some code.' % transform_name)
 
 
-def load_snap_config():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--configfile", metavar='<configfile>', required=True, nargs=1, help='YAML config file for snap endpoints')
+def load_snap_config(mode):
+    config_file_path = None
+    if mode == 'standalone':
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--configfile",
+                            metavar='<configfile>',
+                            required=True,
+                            nargs=1,
+                            help='YAML config file for snap endpoints')
 
-    args = parser.parse_args()
-    config_file_path = common.full_path(args.configfile[0])
+        args = parser.parse_args()
+        config_file_path = common.full_path(args.configfile[0])
+    elif mode == 'server':
+        config_file_path=os.getenv('configfile')
 
+    else:
+        print('valid setup modes are "standalone" and "server".')
+        exit(1)
+        
+    if not config_file_path:
+        print('please set the "configfile" environment variable in the WSGI command string.')
+        exit(1)
+        
     return common.read_config_file(config_file_path)
+
     
 
 def initialize_logging(yaml_config_obj, app):
@@ -98,7 +115,9 @@ def initialize_services(yaml_config_obj, app):
 def setup(app):
     if app.config.get('initialized'):
         return app
-    yaml_config = load_snap_config() 
+        
+    mode = app.config.get('startup_mode')
+    yaml_config = load_snap_config(mode)
     initialize_logging(yaml_config, app)
     service_object_tbl = initialize_services(yaml_config, app)
     #
