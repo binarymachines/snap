@@ -3,6 +3,7 @@
 import common
 import argparse
 import logging
+import json
 from logging.handlers import RotatingFileHandler
 
 
@@ -51,6 +52,7 @@ def is_sequence(arg):
             hasattr(arg, "__getitem__") or
             hasattr(arg, "__iter__"))
 
+
 def convert_multidict(md):
     result = {}
     for key in md.keys():
@@ -61,14 +63,56 @@ def convert_multidict(md):
     return result
         
 
+def utf8_encode(raw_input_data):
+    input_data = {}
+    for key in raw_input_data:
+        encoded_key = key
+        encoded_value = raw_input_data[key]
+        if key.__class__.__name__ == 'unicode':
+            encoded_key = key.encode('utf-8')
+
+        if encoded_value.__class__.__name__ == 'unicode':
+            encoded_value = encoded_value.encode('utf-8')
+        input_data[encoded_key] = encoded_value
+
+    return input_data
+
+
+def utf8_decode(raw_input_data):
+    output_data = {}
+    for key in raw_input_data:
+        decoded_key = key
+        decoded_value = raw_input_data[key]
+        
+        if key.__class__.__name__ == 'str':
+            decoded_key = key.decode()
+        
+        if decoded_value.__class__.__name__ == 'str':
+            decoded_value = decoded_value.decode()
+        
+        output_data[decoded_key] = decoded_value
+
+    return output_data
+        
+        
+class ComplexEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, complex):
+            return [obj.real, obj.imag]
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
+
         
 class DataField():
-    def __init__(self, name, is_required):
+    def __init__(self, name, is_required = False):
         self.name = name
         self.is_required = is_required
 
     def validate(self):
         pass
+
+    def __str__(self):
+        return 'DataField <%s>, required = %s' % (self.name, self.is_required)
     
     
 class InputShape():
@@ -81,11 +125,14 @@ class InputShape():
         
     # doesn't have to be limited to this. Regex for format validation might be nice
     def scan(self, input_data):
+        print('scanning input data: %s...' % input_data)
+        
         errors = []
         for f in self.fields:
+            print f
             value = input_data.get(f.name)
-            if value is None and f.is_required:
-                errors.append(repr(MissingDataStatus(f.name)))                
+            if not value  and f.is_required:
+                errors.append(repr(MissingDataStatus(f.name)))                                
         return errors
 
     def field_names(self):
@@ -142,9 +189,20 @@ class Transformer():
           return action.output_mimetype
       
           
-      def transform(self, type_name, input_data):
-          if input_data is None:
+      def transform(self, type_name, raw_input_data):
+          if raw_input_data is None:
               raise NullTransformInputDataException(type_name)
+
+          input_data = {}
+          for key in raw_input_data:
+              encoded_key = key
+              encoded_value = raw_input_data[key]
+              if key.__class__.__name__ == 'unicode':
+                  encoded_key = key.encode('utf-8')
+
+              if encoded_value.__class__.__name__ == 'unicode':
+                  encoded_value = encoded_value.encode('utf-8')
+              input_data[encoded_key] = encoded_value
           
           action = self.actions.get(type_name)          
           if not action:              
