@@ -11,9 +11,12 @@ import snap
 import core
 import json
 import argparse
+import sys
+
+sys.path.append('{{ project_dir }}')
 
 {%- if transform_module %}
-import {{ transform_module }}
+import {{ transform_module }} 
 {%- endif %}
 
 f_runtime = Flask(__name__)
