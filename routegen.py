@@ -178,7 +178,8 @@ def main(argv):
         template_mgr = common.JinjaTemplateManager(j2env)
         routing_module_template = template_mgr.get_template('routes.py.j2')
     
-        print routing_module_template.render(transforms=route_gen.load_transforms(yaml_config),
+        print routing_module_template.render(project_dir=yaml_config['globals']['project_directory'],
+                                             transforms=route_gen.load_transforms(yaml_config),
                                              transform_module = route_gen.transform_function_module, 
                                              transform_functions=route_gen.generate_transform_function_names(yaml_config))
 
