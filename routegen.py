@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 '''Usage: routegen.py -g <initfile>
-          routegen.py -g --transforms=transform_module <initfile>
-          routegen.py -e --transforms=transform_module <initfile>
+          routegen.py -p <initfile>
+          routegen.py -e <initfile>
 
 -g --generate  generate all code 
 -e --extend    extend existing code
@@ -106,11 +106,11 @@ class RouteGenerator():
             if not shape_name.endswith('shape'):
                 internal_shape_name = '%s_shape' % shape_name
             input_shape = core.InputShape(internal_shape_name)
-            
             input_field_tables = shapes_segment[shape_name]['fields']
-
-            for tbl in input_field_tables:
-                input_shape.add_field(tbl['name'], bool(tbl.get('required')))
+            if input_field_tables:
+                for tbl in input_field_tables:
+                    input_shape.add_field(tbl['name'], bool(tbl.get('required')))
+                    
             data_shapes[shape_name] = input_shape
             
         return data_shapes
