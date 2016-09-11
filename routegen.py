@@ -25,10 +25,6 @@ default_config_filename = 'snap.conf'
 RESERVED_ROUTES = ['smp']
 
 
-        
-        
-    
-
 class MissingHandlerFunctionException(Exception):
     def __init__(self, handler_name, handler_module_name):
         Exception.__init__(self, 'No function "%s" present in python module "%s.py"' % (handler_name, handler_module_name))
@@ -60,6 +56,7 @@ class Transform(object):
         return ', '.join(method_list)
 
     methods = property(get_methods)
+
     
     def get_function_name(self):
         if self.function_module_name: 
@@ -115,7 +112,8 @@ class RouteGenerator():
             
         return data_shapes
                 
-        
+
+    
     def load_transforms(self, yaml_config):
         
         data_shapes = self.load_shapes(yaml_config)
@@ -170,14 +168,46 @@ def main(argv):
             mode = ProgramMode.EXTEND
         elif args.get('--generate'):
             mode = ProgramMode.GENERATE
-
                 
         route_gen = RouteGenerator(yaml_config)
     
         j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
         template_mgr = common.JinjaTemplateManager(j2env)
-        routing_module_template = template_mgr.get_template('routes.py.j2')
+
+        transform_module_template = template_mgr.get_template('transforms.py.j2')
+        transform_module_name = yaml_config['globals']['transform_function_module']
+        transform_module_filename = '%s.py' % transform_module_name
+
+
+        # are we generating or extending code?
+        if mode == ProgramMode.GENERATE:
+            transform_code = transform_module_template.render(transforms=route_gen.load_transforms(yaml_config))
+            with open(transform_module_filename, 'w') as transform_file:
+                transform_file.write(transform_code)
+
+        else: # mode is ProgramMode.EXTEND
+            # load existing transforms module
+            tmodule = __import__(transform_module_name)
+            
+            # we will generate transform code for every function in the config file
+            # that is not already defined in the module
+            new_transforms = {}
+            for name, value in route_gen.load_transforms(yaml_config).iteritems():
+                if not hasattr(tmodule, name):
+                    new_transforms[name] = value
+
+            transform_block_template = template_mgr.get_template('transform_funcs.py.j2')
+            transform_code = transform_block_template.render(transforms=new_transforms)
+            with open(transform_module_filename, 'a') as transform_file:
+                transform_file.write('\n\n')
+                transform_file.write(transform_code)
+                
+
+            
     
+                
+
+        routing_module_template = template_mgr.get_template('routes.py.j2')
         print routing_module_template.render(project_dir=yaml_config['globals']['project_directory'],
                                              transforms=route_gen.load_transforms(yaml_config),
                                              transform_module = route_gen.transform_function_module, 

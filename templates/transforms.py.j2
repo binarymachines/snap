@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+
+import snap
+import core
+import json
+
+
+
+{% for f in transforms %}
+def {{ f }}(input_data, service_objects):
+    raise snap.TransformNotImplementedException('{{f}}')
+{% endfor %}
+
+
