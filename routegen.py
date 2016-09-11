@@ -181,7 +181,7 @@ def main(argv):
 
         # are we generating or extending code?
         if mode == ProgramMode.GENERATE:
-            transform_code = transform_module_template.render(transforms=route_gen.load_transforms(yaml_config))
+            transform_code = transform_module_template.render(transform_functions=route_gen.generate_transform_function_names(yaml_config))
             with open(transform_module_filename, 'w') as transform_file:
                 transform_file.write(transform_code)
 
@@ -191,13 +191,13 @@ def main(argv):
             
             # we will generate transform code for every function in the config file
             # that is not already defined in the module
-            new_transforms = {}
-            for name, value in route_gen.load_transforms(yaml_config).iteritems():
-                if not hasattr(tmodule, name):
-                    new_transforms[name] = value
+            new_transforms = []
+            for tname in route_gen.load_transforms(yaml_config).keys():
+                if not hasattr(tmodule, tname):
+                    new_transforms.append('%s_func' % tname)
 
             transform_block_template = template_mgr.get_template('transform_funcs.py.j2')
-            transform_code = transform_block_template.render(transforms=new_transforms)
+            transform_code = transform_block_template.render(transform_functions=new_transforms)
             with open(transform_module_filename, 'a') as transform_file:
                 transform_file.write('\n\n')
                 transform_file.write(transform_code)

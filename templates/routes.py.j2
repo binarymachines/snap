@@ -33,27 +33,18 @@ app = snap.setup(f_runtime)
 logger = app.logger
 xformer = core.Transformer(app.config.get('services'))
 
-#_snap_transforms
 
-{% for f in transform_functions %}
-def {{ f }}(input_data, service_objects):
-    raise snap.TransformNotImplementedException('{{f}}')
-{% endfor %}
-
-#_
-
-
-#_snap_exception_handlers
+#-- snap exception handlers ---
 
 xformer.register_error_code(snap.NullTransformInputDataException, snap.HTTP_BAD_REQUEST)
 xformer.register_error_code(snap.MissingInputFieldException, snap.HTTP_BAD_REQUEST)
 xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT_IMPLEMENTED)
 
-#_
+#------------------------------
 
 
 
-#_snap_data_shapes
+#-- snap data shapes ----------
 
 {% for transform in transforms.values() %}
 {{ transform.input_shape.name }} = core.InputShape()
@@ -62,16 +53,16 @@ xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT
 {%- endfor %}
 {% endfor %}
 
-#_
+#------------------------------
 
 
-#_snap_transform_loading
+#-- snap transform loading ----
 
 {%- for transform in transforms.values() %}
 xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }}, {{ transform.function_name }}, '{{ transform.output_type }}')
 {%- endfor %}
 
-#_
+#------------------------------
 
 
 {% for t in transforms.values() %}
