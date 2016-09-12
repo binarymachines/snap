@@ -192,9 +192,9 @@ def main(argv):
             # we will generate transform code for every function in the config file
             # that is not already defined in the module
             new_transforms = []
-            for tname in route_gen.load_transforms(yaml_config).keys():
+            for tname in route_gen.generate_transform_names(yaml_config):
                 if not hasattr(tmodule, tname):
-                    new_transforms.append('%s_func' % tname)
+                    new_transforms.append(tname)
 
             transform_block_template = template_mgr.get_template('transform_funcs.py.j2')
             transform_code = transform_block_template.render(transform_functions=new_transforms)
@@ -203,15 +203,10 @@ def main(argv):
                 transform_file.write(transform_code)
                 
 
-            
-    
-                
-
         routing_module_template = template_mgr.get_template('routes.py.j2')
         print routing_module_template.render(project_dir=yaml_config['globals']['project_directory'],
                                              transforms=route_gen.load_transforms(yaml_config),
-                                             transform_module = route_gen.transform_function_module, 
-                                             transform_functions=route_gen.generate_transform_function_names(yaml_config))
+                                             transform_module = route_gen.transform_function_module)
 
     except docopt.DocoptExit as e:
         print e.message
