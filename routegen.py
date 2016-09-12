@@ -192,7 +192,7 @@ def main(argv):
             # we will generate transform code for every function in the config file
             # that is not already defined in the module
             new_transforms = []
-            for tname in route_gen.generate_transform_names(yaml_config):
+            for tname in route_gen.generate_transform_function_names(yaml_config):
                 if not hasattr(tmodule, tname):
                     new_transforms.append(tname)
 
