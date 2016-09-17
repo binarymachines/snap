@@ -107,7 +107,7 @@ class RouteGenerator():
             if input_field_tables:
                 for tbl in input_field_tables:
                     input_shape.add_field(tbl['name'], bool(tbl.get('required')))
-                    
+
             data_shapes[shape_name] = input_shape
             
         return data_shapes
@@ -121,6 +121,7 @@ class RouteGenerator():
 
         transforms_segment =  yaml_config['transforms']
         for transform_name in transforms_segment:
+            shape_name = transforms_segment[transform_name]['input_shape']
             current_transform = transforms_segment[transform_name]
             route = current_transform['route']
 
@@ -134,7 +135,7 @@ class RouteGenerator():
             output_mime_type = current_transform['output_mimetype']
             
             new_transform = Transform(transform_name, 
-                                      data_shapes.get(transform_name) or data_shapes.get('default'), 
+                                      data_shapes[shape_name], 
                                       route, 
                                       methods, 
                                       output_mime_type,

@@ -47,7 +47,7 @@ xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT
 #-- snap data shapes ----------
 
 {% for transform in transforms.values() %}
-{{ transform.input_shape.name }} = core.InputShape()
+{{ transform.input_shape.name }} = core.InputShape("{{transform.input_shape.name}}")
 {%- for field in transform.input_shape.fields %}
 {{ transform.input_shape.name }}.add_field('{{ field.name }}', {{ field.is_required }})
 {%- endfor %}
@@ -70,7 +70,7 @@ xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }
 def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
         {%- if t.methods == "'POST'" %}
-        transform_status = xformer.transform('{{ t.name }}', request.json)
+        transform_status = xformer.transform('{{ t.name }}', core.convert_multidict(request.values))
         {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}        
         input_data = {}
         input_data.update(request.args)

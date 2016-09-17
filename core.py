@@ -116,7 +116,7 @@ class DataField():
     
     
 class InputShape():
-    def __init__(self, name='anonymous'):
+    def __init__(self, name):
         self.name = name
         self.fields = []
        
@@ -125,11 +125,8 @@ class InputShape():
         
     # doesn't have to be limited to this. Regex for format validation might be nice
     def scan(self, input_data):
-        print('scanning input data: %s...' % input_data)
-        
         errors = []
         for f in self.fields:
-            print f
             value = input_data.get(f.name)
             if not value  and f.is_required:
                 errors.append(repr(MissingDataStatus(f.name)))                                
@@ -211,11 +208,8 @@ class Transformer():
           try:
               return action.execute(input_data, self.services)
           except Exception, err:
-              error_type = err.__class__.__name__
-              print 'Transformer catching downstream error %s...' % error_type
-              
+              error_type = err.__class__.__name__              
               if self.error_table.get(error_type):
-                  print 'Transformer returning error status...'
                   return TransformStatus(None, 
                                          False, 
                                          error_message=err.message,  
