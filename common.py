@@ -54,6 +54,9 @@ def load_class(class_name, module_name):
     return getattr(module, class_name)
 
 
+class MissingEnvironmentVarException(Exception):
+      def __init__(self, env_var):
+            Exception.__init__(self, 'The environment variable %s has not been set.' % env_var)
 
 
 class JinjaTemplateManager:

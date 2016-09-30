@@ -205,7 +205,15 @@ def main(argv):
                 
 
         routing_module_template = template_mgr.get_template('routes.py.j2')
-        print routing_module_template.render(project_dir=yaml_config['globals']['project_directory'],
+
+        project_directory_var = yaml_config['globals']['project_directory']
+        project_directory = common.load_config_var(project_directory_var)
+
+        if project_directory_var.startswith('$') and not project_directory:
+            raise common.MissingEnvironmentVarException(project_directory_var[1:])
+        
+        
+        print routing_module_template.render(project_dir=project_directory,
                                              transforms=route_gen.load_transforms(yaml_config),
                                              transform_module = route_gen.transform_function_module)
 
