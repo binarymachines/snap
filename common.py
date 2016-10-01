@@ -13,6 +13,12 @@ class UnregisteredServiceObjectException(Exception):
             Exception.__init__(self, 'No ServiceObject registered under the alias "%s".' % alias)
 
 
+class MissingEnvironmentVarException(Exception):
+      def __init__(self, env_var):
+            Exception.__init__(self, 'The environment variable %s has not been set.' % env_var)
+
+
+            
 class Enum(set):
     def __getattr__(self, name):
         if name in self:
@@ -39,13 +45,16 @@ def full_path(filename):
 
 
 def load_config_var(var_string):
+      var = None
       if var_string.startswith('$'):
-            return os.environ.get(var_string[1:])
+            var = os.environ.get(var_string[1:])
+            if not var:
+                  raise MissingEnvironmentVarException(var_string[1:])
       elif var_string.startswith('~%s' % os.path.sep):
             home_dir = expanduser(var_string[0])
             path_stub = var_string[2:]
-            return os.path.join(home_dir, path_stub)
-      return var_string
+            var = os.path.join(home_dir, path_stub)
+      return var
 
       
 
@@ -54,9 +63,6 @@ def load_class(class_name, module_name):
     return getattr(module, class_name)
 
 
-class MissingEnvironmentVarException(Exception):
-      def __init__(self, env_var):
-            Exception.__init__(self, 'The environment variable %s has not been set.' % env_var)
 
 
 class JinjaTemplateManager:

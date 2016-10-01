@@ -102,7 +102,9 @@ def initialize_services(yaml_config_obj, app):
         param_tbl = {}
         for param in parameter_array:
             param_name = param['name']
-            param_value = param['value']
+            raw_param_value = param['value']
+
+            param_value = common.load_config_var(raw_param_value)
             param_tbl[param_name] = param_value
 
         klass = common.load_class(service_object_classname, service_module_name)
