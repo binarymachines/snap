@@ -70,7 +70,11 @@ xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }
 def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
         {%- if t.methods == "'POST'" %}
-        transform_status = xformer.transform('{{ t.name }}', core.convert_multidict(request.values))
+        input_data = {}
+        input_data.update(request.values)
+        if request.headers['Content-Type'] == 'application/json':
+            input_data.update(request.get_json())
+        transform_status = xformer.transform('{{ t.name }}', core.convert_multidict(input_data))
         {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}        
         input_data = {}
         input_data.update(request.args)
@@ -101,6 +105,6 @@ if __name__ == '__main__':
     run the Flask app explicitly
     '''
     
-    app.run()
+    app.run(port={{port}})
 
 

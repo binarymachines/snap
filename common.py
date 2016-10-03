@@ -47,13 +47,15 @@ def full_path(filename):
 def load_config_var(var_string):
       var = None
       if var_string.startswith('$'):
-            var = os.environ.get(var_string[1:])
-            if not var:
-                  raise MissingEnvironmentVarException(var_string[1:])
+          var = os.environ.get(var_string[1:])            
+          if not var:
+              raise MissingEnvironmentVarException(var_string[1:])
       elif var_string.startswith('~%s' % os.path.sep):
-            home_dir = expanduser(var_string[0])
-            path_stub = var_string[2:]
-            var = os.path.join(home_dir, path_stub)
+          home_dir = expanduser(var_string[0])
+          path_stub = var_string[2:]
+          var = os.path.join(home_dir, path_stub)
+      else:
+          var = var_string
       return var
 
       
