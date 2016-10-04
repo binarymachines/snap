@@ -54,7 +54,7 @@ class TransformNotImplementedException(Exception):
         Exception.__init__(self, 'transform function %s exists but performs no action. Time to add some code.' % transform_name)
 
 
-def load_snap_config(mode):
+def load_snap_config(mode, app):
     config_file_path = None
     if mode == 'standalone':
         parser = argparse.ArgumentParser()
@@ -67,7 +67,9 @@ def load_snap_config(mode):
         args = parser.parse_args()
         config_file_path = common.full_path(args.configfile[0])
     elif mode == 'server':
-        config_file_path=os.getenv('configfile')
+        config_file_path=os.getenv('SNAP_CONFIG')
+        filename = os.path.join(app.instance_path, 'application.cfg')
+        print 'generated config path is %s' % filename
 
     else:
         print('valid setup modes are "standalone" and "server".')
@@ -91,6 +93,7 @@ def initialize_logging(yaml_config_obj, app):
     logging.getLogger('wekzeug').addHandler(handler)
 
 
+    
 def initialize_services(yaml_config_obj, app):
     service_objects = {}
     for service_object_name in yaml_config_obj['service_objects']:
@@ -119,7 +122,7 @@ def setup(app):
         return app
         
     mode = app.config.get('startup_mode')
-    yaml_config = load_snap_config(mode)
+    yaml_config = load_snap_config(mode, app)
     initialize_logging(yaml_config, app)
     service_object_tbl = initialize_services(yaml_config, app)
     #
