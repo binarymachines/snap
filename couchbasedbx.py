@@ -11,6 +11,11 @@ class MissingKeygenFunctionError(Exception):
         Exception.__init__(self, 'No key generator function registered for record type %s.' % type_name)
 
 
+class NoRecordForKeyError(Exception):
+    def __init__(self, key):
+        Exception.__init__(self, 'No value in database for key: %s' % key)
+
+        
 class CouchbaseServer(object):
     def __init__(self, hostname):
         self.hostname = hostname
