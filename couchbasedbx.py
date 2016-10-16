@@ -8,7 +8,7 @@ from couchbase.exceptions import CouchbaseError
 
 class MissingKeygenFunctionError(Exception):
     def __init__(self, type_name):
-        
+        Exception.__init__(self, 'No key generator function registered for record type %s.' % type_name)
 
 
 class CouchbaseServer(object):
@@ -37,7 +37,6 @@ class CouchbaseRecord(object):
 class CouchbaseRecordBuilder(object):
     def __init__(self, record_type_name):
         self.record_type = record_type_name
-        self.keygen_function = keygen_function
         self.fields = {}
 
         
