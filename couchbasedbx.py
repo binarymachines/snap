@@ -6,6 +6,10 @@ from couchbase.n1ql import N1QLQuery
 from couchbase.exceptions import CouchbaseError
 
 
+class MissingKeygenFunctionError(Exception):
+    def __init__(self, type_name):
+        
+
 
 class CouchbaseServer(object):
     def __init__(self, hostname):
@@ -78,6 +82,13 @@ class CouchbasePersistenceManager(object):
         self.key_generation_functions[record_type_name] = keygen_function
 
 
+    def generate_key(self, couchbase_record):
+        keygen_func = self.key_generation_functions.get(couchbase_record.record_type)
+        if not keygen_func:
+            raise MissingKeygenFunctionError(couchbase_record.record_type)
+        return keygen_func(couchbase_record)
+
+    
     def lookup_record(self, record_type_name, key):        
         # TODO: update this logic when we start running on a cluster
         result = self.bucket.get(key, quiet=True)
@@ -86,16 +97,18 @@ class CouchbasePersistenceManager(object):
             return CouchbaseRecordBuilder(record_type_name).from_json(data).build()
         return None
 
-
-    def generate_key(self, couchbase_record):
-        keygen_func = self.key_generation_functions.get(couchbase_record.record_type)
-        if not keygen_func:
-            raise MissingKeygenFunctionError(couchbase_record.record_type)
-        return keygen_func(couchbase_record)
     
+    def insert_record(self, couchbase_record):
+        key = self.generate_key(couchbase_record)
+        self.bucket.insert(key, couchbase_record.__dict__)
+        return key
 
 
-    
+    def update_record(self, couchbase_record, key, record_must_exist=False):
+        existing_record = self.lookup_record(couchbase_record.record_type, key)
+        if not existing_record and record_must_exist:
+            raise NoRecordForKeyError(key)
+        self.bucket.upsert(key, couchbase_record.__dict__)
     
 
 
