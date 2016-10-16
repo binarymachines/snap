@@ -31,13 +31,8 @@ class CouchbaseServer(object):
 class CouchbaseRecord(object):
     def __init__(self, record_type, **kwargs):
         self.record_type = record_type
-        self.key_generator = kwargs.get('keygen_function')
 
-
-    def generate_key(self):
-        pass
-    
-
+        
     
 class CouchbaseRecordBuilder(object):
     def __init__(self, record_type_name):
