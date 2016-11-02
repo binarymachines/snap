@@ -54,12 +54,15 @@ class Database:
 
     
 
-    def login(self, username, password):    
+    def login(self, username, password, schema=None):    
         """Connect as the specified user."""
 
         url = self.__createURL__(self.dbType, username, password)
         self.engine = sqla.create_engine(url)
-        self.metadata = sqla.MetaData(self.engine)
+        if schema:
+            self.metadata = sqla.MetaData(self.engine, schema=schema)
+        else:
+            self.metadata = sqla.MetaData(self.engine)
         self.metadata.reflect(bind=self.engine)
         
         #self.sessionFactory.configure(bind=self.engine)
