@@ -4,6 +4,7 @@
 from couchbase.bucket import Bucket
 from couchbase.n1ql import N1QLQuery
 from couchbase.exceptions import CouchbaseError
+import json
 
 
 class MissingKeygenFunctionError(Exception):
