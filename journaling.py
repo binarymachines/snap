@@ -8,18 +8,6 @@ from couchbasedbx import *
 
 
 
-class OpLogWriter(object):
-    def __init__(self, **kwargs):
-        pass
-
-
-    def write(self, **kwargs):
-        pass
-
-
-
-    
-
 
 def generate_op_record_key(oplog_record):
     return '%s_%s' % (oplog_record.record_type, datetime.datetime.utcnow().isoformat()) 
@@ -46,24 +34,25 @@ class OpLogEntry(object):
 
     def add_field(self, op_log_field):
         self.fields.append(op_log_field)
+        return self
 
 
     def data(self):
         result = {}
         for field in self.fields:
-            result.extend(field.data())
+            result.update(field.data())
         return result
     
 
     
 class TimestampField(OpLogField):
     def __init__(self):
-        OpLogEntry.__init__(self, 'timestamp')
+        OpLogField.__init__(self, 'timestamp')
         #self.time = datetime.datetime.now().isoformat() 
 
         
     def _value(self):
-        return return datetime.datetime.now().isoformat()
+        return datetime.datetime.now().isoformat()
 
     
 
@@ -86,8 +75,9 @@ class PIDField(OpLogField):
 
     def _value(self):
         return self.process_id
-    
 
+
+    
     
 class RecordPageField(OpLogField):
     def __init__(self, num_records, reading_frame):
@@ -100,7 +90,16 @@ class RecordPageField(OpLogField):
                  'page_number': self.reading_frame.index_number,
                  'page_size': self.reading_frame.page_size
         }
+
     
+
+class OpLogWriter(object):
+
+    def write(self, **kwargs):
+        '''implement in subclasses'''
+        pass
+
+
 
     
 class CouchbaseOpLogWriter(OpLogWriter):
@@ -140,6 +139,7 @@ class ContextDecorator(object):
 
         return wrapper
 
+
     
     
 class journal(ContextDecorator):
@@ -154,7 +154,7 @@ class journal(ContextDecorator):
         print 'writing oplog START record...'
         record = self.start_entry.data()
         record['op_name'] = self.op_name
-        self.oplog_writer.write(record)
+        self.oplog_writer.write(**record)
         return self
 
 
@@ -163,7 +163,7 @@ class journal(ContextDecorator):
             print 'writing oplog END record:...'
             record = self.end_entry.data()
             record['op_name'] = self.op_name
-            self.oplog_writer.write(record)
+            self.oplog_writer.write(**record)
 
         return self
 
