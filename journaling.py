@@ -8,17 +8,16 @@ from couchbasedbx import *
 
 
 
-class OpLog(object):
+class OpLogWriter(object):
     def __init__(self, **kwargs):
         pass
 
 
-    def log_start(self, **kwargs):
+    def write(self, **kwargs):
         pass
 
 
-    def log_end(self, **kwargs):
-        pass
+
     
 
 
@@ -27,7 +26,84 @@ def generate_op_record_key(oplog_record):
 
 
 
-class CouchbaseOpLog(OpLog):
+
+class OpLogField(object):
+    def __init__(self, name):
+        self.name = name
+
+    def _value(self):
+        '''return data to be logged'''
+
+    def data(self):
+        return { self.name : self._value() }
+
+    
+
+class OpLogEntry(object):
+    def __init__(self, **kwargs):
+        self.fields = []
+
+
+    def add_field(self, op_log_field):
+        self.fields.append(op_log_field)
+
+
+    def data(self):
+        result = {}
+        for field in self.fields:
+            result.extend(field.data())
+        return result
+    
+
+    
+class TimestampField(OpLogField):
+    def __init__(self):
+        OpLogEntry.__init__(self, 'timestamp')
+        #self.time = datetime.datetime.now().isoformat() 
+
+        
+    def _value(self):
+        return return datetime.datetime.now().isoformat()
+
+    
+
+class StatusField(OpLogField):
+    def __init__(self, status_name):
+        OpLogField.__init__(self, 'status')
+        self.status = status_name
+
+
+    def _value(self):
+        return self.status
+
+
+    
+class PIDField(OpLogField):
+    def __init__(self):
+        OpLogField.__init__(self, 'pid')
+        self.process_id = os.getpid()
+
+
+    def _value(self):
+        return self.process_id
+    
+
+    
+class RecordPageField(OpLogField):
+    def __init__(self, num_records, reading_frame):
+        OpLogField.__init__(self, 'record_page')
+        self.num_records = num_records
+        self.page_number = reading_frame.index_number 
+
+    def _value(self):
+        return { 'num_records' : self.num_records,
+                 'page_number': self.reading_frame.index_number,
+                 'page_size': self.reading_frame.page_size
+        }
+    
+
+    
+class CouchbaseOpLogWriter(OpLogWriter):
     def __init__(self, **kwargs):
         couchbase_host = kwargs.get('hostname', 'localhost')
         bucket_name = kwargs.get('bucket', 'default')
@@ -36,15 +112,11 @@ class CouchbaseOpLog(OpLog):
         self.pmgr.register_keygen_function('op_record', generate_op_record_key)
 
 
-    def log_start(self, **kwargs):
+    def write(self, **kwargs):
         op_record = CouchbaseRecordBuilder('op_record').add_fields(kwargs).build()
         return self.pmgr.insert_record(op_record)
 
-
-    def log_end(self, **kwargs):
-        op_record = CouchbaseRecordBuilder('op_record').add_fields(kwargs).build()
-        self.pmgr.insert_record(op_record)
-    
+        
 
 
 class ContextDecorator(object):
@@ -71,30 +143,28 @@ class ContextDecorator(object):
     
     
 class journal(ContextDecorator):
-    def __init__(self, op_name, op_log):
-        self.op_log = op_log
+    def __init__(self, op_name, oplog_writer, start_entry, end_entry = None):
+        self.oplog_writer = oplog_writer
         self.op_name = op_name
-
+        self.start_entry = start_entry
+        self.end_entry  = end_entry
+        
 
     def __enter__(self):
         print 'writing oplog START record...'
-        record = dict(timestamp=datetime.datetime.now().isoformat(),
-                      phase='start',
-                      pid=os.getpid(),
-                      op_name=self.op_name)
-        
-        self.op_log.log_start(**record)
+        record = self.start_entry.data()
+        record['op_name'] = self.op_name
+        self.oplog_writer.write(record)
         return self
 
 
-    def __exit__(self, typ, val, traceback):
-        print 'writing oplog END record:...'
-        record = dict(timestamp=datetime.datetime.now().isoformat(),
-                      phase='end',
-                      pid=os.getpid(),
-                      op_name=self.op_name)
-        
-        self.op_log.log_end(**record)
+    def __exit__(self, typ, val, traceback):        
+        if self.end_entry:
+            print 'writing oplog END record:...'
+            record = self.end_entry.data()
+            record['op_name'] = self.op_name
+            self.oplog_writer.write(record)
+
         return self
 
     
