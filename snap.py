@@ -94,7 +94,7 @@ def initialize_logging(yaml_config_obj, app):
 
 
     
-def initialize_services(yaml_config_obj, app):
+def initialize_services(yaml_config_obj, logger):
     service_objects = {}
     for service_object_name in yaml_config_obj['service_objects']:
         config_segment = yaml_config_obj['service_objects'][service_object_name]
@@ -111,7 +111,7 @@ def initialize_services(yaml_config_obj, app):
             param_tbl[param_name] = param_value
 
         klass = common.load_class(service_object_classname, service_module_name)
-        service_object = klass(app.logger, **param_tbl)
+        service_object = klass(logger, **param_tbl)
         service_objects[service_object_name] = service_object
         
     return service_objects

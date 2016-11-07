@@ -94,26 +94,43 @@ class RecordPageField(OpLogField):
     
 
 class OpLogWriter(object):
-
     def write(self, **kwargs):
         '''implement in subclasses'''
         pass
 
+        
+    def update(self, key, **kwargs):
+        '''optional: implement in subclass if we need dealing with a delta journal'''
+        raise Exception('OpLogWriter.update() method not implemented in this class.')
+
 
 
     
+class OpLogLoader(object):
+    def load_oplog_entry(self, entry_key):
+        '''implement in subclass'''
+        pass
+
+
+        
+
+    
+    
 class CouchbaseOpLogWriter(OpLogWriter):
-    def __init__(self, **kwargs):
-        couchbase_host = kwargs.get('hostname', 'localhost')
-        bucket_name = kwargs.get('bucket', 'default')
-        self.couchbase_server = CouchbaseServer(couchbase_host)
-        self.pmgr = CouchbasePersistenceManager(self.couchbase_server, bucket_name)
-        self.pmgr.register_keygen_function('op_record', generate_op_record_key)
+    def __init__(self, record_type_name, couchbase_hostname, bucket_name='default', **kwargs):
+        self.record_type_name = record_type_name
+        couchbase_host = couchbase_hostname
+        bucket_name = bucket_name
+        couchbase_server = CouchbaseServer(couchbase_host)
+        self.pmgr = CouchbasePersistenceManager(couchbase_server, bucket_name)
+        self.pmgr.register_keygen_function(self.record_type_name, generate_op_record_key)
 
 
     def write(self, **kwargs):
-        op_record = CouchbaseRecordBuilder('op_record').add_fields(kwargs).build()
+        op_record = CouchbaseRecordBuilder(self.record_type_name).add_fields(kwargs).build()
         return self.pmgr.insert_record(op_record)
+
+
 
         
 
@@ -168,3 +185,35 @@ class journal(ContextDecorator):
         return self
 
     
+
+
+    
+class delta_journal(ContextDecorator):
+    def __init_(self, op_name, oplog_writer, oplog_loader, oplog_entry, update_function):
+        self.op_name = op_name
+        self.oplog_writer = oplog_writer
+        self.oplog_entry = oplog_entry
+        self.oplog_entry_update_func = update_function
+        self.oplog_entry_key = None
+
+
+        
+    def __enter__(self):
+        record = self.oplog_entry.data()
+        record.op_name = self.op_name
+        print 'writing oplog record. Original record is:\n%s' % record
+        self.oplog_entry_key = self.oplog_writer.write(**record)
+        return self
+
+    
+
+    def __exit__(self, typ, val, traceback):
+        record = self.oplog_loader.load(self.oplog_entry_key)
+        updated_record = self.oplog_entry_update_func(record)
+        self.oplog_writer.update(self.oplog_entry_key, **updated_record)
+        
+        
+        
+        
+
+        

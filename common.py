@@ -50,14 +50,17 @@ def load_config_var(value):
           pass
       elif value.__class__.__name__ == 'list':
           var = value
-      elif value.startswith('$'):
-          var = os.environ.get(value[1:])            
-          if not var:
-              raise MissingEnvironmentVarException(value[1:])
-      elif value.startswith('~%s' % os.path.sep):
-          home_dir = expanduser(value[0])
-          path_stub = value[2:]
-          var = os.path.join(home_dir, path_stub)
+      elif isinstance(value, basestring):
+            if value.startswith('$'):
+                  var = os.environ.get(value[1:])            
+                  if not var:
+                        raise MissingEnvironmentVarException(value[1:])
+            elif value.startswith('~%s' % os.path.sep):
+                  home_dir = expanduser(value[0])
+                  path_stub = value[2:]
+                  var = os.path.join(home_dir, path_stub)
+            else:
+                  var = value            
       else:
           var = value
       return var
