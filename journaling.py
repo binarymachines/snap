@@ -80,15 +80,13 @@ class PIDField(OpLogField):
     
     
 class RecordPageField(OpLogField):
-    def __init__(self, num_records, reading_frame):
+    def __init__(self, reading_frame):
         OpLogField.__init__(self, 'record_page')
-        self.num_records = num_records
-        self.page_number = reading_frame.index_number 
+        self.reading_frame = reading_frame
 
     def _value(self):
-        return { 'num_records' : self.num_records,
-                 'page_number': self.reading_frame.index_number,
-                 'page_size': self.reading_frame.page_size
+        return { 'page_number': self.reading_frame.index_number,
+                 'page_size': self.reading_frame.size
         }
 
     
