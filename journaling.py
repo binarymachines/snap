@@ -4,6 +4,7 @@
 from functools import wraps
 import os
 import datetime
+import traceback
 from couchbasedbx import *
 
 
@@ -173,7 +174,13 @@ class journal(ContextDecorator):
         return self
 
 
-    def __exit__(self, typ, val, traceback):        
+    def __exit__(self, typ, val, exc_traceback):
+
+        
+        print typ
+        print val
+        traceback.print_tb(exc_traceback)
+        
         if self.end_entry:
             print 'writing oplog END record:...'
             record = self.end_entry.data()
