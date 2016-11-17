@@ -68,9 +68,9 @@ class CSVRecordMap(object):
         output = []
         for f in self.fields:
             data = dict.get(f.name)
-            if not data and not should_accept_nulls:
+            if data is None and not should_accept_nulls:
                 raise NoDataForFieldInSourceRecordError(f.name, dict)
-            elif not data:
+            elif data is None:
                 data = 'NULL'
                 
             if self.conversion_tbl.get(f.name):
@@ -98,12 +98,12 @@ class CSVRecordMapBuilder(object):
         return self
 
 
-    def add_field(self, csv_field):
-        if csv_field.name in self.field_names:
-            raise DuplicateCSVFieldNameException(csv_field.name)
+    def add_field(self, field_name, datatype):
+        if field_name in self.field_names:
+            raise DuplicateCSVFieldNameException(field_name)
         
-        self.fields.append(csv_field)
-        self.field_names.add(csv_field.name)
+        self.fields.append(CSVField(field_name, datatype))
+        self.field_names.add(field_name)
         return self
 
 
