@@ -10,10 +10,12 @@ class MethodNotImplementedError(Exception):
         Exception.__init__(self, 'Method %s(...) in class "%s" is not implemented. Please check your subclass(es).' % (method_name, klass.__name__))
 
         
-class NoSuchFieldInSourceRecordError(Exception):
+        
+class NoDataForFieldInSourceRecordError(Exception):
     def __init__(self, field_name, record):
-        Exception.__init__(self, 'Field %s not present in source record: %s' % str(record))
+        Exception.__init__(self, 'Data for field "%s" not present in source record: %s' % (field_name, str(record)))
 
+        
 
 class CSVField(object):
     def __init__(self, name, field_type):
@@ -23,13 +25,22 @@ class CSVField(object):
 
 
 class CSVDataConverter(object):
+    def __init__(self, source_class):
+        self.source_class = source_class
+
+        
+    def _convert(self, obj):
+        raise MethodNotImplementedError('_convert', self.__class__)
+
+
     def convert(self, obj):
-        raise MethodNotImplementedError('convert', self.__class__)
+        if not issubclass(self.source_class, obj.__class__):
+            raise IncorrectConverterTypeError(self.source_class, object.__class__)
+
+        return self._convert(obj)
     
 
         
-        
-    
 class CSVRecordMap(object):
     def __init__(self, field_array, conversion_tbl={}):
         self.delimiter = ','
@@ -58,7 +69,7 @@ class CSVRecordMap(object):
         for f in self.fields:
             data = dict.get(f.name)
             if not data and not should_accept_nulls:
-                raise NoSuchFieldInSourceRecordError(f.name, dict)
+                raise NoDataForFieldInSourceRecordError(f.name, dict)
             elif not data:
                 data = 'NULL'
                 
