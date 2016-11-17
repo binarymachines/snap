@@ -10,24 +10,69 @@ class MethodNotImplementedError(Exception):
         Exception.__init__(self, 'Method %s(...) in class "%s" is not implemented. Please check your subclass(es).' % (method_name, klass.__name__))
 
         
+class NoSuchFieldInSourceRecordError(Exception):
+    def __init__(self, field_name, record):
+        Exception.__init__(self, 'Field %s not present in source record: %s' % str(record))
 
 
-
-def CSVRecordField(object):
+class CSVField(object):
     def __init__(self, name, field_type):
         self.name = name
         self.type = field_type
 
 
 
-def CSVDataConverter(object):
+class CSVDataConverter(object):
     def convert(self, obj):
         raise MethodNotImplementedError('convert', self.__class__)
     
 
         
         
-def CSVRecordMapBuilder(object):
+    
+class CSVRecordMap(object):
+    def __init__(self, field_array, conversion_tbl={}):
+        self.delimiter = ','
+        self.fields = field_array
+        self.conversion_tbl = conversion_tbl
+        
+
+    def header(self, **kwargs):
+        output = []
+        for f in self.fields:
+            output.append(f.name)
+
+        delimiter = kwargs.get('delimiter') or self.delimiter
+        return delimiter.join(output)
+    
+
+    def format(self, data, field):
+        if field.type.__name__ in ['str', 'unicode']:
+            return '"%s"' % data
+        return str(data)
+    
+    
+    def dictionary_to_row(self, dict, **kwargs):
+        should_accept_nulls = kwargs.get('accept_nulls')
+        output = []
+        for f in self.fields:
+            data = dict.get(f.name)
+            if not data and not should_accept_nulls:
+                raise NoSuchFieldInSourceRecordError(f.name, dict)
+            elif not data:
+                data = 'NULL'
+                
+            if self.conversion_tbl.get(f.name):
+                output.append(self.conversion_tbl[f.name].convert(dict.get(f.name)))
+            else:
+                output.append(self.format(data, f))
+
+        delimiter = kwargs.get('delimiter') or self.delimiter
+        return delimiter.join(output)
+    
+
+    
+class CSVRecordMapBuilder(object):
     def __init__(self):
         self.fields = []
         self.converter_map = {}
@@ -42,12 +87,12 @@ def CSVRecordMapBuilder(object):
         return self
 
 
-    def add_field(self, csv_record_field):
+    def add_field(self, csv_field):
         if csv_field.name in self.field_names:
             raise DuplicateCSVFieldNameException(csv_field.name)
         
         self.fields.append(csv_field)
-        self.field_names.add(csv_record_field.name)
+        self.field_names.add(csv_field.name)
         return self
 
 
@@ -56,34 +101,5 @@ def CSVRecordMapBuilder(object):
     
 
     
-    
-def CSVRecordMap(object):
-    def __init__(self, field_array, conversion_tbl = {}):
-        self.delimiter = ','
-        self.fields = field_array
-        self.conversion_tbl = conversion_tbl
-        
-
-    def header(self, **kwargs):
-        output = []
-        for f in self.fields:
-            output.append(f.name)
-
-        delimiter = kwargs.get('delimiter') or self.delimiter
-        return delimiter.join(output)
-    
-     
-    def dictionary_to_row(self, dict, **kwargs):
-        output = []
-        for f in self.fields:
-            if self.conversion_tbl.get(f.name):
-               output.append(self.conversion_tbl[f.name].convert(dict.get(f.name)))
-            else:
-                output.append(dict.get(f.name))
-
-        delimiter = kwargs.get('delimiter') or self.delimiter
-        return delimiter.join(output)
-    
-        
 
 
