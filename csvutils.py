@@ -2,7 +2,8 @@
 
 
 import common
-
+import arrow
+from datetime import datetime
 
 
 class MethodNotImplementedError(Exception):
@@ -15,6 +16,11 @@ class NoDataForFieldInSourceRecordError(Exception):
     def __init__(self, field_name, record):
         Exception.__init__(self, 'Data for field "%s" not present in source record: %s' % (field_name, str(record)))
 
+
+
+class IncorrectConverterTypeError(Exception):
+    def __init__(self, source_class, target_class):
+        Exception.__init__(self, 'Tried to pass an object of type %s to a converter which handles type %s.' % (target_class.__name__, source_class.__name__))
         
 
 class CSVField(object):
@@ -34,12 +40,24 @@ class CSVDataConverter(object):
 
 
     def convert(self, obj):
+        '''
         if not issubclass(self.source_class, obj.__class__):
             raise IncorrectConverterTypeError(self.source_class, object.__class__)
-
+        '''
         return self._convert(obj)
     
 
+class TimestampISOConverter(CSVDataConverter):
+
+    def __init__(self):
+        CSVDataConverter.__init__(self, datetime)
+    
+    def _convert(self, obj):
+        return '"%s"' %  str(arrow.get(obj).format('YYYY-MM-DD HH:MM:SS'))
+
+        
+
+    
         
 class CSVRecordMap(object):
     def __init__(self, field_array, conversion_tbl={}):
@@ -59,7 +77,8 @@ class CSVRecordMap(object):
 
     def format(self, data, field):
         if field.type.__name__ in ['str', 'unicode']:
-            return '"%s"' % data
+            result = '"%s"' % data            
+            return result.encode("utf-8")
         return str(data)
     
     
