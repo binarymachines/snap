@@ -47,21 +47,55 @@ class CSVDataConverter(object):
         return self._convert(obj)
     
 
+    
 class TimestampISOConverter(CSVDataConverter):
-
     def __init__(self):
         CSVDataConverter.__init__(self, datetime)
     
     def _convert(self, obj):
         return '"%s"' %  str(arrow.get(obj).format('YYYY-MM-DD HH:MM:SS'))
+    
+
+        
+class SingleLetterToBooleanConverter(CSVDataConverter):
+
+    def __init__(self):
+        CSVDataConverter.__init__(self, str)
+
+    def _convert(self, obj):
+        if obj == 't':
+            return True
+        elif obj == 'f':
+            return False
+        else:
+            return None
 
         
 
+class StringToIntConverter(CSVDataConverter):
+    def __init__(self):
+        CSVDataConverter.__init__(self, str)
+
+
+    def _convert(self, obj):
+        return int(obj)
+
+    
+
+class StringToFloatConverter(CSVDataConverter):
+    def __init__(self):
+        CSVDataConverter.__init__(self, str)
+
+
+    def _convert(self, obj):
+        return float(obj)
+
+    
     
         
 class CSVRecordMap(object):
-    def __init__(self, field_array, conversion_tbl={}):
-        self.delimiter = ','
+    def __init__(self, field_array, conversion_tbl={}, **kwargs):
+        self.delimiter = kwargs.get('delimiter', ',')
         self.fields = field_array
         self.conversion_tbl = conversion_tbl
         
@@ -77,9 +111,40 @@ class CSVRecordMap(object):
 
     def format(self, data, field):
         if field.type.__name__ in ['str', 'unicode']:
-            result = '"%s"' % data            
-            return result.encode("utf-8")
+            #result = '"%s"' % data            
+            return data.encode("utf-8")
         return str(data)
+
+
+    def row_to_dictionary(self, row, **kwargs):
+        row = row.strip()
+        should_accept_nulls = kwargs.get('accept_nulls', False)
+        output = {}
+        index = 0
+        tokens = row.split(self.delimiter)
+        if len(tokens) != len(self.fields):
+            raise Exception('Mismatch between number of defined fields and number of fields in row: %s' % row)
+
+        for token in tokens:
+            current_field = self.fields[index]
+            field_name = current_field.name
+            field_value = None
+            raw_field_data = token
+            if raw_field_data == '' and not should_accept_nulls:
+                raise NoDataForFieldInSourceRecordError(field_name, row)
+            elif raw_field_data == '':
+                field_value = None
+
+            if self.conversion_tbl.get(field_name):
+                field_value = self.conversion_tbl[field_name].convert(raw_field_data)
+            else:
+                field_value = self.format(raw_field_data, current_field)
+            
+            output[field_name] = field_value
+            index += 1
+
+        return output
+        
     
     
     def dictionary_to_row(self, dict, **kwargs):
@@ -126,8 +191,8 @@ class CSVRecordMapBuilder(object):
         return self
 
 
-    def build(self):
-        return CSVRecordMap(self.fields, self.converter_map)
+    def build(self, **kwargs):
+        return CSVRecordMap(self.fields, self.converter_map, **kwargs)
     
 
     
