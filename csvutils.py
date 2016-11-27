@@ -23,6 +23,12 @@ class IncorrectConverterTypeError(Exception):
         Exception.__init__(self, 'Tried to pass an object of type %s to a converter which handles type %s.' % (target_class.__name__, source_class.__name__))
         
 
+class NoSuchCSVFieldException(Exception):
+    def __init__(self, field_name):
+        Exception.__init__(self, 'No field in csv record map named "%s"' % field_name)
+
+
+        
 class CSVField(object):
     def __init__(self, name, field_type):
         self.name = name
