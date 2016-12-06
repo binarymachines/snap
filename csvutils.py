@@ -62,6 +62,16 @@ class TimestampISOConverter(CSVDataConverter):
         return '"%s"' %  str(arrow.get(obj).format('YYYY-MM-DD HH:MM:SS'))
     
 
+
+class DatetimeStringToISOFormatConverter(CSVDataConverter):
+    def __init__(self):
+        CSVDataConverter.__init__(self, str)
+
+        
+    def _convert(self, obj):
+        return arrow.get(obj).isoformat()
+
+    
         
 class SingleLetterToBooleanConverter(CSVDataConverter):
 
@@ -198,6 +208,13 @@ class CSVRecordMapBuilder(object):
 
 
     def build(self, **kwargs):
+        # try to automatically determine what converters we'll need
+        for f in self.fields:
+            if f.type == int:
+                self.register_converter(StringToIntConverter(), f.name)
+            if f.type == float:
+                self.register_converter(StringToFloatConverter(), f.name)
+              
         return CSVRecordMap(self.fields, self.converter_map, **kwargs)
     
 
