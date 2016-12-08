@@ -98,6 +98,13 @@ class CouchbasePersistenceManager(object):
         return None
 
     
+    def lookup_record_raw(self, key):
+        result =  self.bucket.get(key, quiet=True)
+        if result.success:
+            return result.value
+        return None
+        
+    
     def insert_record(self, couchbase_record):
         key = self.generate_key(couchbase_record)
         self.bucket.insert(key, couchbase_record.__dict__)
@@ -112,4 +119,5 @@ class CouchbasePersistenceManager(object):
     
 
 
-        
+    def update_record_raw(self, couchbase_record_dict, key):
+        self.bucket.upsert(key, couchbase_record_dict)
