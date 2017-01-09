@@ -157,6 +157,10 @@ class RedisObject(object):
         self.name = name
         self.redis_server = redis_server
 
+    @property
+    def redis(self):
+        return self.redis_server.instance()
+
 
 
 class Queue(RedisObject):
@@ -172,6 +176,10 @@ class Queue(RedisObject):
         return self.redis_server.instance().rpop(self.name)
 
 
+    def range(self, start, end):
+        return self.redis_server.instance().lrange(self.name, start, end)
+
+        
 
 class Hashtable(RedisObject):
     def __init__(self, name, redis_server):
