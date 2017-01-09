@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 
+import os
+import logging
 import yaml
 import redis
 import json
@@ -17,7 +19,13 @@ class Enum(set):
 
 
 
-Structures = Enum(['pending_list', 'working_set', 'values_table', 'delayed_set', 'stats_table', 'segment_counter', 'distribution_pool_table'])
+Structures = Enum(['pending_list',
+                   'working_set',
+                   'values_table',
+                   'delayed_set',
+                   'stats_table',
+                   'segment_counter',
+                   'segment_pool_table'])
 
 
 SCHEMA_INIT_SECTION = 'schema'
@@ -27,7 +35,6 @@ STRUCTURE_NAMES =     'structures'
 class SegmentPoolNotRegisteredError(Exception):
     def __init__(self, name):
         Exception.__init__(self, 'No segment pool registered under the name %s.' % name)
-
 
 
 
@@ -76,58 +83,58 @@ class MessageStats(object):
 
 
 
-class AppConfig(object):
-    def __init__(self, initfileName):
+class DataConfig(object):
+    def __init__(self, prefix):
         self.roles = ['']
- 
-        self.data = None
-        with open(initfileName, 'r') as f:
-            self.data = yaml.load(f)
-         
-        
-        self.prefix = self.data['globals']['default_prefix']
+        self.prefix = prefix
+
         
     @property
-    def uuidCounterName(self): 
+    def object_table_name(self):
+        return '%s_object_table' % self.prefix
+
+        
+    @property
+    def uuid_counter_name(self): 
         return '%s_uuid_counter' % self.prefix
 
+    
     @property
-    def pendingListName(self):
+    def pending_list_name(self):
         return '%s_pending_list' % self.prefix
 
+    
     @property
-    def workingSetName(self):
+    def working_set_name(self):
         return '%s_working_set' % self.prefix
 
+    
     @property
-    def delayedSetName(self):
+    def delayed_set_name(self):
         return '%s_delayed_set' % self.prefix
 
+    
     @property
-    def valuesTableName(self):
+    def values_table_name(self):
         return '%s_values_table' % self.prefix
-        
+
+    
     @property        
-    def messageStatsTableName(self):
+    def message_stats_table_name(self):
         return '%s_msg_stats_table' % self.prefix
 
+    
     @property
-    def queueStatsTableName(self):
+    def queue_stats_table_name(self):
         return '%s_queue_stats_table' % self.prefix
 
 
-    def segmentCounterName(self, distributionPoolName):
-        return '%s_segment_counter_%s' % (self.prefix, distributionPoolName)
+    def segment_counter_name(self, segment_pool_name):
+        return '%s_segment_counter_%s' % (self.prefix, segment_pool_name)
 
 
-    def distributionPoolName(self, poolName):
-        return '%s_distribution_pool_%s' % (self.prefix, poolName)
-        
-
-    @property
-    def distributionPools(self):
-        return self.data['distribution_pools']
-
+    def segment_pool_name(self, segment_pool_name):
+        return '%s_segment_pool_%s' % (self.prefix, segment_pool_name)
 
 
 
@@ -135,30 +142,64 @@ class RedisServer(object):
     def __init__(self, hostname, port=6379):
         self.hostname = hostname
         self.port = port
-        self.instance = redis.StrictRedis(hostname, port)
+        self._instance = redis.StrictRedis(hostname, port)
 
-    def __call__(self):
-        return self.instance
+    def instance(self):
+        return self._instance
 
-    def newUUID(self, rConfig):
-        return self.instance.incr(rConfig.uuidCounterName)
+    def newUUID(self, data_config):
+        return self.instance.incr(data_config.uuid_counter_name)
 
 
-    
-class DistributionPoolConfig():
-    def __init__(self, name, segmentArray):
+
+class RedisObject(object):
+    def __init__(self, name, redis_server):
         self.name = name
-        self.segments = segmentArray
+        self.redis_server = redis_server
 
 
-    def save(self, redisServer, appConfig):
+
+class Queue(RedisObject):
+    def __init__(self, name, redis_server):
+        RedisObject.__init__(self, name, redis_server)
+
+
+    def push(self, object):
+        self.redis_server.instance().lpush(self.name, object)
+
+
+    def pop(self):
+        return self.redis_server.instance().rpop(self.name)
+
+
+
+class Hashtable(RedisObject):
+    def __init__(self, name, redis_server):
+        RedisObject.__init__(name, redis_server)
+
+
+    def put(self, key, value):
+        self.redis_server.instance().hset(self.name, key, value)
+
+
+    def get(self, key):
+        return self.redis_server.instance().hget(self.name, key)
+    
+    
+    
+class SegmentPoolConfig():
+    def __init__(self, name, segment_array):
+        self.name = name
+        self.segments = segment_array
+
+
+    def save(self, redis_server, data_config):
         for s in self.segments:
-            redisServer.instance.sadd(appConfig.distributionPoolName(self.name), s)
+            redis_server.instance.sadd(data_config.distribution_pool_name(self.name), s)
 
 
 
-
-class DistributionPool():
+class SegmentPool():
     '''A stored list of arbitrary names ("segments") plus a counter value, for round robin work distribution.
 
     Remembers its place in the set of names ("segments") and returns consecutive segment names 
@@ -166,10 +207,10 @@ class DistributionPool():
     '''
   
 
-    def __init__(self, name, redisServer, appConfig):        
+    def __init__(self, name, redis_server, app_config):        
         self.name = name        
-        self.server = redisServer
-        self.config = appConfig
+        self.server = redis_server
+        self.config = app_config
          
 
     @property
@@ -177,35 +218,28 @@ class DistributionPool():
         return len(self._loadSegments())
 
 
-    def _loadSegments(self):
-        return list(self.server.instance.smembers(self.config.distributionPoolName(self.name)))
+    def _load_segments(self):
+        return list(self.server.instance.smembers(self.config.segment_pool_name(self.name)))
     
 
 
-    def _getSegment(self, counter):        
+    def _get_segment(self, counter):        
         '''Return the segment ID represented by an unbounded integer value, using modulo 
-
         '''
-        segmentArray = self._loadSegments()
-        index = int(counter % len(segmentArray))        
-        return segmentArray[index]
+        segment_array = self._load_segments()
+        index = counter % len(segment_array)
+        return segment_array[index]
 
 
 
-    def nextSegment(self):
+    def next_segment(self):
         '''Return the next segment name in this pool's sequence, incrementing the internal counter.
-
         '''
-        segmentCounterValue = self.server.instance.incr(self.config.segmentCounterName(self.name)) 
-        return self._getSegment(segmentCounterValue)
-
-       
-       
-       
-            
+        segment_counter_value = self.server.instance.incr(self.config.segment_counter_name(self.name)) 
+        return self._get_segment(segment_counter_value)
 
 
-
+'''    
 class MessageID():
     def __init__(self, uuid, segment=None):
         print 'new MessageID with uuid: %s' % uuid
@@ -235,125 +269,26 @@ class MessageID():
         else:
                 return 'msg:%s:' % self.data[0]
 
+            
     @property
     def uuid(self):
         return self.data[0]
 
+    
     @property
     def segment(self):
         return self.data[1]
 
 
-class QueueMessage(object):
-    def __init__(self, messageKey, messagePayload):
-        self.key = messageKey
-        self.payload = messagePayload
-        
+    
+class Message(object):
+    def __init__(self, message_key, payload):
+        self.key = message_key
+        self.payload = payload
+'''        
     
 
 
-class QueueServer(object):
-    def __init__(self, appConfig, redisServer):
-        self.config = appConfig
-        self.server = redisServer
-        
-
-    def getUUID(self):
-        return self.server.instance.incr(self.config.uuidCounterName)
-
-
-    def purge(self):
-        self.server.instance.delete(self.config.pendingListName)
-        self.server.instance.delete(self.config.workingSetName)
-        self.server.instance.delete(self.config.valuesTableName)
-        self.server.instance.delete(self.config.delayedSetName)
-        self.server.instance.delete(self.config.messageStatsTableName)
-
-
-
-    def queueMessage(self, message, segment=None):
-        msgKey = MessageID(self.getUUID(), segment)
-        self.server.instance.hset(self.config.valuesTableName, msgKey, message)
-        result = self.server.instance.rpush(self.config.pendingListName, msgKey)  
-      
-        if result < 1:
-                raise Exception('rpush to list %s failed.' % self.config.pendingListName())
-        stats = MessageStats()
-        stats.save(msgKey, self.config, self.server)
-        
-        
-    
-    def dequeueMessage(self, segment=None):     
-        '''Remove a message ID from the pending list, add it to the 
-        working list, and return the matching message payload to the caller
-        nondestructively. 
-        '''
-
-        messageKey = MessageID.load(self.server.instance.lpop(self.config.pendingListName))
-        print '>>> Popped pending message key: %s from %s' % (messageKey, self.config.pendingListName)
-
-        stats = MessageStats.load(messageKey, self.config, self.server)
-        stats.logDequeue()
-        stats.save(messageKey, self.config, self.server)
-        print stats
-
-        self.server.instance.lpush(self.config.workingSetName, messageKey)
-        payload =  self.server.instance.hget(self.config.valuesTableName, messageKey)
-
-        return QueueMessage(messageKey, payload)
-
-
-    def removeMostRecentlyQueuedMessage(self, segment=None):
-        '''Remove a messge from the *input* side of the queue.
-        Effectively undoes the most recent message addition. Used mainly for testing.
-        '''
-
-        keyString = self.server.instance.rpop(self.config.pendingListName)
-        messageKey = MessageID.load(keyString)
-        print '>>> Popped most recently queued message key: %s from %s' % (messageKey, self.config.pendingListName)
-        
-
-        payload = self.server.instance.hget(self.config.valuesTableName, messageKey)
-
-        return QueueMessage(messageKey, payload)
-
-        
-
-    def requeueMessage(self, messageKey):
-        '''Place a message ID back on the pending list for reprocessing
-        '''
-
-        self.server.instance.rpush(self.config.pendingListName, messageKey)
-        stats = Stats.load(messageKey, self.config, self.server)
-        stats.logRequeue()
-        stats.save(self.config, self.server)
-
-
-    def requeueMessageWithDelay(self, messageKey, delayMillis):
-        '''Place a message ID on the delay queue and mark it with a time offset
-        in milliseconds. After the offset has expired, the message ID is eligible
-        for reprocessing.
-        '''
-
-        self.server.instance.zadd(sel.config.delayedSetName, messageKey, float(delayMillis))
-        
-        stats = Stats.load(messageKey, self.config, self.server)
-        stats.logRequeue()
-        stats.save(self.config, self.server)
-        
-    
-
-    def getMessageCount(self):
-        return self.server.instance.llen(self.config.pendingListName)
-
-
-
-    def deferMessage(self, instanceName, messageID, delayMillis, segment=None):
-        pass
-
-
-
-        
 
         
         

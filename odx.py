@@ -133,7 +133,7 @@ class OrientDBPersistenceManager(object):
             raise Exception('Vertex type "%s" has not been registered with this persistence manager.' % type_name)
         vertices = []
         for result in resultset:            
-            data = {}
+            data = {} 
             for fieldname in fields:
                 data[fieldname] = result.oRecordData.get(fieldname)                
             data['rid'] = result._rid
