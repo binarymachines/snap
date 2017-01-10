@@ -179,11 +179,25 @@ class Queue(RedisObject):
     def range(self, start, end):
         return self.redis_server.instance().lrange(self.name, start, end)
 
+
+class Set(RedisObject):
+    def __init__(self, name, redis_server):
+        RedisObject.__init__(self, name, redis_server)
+
+
+    def add(self, object):
+        self.redis_server.instance().sadd(self.name, object)
+
         
+    def members(self):
+        return self.redis_server.instance().smembers(self.name)
+        
+
+    
 
 class Hashtable(RedisObject):
     def __init__(self, name, redis_server):
-        RedisObject.__init__(name, redis_server)
+        RedisObject.__init__(self, name, redis_server)
 
 
     def put(self, key, value):
