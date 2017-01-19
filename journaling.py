@@ -110,10 +110,6 @@ class OpLogLoader(object):
         '''implement in subclass'''
         pass
 
-
-        
-
-    
     
 class CouchbaseOpLogWriter(OpLogWriter):
     def __init__(self, record_type_name, couchbase_hostname, bucket_name='default', **kwargs):
@@ -219,6 +215,35 @@ class delta_journal(ContextDecorator):
         
         
         
-        
 
+class PipelineInfoManager(object):
+    def __init__(self, pipeline_id, oplog_writer):
+        self.id = pipeline_id        
+        self._oplog_writer = oplog_writer
+
+
+    def record_job_start(self, job_id, command_data):
+        data = {}
+        data['record_type'] = 'tdx_job'
+        data['pipeline_id'] = self.id
+        data['id'] = job_id
+        data['command'] = command_data
+        data['start_time'] = datetime.datetime.now().isoformat()
+        data['end_time'] = None
+        data['pid'] = os.getpid()
+
+        print data
+
+    
+    def record_job_end(self, job_id):         
+        print 'pipeline info manager records end-of-job event here.'
+
+
+    def oplog_writer(self):
+        return self._oplog_writer
+
+
+                        
+
+    
         
