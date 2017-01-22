@@ -4,6 +4,7 @@
 import os
 import json
 from tempfile import NamedTemporaryFile
+import ansible
 from ansible.inventory import Inventory
 from ansible.vars import VariableManager
 from ansible.parsing.dataloader import DataLoader
