@@ -11,10 +11,12 @@ class MissingKeygenFunctionError(Exception):
     def __init__(self, type_name):
         Exception.__init__(self, 'No key generator function registered for record type %s.' % type_name)
 
+        
 
 class NoRecordForKeyError(Exception):
     def __init__(self, key):
         Exception.__init__(self, 'No value in database for key: %s' % key)
+
 
         
 class CouchbaseServer(object):
@@ -39,7 +41,12 @@ class CouchbaseRecord(object):
         self.record_type = record_type
 
         
-    
+
+def rec2dict(couchbase_record):
+    return couchbase_record.__dict__
+
+
+
 class CouchbaseRecordBuilder(object):
     def __init__(self, record_type_name):
         self.record_type = record_type_name
@@ -118,6 +125,17 @@ class CouchbasePersistenceManager(object):
         self.bucket.upsert(key, couchbase_record.__dict__)
     
 
-
     def update_record_raw(self, couchbase_record_dict, key):
         self.bucket.upsert(key, couchbase_record_dict)
+
+
+    def retrieve_all(self, record_type_name):
+        query = 'select * from %s where record_type = "%s"' % (self.bucket_name, record_type_name)
+        results = self.bucket.n1ql_query(query)
+        response = []
+        for record in results:
+            response.append(CouchbaseRecordBuilder(record_type_name).add_fields(record[self.bucket_name]).build())
+
+        return response
+            
+    
