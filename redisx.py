@@ -261,6 +261,12 @@ class SegmentPool():
         return self._get_segment(segment_counter_value)
 
 
+
+def compose_key(*args):
+    return ':'.join([str(arg) for arg in args])
+
+
+
 '''    
 class MessageID():
     def __init__(self, uuid, segment=None):

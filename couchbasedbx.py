@@ -101,7 +101,7 @@ class CouchbasePersistenceManager(object):
         result = self.bucket.get(key, quiet=True)
         if result.success:
             data = result.value
-            return CouchbaseRecordBuilder(record_type_name).from_json(data).build()
+            return CouchbaseRecordBuilder(record_type_name).add_fields(data).build()
         return None
 
     

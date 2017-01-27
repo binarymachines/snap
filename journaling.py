@@ -112,12 +112,9 @@ class OpLogLoader(object):
 
     
 class CouchbaseOpLogWriter(OpLogWriter):
-    def __init__(self, record_type_name, couchbase_hostname, bucket_name='default', **kwargs):
+    def __init__(self, record_type_name, couchbase_persistence_mgr, **kwargs):
         self.record_type_name = record_type_name
-        couchbase_host = couchbase_hostname
-        bucket_name = bucket_name
-        couchbase_server = CouchbaseServer(couchbase_host)
-        self.pmgr = CouchbasePersistenceManager(couchbase_server, bucket_name)
+        self.pmgr = couchbase_persistence_mgr
         self.pmgr.register_keygen_function(self.record_type_name, generate_op_record_key)
 
 
@@ -125,9 +122,6 @@ class CouchbaseOpLogWriter(OpLogWriter):
         op_record = CouchbaseRecordBuilder(self.record_type_name).add_fields(kwargs).build()
         return self.pmgr.insert_record(op_record)
 
-
-
-        
 
 
 class ContextDecorator(object):
@@ -214,36 +208,7 @@ class delta_journal(ContextDecorator):
         self.oplog_writer.update(self.oplog_entry_key, **updated_record)
         
         
-        
-
-class PipelineInfoManager(object):
-    def __init__(self, pipeline_id, oplog_writer):
-        self.id = pipeline_id        
-        self._oplog_writer = oplog_writer
-
-
-    def record_job_start(self, job_id, command_data):
-        data = {}
-        data['record_type'] = 'tdx_job'
-        data['pipeline_id'] = self.id
-        data['id'] = job_id
-        data['command'] = command_data
-        data['start_time'] = datetime.datetime.now().isoformat()
-        data['end_time'] = None
-        data['pid'] = os.getpid()
-
-        print data
-
     
-    def record_job_end(self, job_id):         
-        print 'pipeline info manager records end-of-job event here.'
-
-
-    def oplog_writer(self):
-        return self._oplog_writer
-
-
-                        
 
     
         
