@@ -1,19 +1,19 @@
 <TopicConfiguration>
-    <Id>{{ id_string }}</Id>
-    {% if event_filter %}
+    <Id>{{ id }}</Id>
+    {% if filters %}
     <Filter>
           <S3Key>
-	      {% for rule in filter.rules %}
+	      {% for f in filters %}
               <FilterRule>
-                  <Name>{{ rule.name }}</Name>
-                  <Value>{{ rule.value }}</Value>
+                  <Name>{{ f['name'] }}</Name>
+                  <Value>{{ f['value'] }}</Value>
               </FilterRule>
 	      {% endfor%}
           </S3Key>
     {% endif %}
-    <Topic>{{ sns_topic_arn }}</Topic>
-    {% for e in target_events %}
-    <Event>e.type</Event>
+    <Topic>{{ arn }}</Topic>
+    {% for e in events %}
+    <Event>{{ e }}</Event>
     {% endfor %}
 </TopicConfiguration>
 
