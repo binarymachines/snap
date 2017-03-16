@@ -1,0 +1,19 @@
+<QueueConfiguration>
+    <Id>{{ id_string }}</Id>
+    {% if event_filter %}
+    <Filter>
+          <S3Key>
+	      {% for rule in filter.rules %}
+              <FilterRule>
+                  <Name>{{ rule.name }}</Name>
+                  <Value>{{ rule.value }}</Value>
+              </FilterRule>
+	      {% endfor%}
+          </S3Key>
+    {% endif %}
+    <Queue>{{ sqs_queue_arn }}</Queue>
+    {% for e in target_events %}
+    <Event>e.type</Event>
+    {% endfor %}
+</QueueConfiguration>
+
