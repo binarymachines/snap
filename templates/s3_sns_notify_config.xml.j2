@@ -10,10 +10,10 @@
               </FilterRule>
 	      {% endfor%}
           </S3Key>
+    </Filter>
     {% endif %}
-    <Topic>{{ arn }}</Topic>
-    {% for e in events %}
-    <Event>{{ e }}</Event>
+    <Topic>{{ target_arn }}</Topic>
+    {% for e in events %}<Event>{{ e }}</Event>
     {% endfor %}
 </TopicConfiguration>
 
