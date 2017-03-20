@@ -142,11 +142,11 @@ class Action():
         self.transform_function = transform_function
         self.output_mimetype = mimetype
 
-    def execute(self, input_data, service_object_table):
+    def execute(self, input_data, service_object_table, **kwargs):
         errors = self.input_shape.scan(input_data)
         if len(errors):
             raise MissingInputFieldException(errors)
-        return self.transform_function(input_data, service_object_table)
+        return self.transform_function(input_data, service_object_table, **kwargs)
 
     
 class TransformStatus():
@@ -186,7 +186,7 @@ class Transformer():
           return action.output_mimetype
       
           
-      def transform(self, type_name, raw_input_data):
+      def transform(self, type_name, raw_input_data, **kwargs):
           if raw_input_data is None:
               raise NullTransformInputDataException(type_name)
 
@@ -206,7 +206,7 @@ class Transformer():
               raise UnregisteredTransformException(type_name)
 
           try:
-              return action.execute(input_data, self.services)
+              return action.execute(input_data, self.services, **kwargs)
           except Exception, err:
               error_type = err.__class__.__name__              
               if self.error_table.get(error_type):
