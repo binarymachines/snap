@@ -50,6 +50,8 @@ class MenuPrompt(object):
         self.display_menu()
         while True:
             selection_index = raw_input('> enter selection: ').strip()
+            if not selection_index:
+                break
             if self.is_valid_selection(selection_index):
                 result = self.menu_options[int(selection_index) - 1]['value']
                 break

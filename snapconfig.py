@@ -15,12 +15,16 @@ import cli_tools as cli
 
 
 
-mktfm_options = [{'value': 'add_shape', 'label': 'Add data shape'},
-                 {'value': 'add_dimension', 'label': 'Add dimension'}]
+chtfm_options = [{'value': 'set_input_shape', 'label': 'Set input datashape'},
+                 {'value': 'update_properties', 'label': 'Change transform properties'}]
 
 
 method_options = [{'value': 'GET', 'label': 'HTTP GET'},
                   {'value': 'POST', 'label': 'HTTP POST'}]
+
+
+boolean_options = [{'value': True, 'label': 'True'}, 
+                   {'value': False, 'label': 'False'}]
 
 
 field_type_options = [{'value': 'string', 'label': 'String'},
@@ -42,7 +46,9 @@ class TransformMeta(object):
         self._mime_type = output_mimetype
         self._input_shape = None
 
-
+    @property
+    def name(self):
+        return self._name
         
     def set_input_shape(self, input_shape):
         self._input_shape = input_shape
@@ -76,9 +82,9 @@ class DataShapeFieldMeta(object):
 
 
 class DataShapeMeta(object):
-    def __init__(self, name):
+    def __init__(self, name, field_array):
         self._name = name
-        self._fields = []
+        self._fields = field_array
 
 
     @property
@@ -86,13 +92,8 @@ class DataShapeMeta(object):
         return self._name
 
 
-    @property
-    def datatype(self):
-        return self._type
-
-
-    def add_field(self, f_name, f_type):        
-        self._fields.append(DataShapeFieldMeta(f_name, f_type))
+    def add_field(self, f_name, f_type, is_required=False):        
+        self._fields.append(DataShapeFieldMeta(f_name, f_type, is_required))
 
 
     def data(self):
@@ -106,10 +107,21 @@ class SnapCLI(Cmd):
         Cmd.__init__(self)
         self.prompt = '[%s] ' % self.name    
         self.transforms = []
+        self.data_shapes = []
         #self.replay_stack = Stack()
 
+    
+    def find_shape(self, name):
+        result = None
+        for s in self.data_shapes:
+            if s.name == name:
+                result = s
+                break
 
-    def find_transform(name):
+        return result
+
+
+    def find_transform(self, name):
         result = None
         for t in self.transforms:
             if t.name == name:
@@ -132,54 +144,90 @@ class SnapCLI(Cmd):
     do_q = do_quit
 
 
-    def create_shape_for_transform(self, transform_name):
-        print 'Creating a new datashape for transform %s...' % transform_name
+    def create_shape(self):
+
         shape_name = cli.InputPrompt('Enter a name for this datashape').show()
         if shape_name:
             print 'Add 1 or more fields to this datashape.'
+            fields = []
             while True:
+                missing_params = 3
                 field_name = cli.InputPrompt('field name').show()
                 if not field_name:
                     break
-                field_type = cli.MenuPrompt('field type', attribute_type_options).show()
+                missing_params -= 1
+
+                field_type = cli.MenuPrompt('field type', field_type_options).show()
                 if not field_type:
                     break
-                
-                required = cli.MenuPrompt('required', required_options).show()
+                missing_params -= 1
+
+                required = cli.MenuPrompt('required', boolean_options).show()
                 if required is None:
                     break
+                missing_params -= 1
                 is_required = bool(required)
 
                 print '> Added new field "%s" to datashape %s.' % (field_name, shape_name)
-
-                fields.append(Field(field_name, field_type))
+               
+                fields.append(DataShapeFieldMeta(field_name, field_type, is_required))
                 should_continue = cli.InputPrompt('Add another field (Y/n)?', 'y').show()
                 if should_continue == 'n':
                     break
-            return Dimension(dim_name, fields)
+            if missing_params:
+                return None
+            
+            self.data_shapes.append(DataShapeMeta(shape_name, fields))
+            return shape_name
         return None
 
 
     def update_transform(self, transform_name):
+        print 'Updating transform "%s"' % transform_name
+        transform = self.find_transform(transform_name)
+
+        if not transform:
+            print 'No such transform has been registered.'
+            return
+
         opt_prompt = cli.MenuPrompt('Select operation', 
                                     mktfm_options)
         operation = opt_prompt.show()
-        while True:            
-            if operation == 'add_dimension':
-                newdim = self.create_dimension_for_fact(fact_name)
-                if newdim:
-                    self.facts[fact_name]['dimensions'].append(newdim.data())
-                    should_continue = cli.InputPrompt('Add another dimension (Y/n)?', 'y').show().lower()
-                    if should_continue == 'n': 
+        while True:         
+            if operation == 'update_properties':
+                transform = self.find_transform(transform_name)
+                transform_index = self.get_transform_index(transform_name)
+                
+                new_route = cli.InputPrompt('transform route').show() or transform._route                
+                new_method = cli.MenuPrompt('select method', method_options).show() or transform._method
+
+                self.transforms[transform_index].set_route(new_route)
+                self.transforms[transform_index].set_method(new_method)
+
+                break
+
+            if operation == 'set_input_shape':
+                if not len(self.data_shapes):
+                    should_create_shape = \
+                        cli.InputPrompt('You have not created any datashapes yet. Create one now (Y/n)?', 
+                                        'y').show().lower()
+                    if should_create_shape == 'n':
                         break
-                    
-            if operation == 'add_fact_attr':
-                newattr = self.create_attribute_for_fact(fact_name)
-                if newattr:
-                    self.facts[fact_name]['fields'].append(newattr.data())
-                    should_continue = cli.InputPrompt('Add another attribute (Y/n)?', 'y').show().lower()
-                    if should_continue == 'n': 
-                        break
+                    print 'Creating the input datashape for transform "%s"...' % transform_name
+                    shape_name = self.create_shape()
+                    transform.set_input_shape(self.find_shape(shape_name))
+                    break
+                else:
+                    shape_options = [{ 'value': s.name, 'label': s.name} for s in self.data_shapes]
+                    shape_name = cli.MenuPrompt('Select an input shape for this transform', shape_options).show()
+                    if not shape_name:
+                        should_create_shape = cli.InputPrompt('Create a new datashape (Y/n)?', 'y').show().lower()
+                        if should_create_shape == 'n':
+                            break
+                        shape_name = self.create_shape(transform_name)
+                        
+                    transform.set_input_shape(self.find_shape(shape_name))
+                    break
 
 
     def do_mktfm(self, *cmd_args):
@@ -195,10 +243,23 @@ class SnapCLI(Cmd):
             
         print 'Creating new transform: %s' % transform_name
         self.update_transform(transform_name)
-            
+        return 
+    
 
-    def do_lstfm(self):
-        print 'stub lstfm command'
+    def do_showtfm(self, *cmd_args):
+        if not len(*cmd_args):
+            print 'showtfm (show transform) command requires the transform name.'
+            return
+        transform_name = cmd_args[0]
+        transform = self.find_transform(transform_name)
+        if not transform:
+            print 'No such transform found.'
+            return
+        print transform.data()
+
+
+    def do_lstfm(self, *cmd_args):
+        print '\n'.join([t.name for t in self.transforms])
 
     
     def do_chtfm(self, *cmd_args):
@@ -207,7 +268,7 @@ class SnapCLI(Cmd):
             return
 
         transform_name = cmd_args[0]
-        if not self.transforms.get(transform_name):
+        if not self.find_transform(transform_name):
             print 'no transform registered with name "".' % transform_name
             return
 
@@ -226,8 +287,11 @@ class SnapCLI(Cmd):
         print 'stub chshape command'
 
 
+    def emptyline(self):
+        pass
+
+
 def main(args):
-    print args
     '''
     init_filename = args['initfile']
     yaml_config = common.read_config_file(init_filename)
