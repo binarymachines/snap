@@ -124,7 +124,7 @@ def setup(app):
     mode = app.config.get('startup_mode')
     yaml_config = load_snap_config(mode, app)
     initialize_logging(yaml_config, app)
-    service_object_tbl = initialize_services(yaml_config, app)
+    service_object_tbl = initialize_services(yaml_config, app.logger)
     #
     # load the service objects into the app
     #
