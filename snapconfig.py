@@ -130,6 +130,14 @@ class SnapCLI(Cmd):
 
         return result
 
+    
+    def get_transform_index(self, name):        
+        for i in range(0, len(self.transforms)):
+            if self.transforms[i].name == name:
+                return i
+                
+        return -1
+
 
     def prompt_for_value(self, value_name):
         parameter_value = cli.InputPrompt('enter value for <%s>: ' % value_name).show()
@@ -191,14 +199,14 @@ class SnapCLI(Cmd):
             return
 
         opt_prompt = cli.MenuPrompt('Select operation', 
-                                    mktfm_options)
+                                    chtfm_options)
         operation = opt_prompt.show()
         while True:         
             if operation == 'update_properties':
                 transform = self.find_transform(transform_name)
                 transform_index = self.get_transform_index(transform_name)
                 
-                new_route = cli.InputPrompt('transform route').show() or transform._route                
+                new_route = cli.InputPrompt('transform route', transform._route).show() or transform._route                
                 new_method = cli.MenuPrompt('select method', method_options).show() or transform._method
 
                 self.transforms[transform_index].set_route(new_route)
@@ -279,11 +287,11 @@ class SnapCLI(Cmd):
         print 'stub mkshape command'
 
     
-    def do_lsshape(self):
+    def do_lsshape(self, *cmd_args):
         print 'stub lsshape command'
 
 
-    def do_chshape(self):
+    def do_chshape(self, *cmd_args):
         print 'stub chshape command'
 
 

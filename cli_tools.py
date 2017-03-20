@@ -33,10 +33,13 @@ class MenuPrompt(object):
         self.prompt = prompt_string
 
     def is_valid_selection(self, index):
-        selection_number = int(index)
-        if selection_number <= len(self.menu_options) and selection_number > 0:
-            return True
-        return False
+        try:
+            selection_number = int(index)
+            if selection_number <= len(self.menu_options) and selection_number > 0:
+                return True
+            return False
+        except ValueError:
+            return False
 
     def display_menu(self):
         print '%s:' % self.prompt
