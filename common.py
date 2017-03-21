@@ -5,7 +5,7 @@ import yaml
 import os
 import jinja2
 from os.path import expanduser
-
+import json
 
 
 class UnregisteredServiceObjectException(Exception):
