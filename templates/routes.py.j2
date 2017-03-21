@@ -72,7 +72,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         if app.debug:
             # dump request headers for easier debugging
             app.logger.info('### HTTP request headers: ______')
-            app.logger.info(common.jsonpretty(request.headers))
+            app.logger.info(common.jsonpretty(request.get_headers()))
             app.logger.info('_________________________________')
             
         {%- if t.methods == "'POST'" %}
