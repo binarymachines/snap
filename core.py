@@ -61,6 +61,46 @@ def convert_multidict(md):
         else:
             result[key] = md[key]
     return result
+
+
+
+class ContentProtocol(object):
+    def __init__(self):
+        self.decoding_map = {}        
+
+        
+    def update(self, content_type, decode_function):
+        self.decoding_map[content_type] = decode_function
+        return self
+    
+
+    def decode(self, http_request):
+        ctype = http_request.headers['Content-Type']
+        func = self.decoding_map.get(ctype)
+        if not func:
+            raise ContentDecodingException(ctype)        
+        return func(http_request)
+
+    
+
+def decode_json(http_request):
+    return http_request.json
+
+def decode_text_plain(http_request):
+    return http_request.data
+
+def decode_form_urlenc(http_request):
+    return convert_multidict(http_request.form)
+
+
+default_content_protocol = ContentProtocol()
+default_content_protocol.update('application/json', decode_json)
+default_content_protocol.update('text/plain', decode_text_plain)
+default_content_protocol.update('application/x-www-form-urlencoded', decode_form_urlenc)
+
+
+def map_content(http_request):
+    return default_content_protocol.decode(http_request)
         
 
 def utf8_encode(raw_input_data):

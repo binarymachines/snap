@@ -71,6 +71,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
         {%- if t.methods == "'POST'" %}
         input_data = {}
+        request.get_data()
         input_data.update(request.values)
         if request.headers['Content-Type'] == 'application/json':
             input_data.update(request.get_json())
