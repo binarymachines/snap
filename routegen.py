@@ -207,6 +207,7 @@ def main(argv):
         routing_module_template = template_mgr.get_template('routes.py.j2')
 
         listener_port = yaml_config['globals']['port']        
+        bind_host_addr = yaml_config['globals'].get('bind_host', '127.0.0.1')
         project_directory_var = yaml_config['globals']['project_directory']
         project_directory = common.load_config_var(project_directory_var)
 
@@ -217,7 +218,8 @@ def main(argv):
         print routing_module_template.render(project_dir=project_directory,
                                              transforms=route_gen.load_transforms(yaml_config),
                                              transform_module = route_gen.transform_function_module,
-                                             port=listener_port)
+                                             port=listener_port,
+                                             bind_host=bind_host_addr)
         
 
     except docopt.DocoptExit as e:

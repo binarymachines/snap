@@ -72,6 +72,8 @@ def load_class(class_name, module_name):
     return getattr(module, class_name)
 
 
+def jsonpretty(dict):
+    return json.dumps(dict, indent=4, sort_keys=True)
 
 
 class JinjaTemplateManager:

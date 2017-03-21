@@ -69,6 +69,12 @@ xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }
 @app.route('{{ t.route }}', methods=[{{ t.methods }}])
 def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
+        if app.debug:
+            # dump request headers for easier debugging
+            app.logger.info('### HTTP request headers: ______')
+            app.logger.info(common.jsonpretty(request.headers))
+            app.logger.info('_________________________________')
+            
         {%- if t.methods == "'POST'" %}
         input_data = {}
         request.get_data()
@@ -107,7 +113,7 @@ if __name__ == '__main__':
     '''If we are loading from command line,
     run the Flask app explicitly
     '''
-    
-    app.run(port={{port}})
+
+    app.run(host='{{bind_host}}', port={{port}})
 
 

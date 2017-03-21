@@ -63,6 +63,10 @@ def convert_multidict(md):
     return result
 
 
+class ContentDecodingException(Exception):
+    def __init__(self, mime_type):
+        Exception.__init__(self, 'No decoding function has been registered for content-type "%s".' % mime_type)
+
 
 class ContentProtocol(object):
     def __init__(self):
