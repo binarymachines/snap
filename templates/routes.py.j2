@@ -71,17 +71,18 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
         if app.debug:
             # dump request headers for easier debugging
-            app.logger.info('### HTTP request headers: ______')
-            app.logger.info(common.jsonpretty(request.get_headers()))
-            app.logger.info('_________________________________')
+            app.logger.info('### HTTP request headers:')
+            app.logger.info(request.headers)
             
         {%- if t.methods == "'POST'" %}
         input_data = {}
         request.get_data()
-        input_data.update(request.values)
+        input_data.update(core.map_content(request))
+        '''
         if request.headers['Content-Type'] == 'application/json':
             input_data.update(request.get_json())
-        transform_status = xformer.transform('{{ t.name }}', core.convert_multidict(input_data), headers=request.headers)
+        '''
+        transform_status = xformer.transform('{{ t.name }}', input_data, headers=request.headers)
         {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}        
         input_data = {}
         input_data.update(request.args)
