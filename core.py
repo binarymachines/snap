@@ -46,6 +46,10 @@ class TransformNotImplementedException(Exception):
         Exception.__init__(self, 'transform function %s exists but performs no action. Time to add some code.' % transform_name)
 
 
+class ContentDecodingException(Exception):
+    def __init__(self, mime_type):
+        Exception.__init__(self, 'No decoding function has been registered for content-type "%s".' % mime_type)
+
 
 def is_sequence(arg):
     return (not hasattr(arg, "strip") and
@@ -62,10 +66,6 @@ def convert_multidict(md):
             result[key] = md[key]
     return result
 
-
-class ContentDecodingException(Exception):
-    def __init__(self, mime_type):
-        Exception.__init__(self, 'No decoding function has been registered for content-type "%s".' % mime_type)
 
 
 class ContentProtocol(object):
@@ -90,8 +90,12 @@ class ContentProtocol(object):
 def decode_json(http_request):
     return http_request.json
 
+
 def decode_text_plain(http_request):
-    return http_request.data
+    if http_request.data:
+        return json.loads(http_request.data)
+    return {}
+
 
 def decode_form_urlenc(http_request):
     return convert_multidict(http_request.form)
