@@ -1,9 +1,6 @@
 {% for f in transform_functions %}
-<<<<<<< HEAD
-def {{ f }}(input_data, service_objects, **kwargs):
-=======
+
 def {{ f }}(input_data, service_objects, log, **kwargs):
->>>>>>> 0c31f3e... pass app logger to transform functions
     raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
 
