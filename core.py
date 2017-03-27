@@ -190,11 +190,19 @@ class Action():
         self.transform_function = transform_function
         self.output_mimetype = mimetype
 
+<<<<<<< HEAD
     def execute(self, input_data, service_object_table, **kwargs):
         errors = self.input_shape.scan(input_data)
         if len(errors):
             raise MissingInputFieldException(errors)
         return self.transform_function(input_data, service_object_table, **kwargs)
+=======
+    def execute(self, input_data, service_object_registry, logger):
+        errors = self.input_shape.scan(input_data)
+        if len(errors):
+            raise MissingInputFieldException(errors)
+        return self.transform_function(input_data, service_object_registry)
+>>>>>>> 0c31f3e... pass app logger to transform functions
 
     
 class TransformStatus():
@@ -234,7 +242,11 @@ class Transformer():
           return action.output_mimetype
       
           
+<<<<<<< HEAD
       def transform(self, type_name, raw_input_data, **kwargs):
+=======
+      def transform(self, type_name, raw_input_data, logger):
+>>>>>>> 0c31f3e... pass app logger to transform functions
           if raw_input_data is None:
               raise NullTransformInputDataException(type_name)
 
@@ -254,7 +266,11 @@ class Transformer():
               raise UnregisteredTransformException(type_name)
 
           try:
+<<<<<<< HEAD
               return action.execute(input_data, self.services, **kwargs)
+=======
+              return action.execute(input_data, self.services, logger)
+>>>>>>> 0c31f3e... pass app logger to transform functions
           except Exception, err:
               error_type = err.__class__.__name__              
               if self.error_table.get(error_type):
