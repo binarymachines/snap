@@ -43,13 +43,39 @@ class SQLDataTypeBuilder(object):
         return self
 
 
+    def add_foreign_key_field(self, 
+                              name, 
+                              data_type, 
+                              parent_table_name, 
+                              parent_table_pk_name):
+        field = {}
+        field['name'] = name
+        fk_tokens = []
+        if self.schema:
+            fk_name = '%s.%s.%s' % (self.schema, parent_table_name, parent_table_pk_name)
+        else:
+            fk_name = '%s.%s' % (parent_table_name, parent_table_pk_name)
+
+        field['column'] = Column(data_type, ForeignKey(fk_name))
+        self.fields.append(field)
+        return self
+
+
     def add_field(self, name, data_type, is_primary_key=False):
         field = {}
         field['name'] = name
         field['column'] = Column(data_type)
         self.fields.append(field)
         return self
+
     
+    def add_relationship(self, relationship_name, related_type_name):
+        field = {}
+        field['name'] = relationship_name
+        field['column'] = relationship(related_type_name)
+        self.fields.append(field)
+        return self
+
 
     def build(self):
         class_attrs = {}
