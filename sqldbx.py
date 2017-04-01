@@ -4,7 +4,14 @@
 
 import sqlalchemy as sqla
 import sqlalchemy.orm
-from sqlalchemy.orm import mapper, scoped_session, sessionmaker, relation, clear_mappers
+from sqlalchemy.orm import mapper, scoped_session, sessionmaker, relation, relationship, clear_mappers
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine
+from sqlalchemy_utils import UUIDType
+import uuid
+
+Base = declarative_base()
 
 import types
 import os
@@ -18,6 +25,44 @@ class NoSuchTableError(Exception):
 
 
 Session = scoped_session(sessionmaker(autoflush=False, autocommit=False, expire_on_commit=False))
+
+
+class SQLDataTypeBuilder(object):
+    def __init__(self, class_name, table_name, schema=None):
+        self.name = class_name
+        self.fields = []
+        self.table_name = table_name
+        self.schema = schema
+
+
+    def add_primary_key_field(self, name, data_type):
+        field = {}
+        field['name'] = name
+        field['column'] = Column(data_type, primary_key = True)
+        self.fields.append(field)
+        return self
+
+
+    def add_field(self, name, data_type, is_primary_key=False):
+        field = {}
+        field['name'] = name
+        field['column'] = Column(data_type)
+        self.fields.append(field)
+        return self
+    
+
+    def build(self):
+        class_attrs = {}
+        class_attrs['__tablename__'] = self.table_name
+        if self.schema:
+            class_attrs['__table_args__'] = {'schema': self.schema}
+
+        for f in self.fields:
+            class_attrs[f['name']] = f['column']
+        klass = type(self.name, (Base,), class_attrs)
+        return klass
+        
+
 
 class Database:
     """A wrapper around the basic SQLAlchemy DB connect logic.
@@ -40,8 +85,7 @@ class Database:
         self.engine = None
         self.metadata = None
         
-        
-        
+    
 
     def __createURL__(self, dbType, username, password):
         """Implement in subclasses to provide database-type-specific connection URLs."""
@@ -53,7 +97,6 @@ class Database:
         return 'jdbc:%s://%s:%s/%s' % (self.dbType, self.host, self.port, self.schema)
 
     
-
     def login(self, username, password, schema=None):    
         """Connect as the specified user."""
 
@@ -66,8 +109,7 @@ class Database:
         self.metadata.reflect(bind=self.engine)
         
         #self.sessionFactory.configure(bind=self.engine)
-        Session.configure(bind=self.engine)
-        
+        Session.configure(bind=self.engine)        
         
 
     def getMetaData(self):
@@ -111,7 +153,6 @@ class MySQLDatabase(Database):
 
 
     
-
 class PostgreSQLDatabase(Database):
     """A Database type for connecting to PostgreSQL instances."""
 
@@ -121,7 +162,6 @@ class PostgreSQLDatabase(Database):
         
     def __createURL__(self, dbType, username, password):
         return "%s://%s:%s@%s:%d/%s" % (self.dbType, username, password, self.host, self.port, self.schema)
-
 
         
 
