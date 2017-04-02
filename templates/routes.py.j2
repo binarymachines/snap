@@ -82,7 +82,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         if request.headers['Content-Type'] == 'application/json':
             input_data.update(request.get_json())
         '''
-        transform_status = xformer.transform('{{ t.name }}', input_data, headers=request.headers)
+        transform_status = xformer.transform('{{ t.name }}', input_data, app.logger, headers=request.headers)
         {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}        
         input_data = {}
         input_data.update(request.args)
