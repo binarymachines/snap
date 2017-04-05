@@ -89,11 +89,11 @@ class CouchbasePersistenceManager(object):
         self.key_generation_functions[record_type_name] = keygen_function
 
 
-    def generate_key(self, couchbase_record):
+    def generate_key(self, couchbase_record, **kwargs):
         keygen_func = self.key_generation_functions.get(couchbase_record.record_type)
         if not keygen_func:
             raise MissingKeygenFunctionError(couchbase_record.record_type)
-        return keygen_func(couchbase_record)
+        return keygen_func(couchbase_record, **kwargs)
 
     
     def lookup_record(self, record_type_name, key):        
@@ -112,8 +112,8 @@ class CouchbasePersistenceManager(object):
         return None
         
     
-    def insert_record(self, couchbase_record):
-        key = self.generate_key(couchbase_record)
+    def insert_record(self, couchbase_record, **kwargs):
+        key = self.generate_key(couchbase_record, **kwargs)
         self.bucket.insert(key, couchbase_record.__dict__)
         return key
 
