@@ -6,59 +6,98 @@
 
 from cmd import Cmd
 import docopt
-import os, sys
+import os
 import yaml
 import logging
-import snap, common
-import cli_tools as cli
+import snap.cli_tools as cli
+
+#pylint: disable=C0301
+#pylint: disable=W0613
 
 
-
-
-chtfm_options = [{'value': 'set_input_shape', 'label': 'Set input datashape'},
+CHTFM_OPTIONS = [{'value': 'set_input_shape', 'label': 'Set input datashape'},
                  {'value': 'update_properties', 'label': 'Change transform properties'}]
 
 
-method_options = [{'value': 'GET', 'label': 'HTTP GET'},
+METHOD_OPTIONS = [{'value': 'GET', 'label': 'HTTP GET'},
                   {'value': 'POST', 'label': 'HTTP POST'}]
 
 
-boolean_options = [{'value': True, 'label': 'True'}, 
+BOOLEAN_OPTIONS = [{'value': True, 'label': 'True'},
                    {'value': False, 'label': 'False'}]
 
 
-field_type_options = [{'value': 'string', 'label': 'String'},
-                          {'value': 'int', 'label': 'Integer'}, 
-                          {'value': 'float', 'label': 'Float'},
-                          {'value': 'date', 'label': 'Date'},
-                          {'value': 'timestamp', 'label': 'Timestamp'},
-                          {'value': 'bool', 'label': 'Boolean'},
-                          {'value': 'char', 'label': 'Character'}]
+FIELD_TYPE_OPTIONS = [{'value': 'string', 'label': 'String'},
+                      {'value': 'int', 'label': 'Integer'},
+                      {'value': 'float', 'label': 'Float'},
+                      {'value': 'date', 'label': 'Date'},
+                      {'value': 'timestamp', 'label': 'Timestamp'},
+                      {'value': 'bool', 'label': 'Boolean'},
+                      {'value': 'char', 'label': 'Character'}]
 
-default_mimetype = 'application/json'
+DEFAULT_MIMETYPE = 'application/json'
 
 
 class TransformMeta(object):
-    def __init__(self, name, route, method, output_mimetype):
+    def __init__(self, name, route, method, output_mimetype, input_shape=None):
         self._name = name
         self._route = route
         self._method = method
         self._mime_type = output_mimetype
-        self._input_shape = None
+        self._input_shape = input_shape
 
     @property
     def name(self):
         return self._name
-        
+
+
+    @property
+    def input_shape(self):
+        return self._input_shape
+
+
+    @property
+    def route(self):
+        return self._route
+
+
+    def set_name(self, name):
+        return TransformMeta(name,
+                             self._route,
+                             self._method,
+                             self._mime_type,
+                             self._input_shape)
+
+
+    def set_route(self, route):
+        return TransformMeta(self._name,
+                             route,
+                             self._method,
+                             self._mime_type,
+                             self._input_shape)
+
+
     def set_input_shape(self, input_shape):
-        self._input_shape = input_shape
+        return TransformMeta(self._name,
+                             self._route,
+                             self._method,
+                             self._mime_type,
+                             input_shape)
+
+
+    def set_method(self, method):
+        return TransformMeta(self._name,
+                             self._route,
+                             method,
+                             self._mime_type,
+                             self._input_shape)
 
 
     def data(self):
-        result = {'name': self._name, 
-                'route': self._route,
-                'method': self._method,
-                'output_mimetype': self._mime_type}
+        result = {'name': self._name,
+                  'route': self._route,
+                  'method': self._method,
+                  'output_mimetype': self._mime_type}
         if self._input_shape:
             result['input_shape'] = self._input_shape.data()
 
@@ -74,10 +113,11 @@ class DataShapeFieldMeta(object):
 
 
     def data(self):
-        result = {'name': self.name, 
-                  'type': self.data_type }
+        result = {'name': self.name,
+                  'type': self.data_type}
         if self.required:
             result['required'] = True
+        return result
 
 
 
@@ -92,12 +132,20 @@ class DataShapeMeta(object):
         return self._name
 
 
-    def add_field(self, f_name, f_type, is_required=False):        
-        self._fields.append(DataShapeFieldMeta(f_name, f_type, is_required))
+    @property
+    def fields(self):
+        return self._fields
+
+
+    def add_field(self, f_name, f_type, is_required=False):
+        fields = self._fields
+        fields.append(DataShapeFieldMeta(f_name, f_type, is_required))
+        return DataShapeFieldMeta(self._name, fields)
 
 
     def data(self):
-        return { 'name': self.name, 'fields': self.fields }
+        return {'name': self.name,
+                'fields': [f.data() for f in self._fields]}
 
 
 
@@ -105,12 +153,12 @@ class SnapCLI(Cmd):
     def __init__(self):
         self.name = 'snapconfig'
         Cmd.__init__(self)
-        self.prompt = '[%s] ' % self.name    
+        self.prompt = '[%s] ' % self.name
         self.transforms = []
         self.data_shapes = []
         #self.replay_stack = Stack()
 
-    
+
     def find_shape(self, name):
         result = None
         for s in self.data_shapes:
@@ -130,12 +178,12 @@ class SnapCLI(Cmd):
 
         return result
 
-    
-    def get_transform_index(self, name):        
+
+    def get_transform_index(self, name):
         for i in range(0, len(self.transforms)):
             if self.transforms[i].name == name:
                 return i
-                
+
         return -1
 
 
@@ -152,8 +200,7 @@ class SnapCLI(Cmd):
     do_q = do_quit
 
 
-    def create_shape(self):
-
+    def create_shape(self, *cmd_args):
         shape_name = cli.InputPrompt('Enter a name for this datashape').show()
         if shape_name:
             print 'Add 1 or more fields to this datashape.'
@@ -165,26 +212,26 @@ class SnapCLI(Cmd):
                     break
                 missing_params -= 1
 
-                field_type = cli.MenuPrompt('field type', field_type_options).show()
+                field_type = cli.MenuPrompt('field type', FIELD_TYPE_OPTIONS).show()
                 if not field_type:
                     break
                 missing_params -= 1
 
-                required = cli.MenuPrompt('required', boolean_options).show()
+                required = cli.MenuPrompt('required', BOOLEAN_OPTIONS).show()
                 if required is None:
                     break
                 missing_params -= 1
                 is_required = bool(required)
 
                 print '> Added new field "%s" to datashape %s.' % (field_name, shape_name)
-               
+
                 fields.append(DataShapeFieldMeta(field_name, field_type, is_required))
                 should_continue = cli.InputPrompt('Add another field (Y/n)?', 'y').show()
                 if should_continue == 'n':
                     break
             if missing_params:
                 return None
-            
+
             self.data_shapes.append(DataShapeMeta(shape_name, fields))
             return shape_name
         return None
@@ -198,43 +245,45 @@ class SnapCLI(Cmd):
             print 'No such transform has been registered.'
             return
 
-        opt_prompt = cli.MenuPrompt('Select operation', 
-                                    chtfm_options)
+        opt_prompt = cli.MenuPrompt('Select operation',
+                                    CHTFM_OPTIONS)
         operation = opt_prompt.show()
-        while True:         
+        while True:
             if operation == 'update_properties':
                 transform = self.find_transform(transform_name)
                 transform_index = self.get_transform_index(transform_name)
-                
-                new_route = cli.InputPrompt('transform route', transform._route).show() or transform._route                
-                new_method = cli.MenuPrompt('select method', method_options).show() or transform._method
 
-                self.transforms[transform_index].set_route(new_route)
-                self.transforms[transform_index].set_method(new_method)
+                new_route = cli.InputPrompt('transform route',
+                                            transform.route).show() or transform.route
+                new_method = cli.MenuPrompt('select method',
+                                            METHOD_OPTIONS).show() or transform.method
 
+                transform = transform.set_route(new_route)
+                transform = transform.set_method(new_method)
+                self.transforms[transform_index] = transform
                 break
 
             if operation == 'set_input_shape':
                 if not len(self.data_shapes):
                     should_create_shape = \
-                        cli.InputPrompt('You have not created any datashapes yet. Create one now (Y/n)?', 
+                        cli.InputPrompt('You have not created any datashapes yet. Create one now (Y/n)?',
                                         'y').show().lower()
                     if should_create_shape == 'n':
                         break
                     print 'Creating the input datashape for transform "%s"...' % transform_name
                     shape_name = self.create_shape()
-                    transform.set_input_shape(self.find_shape(shape_name))
+                    transform = transform.set_input_shape(self.find_shape(shape_name))
                     break
                 else:
-                    shape_options = [{ 'value': s.name, 'label': s.name} for s in self.data_shapes]
+                    shape_options = [{'value': s.name, 'label': s.name} for s in self.data_shapes]
                     shape_name = cli.MenuPrompt('Select an input shape for this transform', shape_options).show()
                     if not shape_name:
                         should_create_shape = cli.InputPrompt('Create a new datashape (Y/n)?', 'y').show().lower()
                         if should_create_shape == 'n':
                             break
                         shape_name = self.create_shape(transform_name)
-                        
-                    transform.set_input_shape(self.find_shape(shape_name))
+
+                    transform = transform.set_input_shape(self.find_shape(shape_name))
                     break
 
 
@@ -244,15 +293,15 @@ class SnapCLI(Cmd):
             return
         transform_name = cmd_args[0]
         route = cli.InputPrompt('transform route').show()
-        method = cli.MenuPrompt('select method', method_options).show()
-        mimetype = cli.InputPrompt('output MIME type',  default_mimetype).show()
-        
+        method = cli.MenuPrompt('select method', METHOD_OPTIONS).show()
+        mimetype = cli.InputPrompt('output MIME type', DEFAULT_MIMETYPE).show()
+
         self.transforms.append(TransformMeta(transform_name, route, method, mimetype))
-            
+
         print 'Creating new transform: %s' % transform_name
         self.update_transform(transform_name)
-        return 
-    
+        return
+
 
     def do_showtfm(self, *cmd_args):
         if not len(*cmd_args):
@@ -267,9 +316,10 @@ class SnapCLI(Cmd):
 
 
     def do_lstfm(self, *cmd_args):
+        '''list all transforms'''
         print '\n'.join([t.name for t in self.transforms])
 
-    
+
     def do_chtfm(self, *cmd_args):
         if not len(*cmd_args):
             print 'chfact command requires the transform name.'
@@ -286,7 +336,7 @@ class SnapCLI(Cmd):
     def do_mkshape(self, *cmd_args):
         print 'stub mkshape command'
 
-    
+
     def do_lsshape(self, *cmd_args):
         print 'stub lsshape command'
 
@@ -307,10 +357,10 @@ def main(args):
     log_filename = 'forge.log'
     log = metl.init_logging('mx_forge', os.path.join(log_directory, log_filename), logging.DEBUG)
     '''
-    
+
     snap_cli = SnapCLI()
     snap_cli.cmdloop()
-    
+
 
 if __name__ == '__main__':
     args = docopt.docopt(__doc__)
