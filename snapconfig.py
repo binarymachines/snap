@@ -171,6 +171,15 @@ class DataShapeMeta(object):
 
 
 
+class ServiceObjectMeta(object):
+    def __init__(self, name, **kwargs):
+        self._name = name
+        self._init_params = []
+        for param_name, param_value in kwargs.iteritems():
+            self._init_params.append({'name': param_name, 'value': param_value})
+
+
+
 class SnapCLI(Cmd):
     def __init__(self):
         self.name = 'snapconfig'
@@ -178,16 +187,20 @@ class SnapCLI(Cmd):
         self.prompt = '[%s] ' % self.name
         self.transforms = []
         self.data_shapes = []
+        self.service_objects = []
         #self.replay_stack = Stack()
 
 
     def get_config_data(self):
-        data = {'data_shapes': {}, 'transforms':{}}
+        data = {'data_shapes': {}, 'transforms':{}, 'service_objects': {}}
         for shape in self.data_shapes:
             data['data_shapes'][shape.name] = shape
 
         for transform in self.transforms:
             data['transforms'][transform.name] = transform
+
+        for so in self.service_objects:
+            data['service_objects'][so.name] = so
 
         return data
 
