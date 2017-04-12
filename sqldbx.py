@@ -38,7 +38,10 @@ class SQLDataTypeBuilder(object):
     def add_primary_key_field(self, name, data_type, **kwargs):
         field = {}
         field['name'] = name
-        field['column'] = Column(data_type, primary_key=True, **kwargs)
+        if kwargs.get('sequence'):
+            field['column'] = Column(data_type, Sequence(kwargs['sequence']), primary_key=True)
+        else:
+            field['column'] = Column(data_type, primary_key=True, **kwargs)
         self.fields.append(field)
         return self
 
