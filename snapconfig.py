@@ -157,7 +157,7 @@ class DataShapeMeta(object):
 
     def set_name(self, name):
         fields = copy.deepcopy(self.fields)
-        return DataShapedMeta(name, fields)
+        return DataShapeMeta(name, fields)
 
 
     def add_field(self, f_name, f_type, is_required=False):
@@ -190,6 +190,11 @@ class ServiceObjectMeta(object):
 
 
     @property
+    def name(self):
+        return self._name
+
+
+    @property
     def classname(self):
         return self._classname
 
@@ -199,8 +204,11 @@ class ServiceObjectMeta(object):
         return self._init_params
 
 
-    def _collect_params(self):
-        return map(lambda x: {x['name'], x['value']}, self._init_params)
+    def _params_to_dict(self, param_array):
+        result = {}
+        for p in param_array:
+            result[p['name']] = p['value']
+        return result
 
 
     def find_param_by_name(self, param_name):
@@ -213,14 +221,17 @@ class ServiceObjectMeta(object):
 
 
     def set_name(self, name):
-        return ServiceObjectMeta(name, self._classname, )
+        return ServiceObjectMeta(name, self._classname, **self._params_to_dict(self._init_params))
+
+
+    def set_classname(self, classname):
+        return ServiceObjectMeta(self._name, classname, **self._params_to_dict(self._init_params))
+
 
     def add_param(self, name, value):
         new_param_list = copy.deepcopy(self._init_params)
         new_param_list.append({'name': name, 'value': value})
-        params = {}
-        for p in new_param_list:
-            params[p['name']] = p['value']
+        params = self._params_to_dict(new_param_list)
 
         return ServiceObjectMeta(self._name, self._classname, **params)
 
@@ -229,9 +240,7 @@ class ServiceObjectMeta(object):
         updated_so = self
         for name, value in kwargs.iteritems():
             updated_so = updated_so.add_param(name, value)
-
         return updated_so
-
 
 
     def remove_param(self, name):
@@ -248,9 +257,96 @@ class ServiceObjectMeta(object):
         return ServiceObjectMeta(self._name, self._classname, **params)
 
 
+    def data(self):
+        result = {'name': self._name,
+                  'class': self._classname,
+                  'init_params': self._init_params}
+        return result
+
+
+
+class GlobalSettingsMeta(object):
+    def __init__(self, app_name, **kwargs):
+        self._app_name = app_name
+        self._bind_host = kwargs.get('bind_host') or '127.0.0.1'
+        self._port = kwargs.get('port') or 5000
+        self._debug = kwargs.get('debug') or True
+        self._transform_module = kwargs.get('transform_module') or '%s_transforms' % self._app_name
+        self._service_module = kwargs.get('service_module') or '%s_services' % self._app_name
+        self._preprocessor_module = kwargs.get('preprocessor_module') or '%s_decode' % self._app_name
+        self._project_directory = kwargs.get('project_directory') or  '$%s_HOME' % self._app_name.upper()
+        self._logfile = kwargs.get('logfile') or '%s.log' % self._app_name
+
+
+    @property
+    def current_values(self):
+        original_attrs = self.__dict__
+        attrs = {}
+        for key in original_attrs:
+            attrs[key.lstrip('_')] = original_attrs[key]
+        return attrs
+
+
+    def set_bind_host(self, host):
+        new_attrs = self.current_values
+        new_attrs['bind_host'] = host
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def set_app_name(self, name):
+        new_attrs = self.current_values
+        return GlobalSettingsMeta(name, **new_attrs)
+
+
+    def set_port(self, port):
+        new_attrs = self.current_values
+        new_attrs['port'] = port
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def set_debug(self, debug_status):
+        new_attrs = self.current_values
+        new_attrs['debug'] = debug_status
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def set_transform_module(self, transform_module_name):
+        new_attrs = self.current_values
+        new_attrs['transform_module'] = transform_module_name
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def set_service_module(self, service_module_name):
+        new_attrs = self.current_values
+        new_attrs['service_module'] = service_module_name
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def set_preprocessor_module(self, preprocessor_module_name):
+        new_attrs = self.current_values
+        new_attrs['preprocessor_module'] = preprocessor_module_name
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def set_project_directory(self, project_directory):
+        new_attrs = self.current_values
+        new_attrs['project_directory'] = project_directory
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def set_logfile(self, logfile):
+        new_attrs = self.current_values
+        new_attrs['logfile'] = logfile
+        return GlobalSettingsMeta(self._app_name, **new_attrs)
+
+
+    def data(self):
+        return common.jsonpretty(self.current_values)
+
+
 
 class SnapCLI(Cmd):
-    def __init__(self):
+    def __init__(self, app_name):
         self.name = 'snapconfig'
         Cmd.__init__(self)
         self.prompt = '[%s] ' % self.name
@@ -527,14 +623,14 @@ class SnapCLI(Cmd):
 
             so_params[param_name] = param_value
 
-            should_continue = cli.InputPrompt('add another parameter (y/n)?', 'Y').show()
-            if not should_continue or should_continue.lower() != 'y':
+            should_continue = cli.InputPrompt('add another parameter (Y/n)?', 'y').show()
+            if should_continue.lower() != 'y':
                 break
 
-            return so_params
+        return so_params
 
 
-    def do_mkso(self, *cmd_args):
+    def do_mksvcobj(self, *cmd_args):
         print '+++ Register new service object'
         so_name = cli.InputPrompt('service object name').show()
         so_classname = cli.InputPrompt('service object class').show()
@@ -542,9 +638,9 @@ class SnapCLI(Cmd):
         self.service_objects.append(ServiceObjectMeta(so_name, so_classname, **so_params))
 
 
-    def do_chso(self, *cmd_args):
+    def do_chsvcobj(self, *cmd_args):
         if not len(*cmd_args):
-            print 'chso (change service object) command requires the service object name.'
+            print 'chsvcobj (change service object) command requires the service object name.'
             return
 
         print '+++ Update service object'
@@ -556,10 +652,12 @@ class SnapCLI(Cmd):
 
         current_so = self.service_objects[so_index]
         so_name = cli.InputPrompt('change name to', current_so.name).show()
-
-        self.service_objects[so_index] = current_so.s
+        self.service_objects[so_index] = current_so.set_name(so_name)
+        current_so = self.service_objects[so_index]
 
         so_classname = cli.InputPrompt('change class to', current_so.classname).show()
+        self.service_objects[so_index] = current_so.set_classname(so_classname)
+        current_so = self.service_objects[so_index]
 
         operation = cli.MenuPrompt('select service object operation', CHSO_OPTIONS).show()
         if operation == 'add_params':
@@ -579,6 +677,18 @@ class SnapCLI(Cmd):
                     break
 
 
+    def do_svcobj(self, *cmd_args):
+        if not len(*cmd_args):
+            print 'svcobj (show service object) command required the service object name.'
+            return
+
+        name = cmd_args[0]
+        index = self.get_service_object_index(name)
+        if index < 0:
+            print 'no service object registered under the name %s.' % name
+
+        print common.jsonpretty(self.service_objects[index].data())
+
 
 
     def do_mktfm(self, *cmd_args):
@@ -596,9 +706,9 @@ class SnapCLI(Cmd):
         return
 
 
-    def do_showtfm(self, *cmd_args):
+    def do_tfm(self, *cmd_args):
         if not len(*cmd_args):
-            print 'showtfm (show transform) command requires the transform name.'
+            print 'tfm (show transform) command requires the transform name.'
             return
         transform_name = cmd_args[0]
         transform = self.find_transform(transform_name)
@@ -632,9 +742,9 @@ class SnapCLI(Cmd):
         self.create_shape()
 
 
-    def do_showshape(self, *cmd_args):
+    def do_shape(self, *cmd_args):
         if not len(*cmd_args):
-            print 'showshape command requires the datashape name.'
+            print 'shape (show datashape) command requires the datashape name.'
             return
         shape_name = cmd_args[0]
         shape = self.find_shape(shape_name)
@@ -662,6 +772,10 @@ class SnapCLI(Cmd):
         self.update_shape(shape_name)
 
 
+    def do_settings(self, *cmd_args):
+        pass
+
+
     def emptyline(self):
         pass
 
@@ -675,7 +789,8 @@ def main(args):
     log = metl.init_logging('mx_forge', os.path.join(log_directory, log_filename), logging.DEBUG)
     '''
 
-    snap_cli = SnapCLI()
+    app_name = args['<app_name>']
+    snap_cli = SnapCLI(app_name)
     snap_cli.cmdloop()
 
 
