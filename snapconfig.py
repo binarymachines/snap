@@ -72,6 +72,11 @@ class TransformMeta(object):
 
 
     @property
+    def output_mimetype(self):
+        return self._mime_type
+
+
+    @property
     def route(self):
         return self._route
 
