@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''Usage:    snapconfig.py [<initfile>]
+'''Usage:    snapconfig.py <app_name>
 
 '''
 
@@ -283,7 +283,8 @@ class GlobalSettingsMeta(object):
         original_attrs = self.__dict__
         attrs = {}
         for key in original_attrs:
-            attrs[key.lstrip('_')] = original_attrs[key]
+            if key != '_app_name':
+                attrs[key.lstrip('_')] = original_attrs[key]
         return attrs
 
 
@@ -341,7 +342,7 @@ class GlobalSettingsMeta(object):
 
 
     def data(self):
-        return common.jsonpretty(self.current_values)
+        return self.current_values
 
 
 
@@ -353,6 +354,7 @@ class SnapCLI(Cmd):
         self.transforms = []
         self.data_shapes = []
         self.service_objects = []
+        self.global_settings = GlobalSettingsMeta(app_name)
         #self.replay_stack = Stack()
 
 
@@ -772,8 +774,28 @@ class SnapCLI(Cmd):
         self.update_shape(shape_name)
 
 
+    def do_chsettings(self, *cmd_args):
+        print 'updating application settings...'
+        settings_menu = []
+        defaults = self.global_settings.current_values
+        for key, value in defaults.iteritems():
+            settings_menu.append({'label': key, 'value': key})
+
+        while True:
+            setting_name = cli.MenuPrompt('global setting to update', settings_menu).show()
+            setting_value = cli.InputPrompt(setting_name, defaults[setting_name]).show()
+
+            attr_name = 'set_%s' % setting_name
+            setter_func = getattr(self.global_settings, attr_name)
+            self.global_settings = setter_func(setting_value)
+
+            should_continue = cli.InputPrompt('update another (Y/n)?', 'y').show()
+            if should_continue.lower() != 'y':
+                break
+
+
     def do_settings(self, *cmd_args):
-        pass
+        print common.jsonpretty(self.global_settings.data())
 
 
     def emptyline(self):
