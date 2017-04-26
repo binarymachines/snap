@@ -5,12 +5,15 @@
 
 
 globals:
+        bind_host:                   {{ bind_host }}
+        port:                        {{ port }}
+        debug:                       {{ debug }}
+        logfile:                     {{ logfile }}
+        project_directory:           {{ project_directory }}
         transform_function_module:   {{ transform_module  }}
         service_module:              {{ service_module }} 
-        port:                        5000
-        debug:                       True
-        logfile:                     {{ logfile_name }}
-        project_directory:           {{ project_home }}
+        preprocessor_module:         {{ preprocessor_module }}
+        
 
 
 nginx_servers:
@@ -24,7 +27,7 @@ uwsgi_environments:
 # you can create an arbitrary number of environments here and generate init files for them by name
 # using the uwsgi initfile generator script
         dev:
-                base_directory:         {{ project_home }}
+                base_directory:         {{ project_directory }}
 
                 # python_home should be the parent of your python bin and lib dirs. 
                 # If you are using virtualenv, it should be your active venv directory
@@ -43,46 +46,37 @@ uwsgi_environments:
                                 
 
 service_objects:
-        db_manager:
+        {% for so in service_objects %}
+        {{ so.name }}:
             class:
-                DBServiceObject
+                {{ so['class'] }}
             init_params:
-                
+                {% for p in so['init_params'] %}
+                - name: {{ p['name'] }}
+                  value: {{ p['value'] }}
+                {% endfor %}
+        {% endfor %}
+
 
 data_shapes:
-        default:
+        {% for shape in data_shapes %}
+        {{shape.name}}:
                 fields:
-			- name: id
-			  type: int
-			  required: True
+                        {% for field in shape.fields %}
+			- name: {{ field.name }}
+			  type: {{ field.data_type }}
+			  required: {{ field.required }}
+                        {% endfor %}
+        {% endfor %}
 
-        create_sample:
-                fields:         
-                        - name: id
-                          type: int
-			  required: True
-                          
-                        - name: name
-                          type: string			  
-                         
 transforms:
+        {% for t in transforms %}
         create_sample:
-            route:              /sample
-            method:             POST
-	    input_shape: 	create_sample
-            output_mimetype:    application/json
-
-        lookup_sample:
-            route:              /sample/<id>
-            method:             GET
-            input_shape:        default
-            output_mimetype:    application/json
-
-        delete_sample:
-            route:              /sample/<id>
-            method:             DELETE
-            input_shape:        default
-            output_mimetype:    application/json
+            route:              {{ t.route }}
+            method:             {{ t.method }}
+	    input_shape: 	{{ t.input_shape }}
+            output_mimetype:    {{ t.output_mimetype }}
+        {% endfor %}
 
 error_handlers:
         - error:                NoSuchObjectException
