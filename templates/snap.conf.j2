@@ -49,9 +49,9 @@ service_objects:
         {% for so in service_objects %}
         {{ so.name }}:
             class:
-                {{ so['class'] }}
+                {{ so.classname }}
             init_params:
-                {% for p in so['init_params'] %}
+                {% for p in so.init_params %}
                 - name: {{ p['name'] }}
                   value: {{ p['value'] }}
                 {% endfor %}
