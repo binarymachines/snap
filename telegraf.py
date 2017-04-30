@@ -72,7 +72,8 @@ class KafkaIngestLogWriter(object):
         #KafkaProducer(bootstrap_servers=['broker1:1234'])
         # = KafkaProducer(value_serializer=lambda v: json.dumps(v).encode('utf-8'))
         self.producer = KafkaProducer(bootstrap_servers=','.join([n() for n in kafka_node_array]),
-                                      value_serializer=serializer)
+                                      value_serializer=serializer,
+                                      acks=1)
 
 
     def write(self, topic, ingest_message):
@@ -99,3 +100,14 @@ class KafkaIngestLogReader(object):
     @property
     def topic(self):
         return self._topic
+
+
+class IngestWritePromiseQueue(object):
+    def __init__(self):
+        self.futures = []
+
+    
+    def append(self, future):
+        self.futures.append(future)
+
+
