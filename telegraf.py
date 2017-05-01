@@ -3,6 +3,7 @@
 import os
 import sys
 import threading
+import time
 import datetime
 import json
 import docopt
@@ -140,8 +141,10 @@ class IngestWritePromiseQueue(threading.Thread):
 
 
     def run(self):
-        print 'processing one or more Futures...'
+        print 'processing %d Futures...' % len(self._futures)
         for f in self._futures:
+            while not f.done():
+                time.sleep(1)
             self.process_entry(f)
 
         print 'done.'
