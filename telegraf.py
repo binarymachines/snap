@@ -2,10 +2,12 @@
 
 import os
 import sys
+import threading
 import datetime
 import json
 import docopt
 import common
+import copy
 from kafka import KafkaProducer, KafkaConsumer
 
 
@@ -102,12 +104,50 @@ class KafkaIngestLogReader(object):
         return self._topic
 
 
-class IngestWritePromiseQueue(object):
+class ConsoleErrorHandler(object):
     def __init__(self):
-        self.futures = []
+        pass
 
-    
+    def handle_error(self, exception_obj):
+        print str(exception_obj)
+
+
+
+class IngestWritePromiseQueue(threading.Thread):
+    '''Queues up the Future objects returned from KafkaProducer.send() calls
+       and then handles the results of failed requests in a background thread
+    '''
+
+    def __init__(self, error_handler, futures = []):
+        threading.Thread.__init__(self)
+        self._futures = []
+        self._error_handler = error_handler
+
+
+
     def append(self, future):
-        self.futures.append(future)
+        futures = copy.deepcopy(self._futures)
+        futures.append(future)
+        return IngestWritePromiseQueue(self._error_handler, futures)
+
+
+    def process_entry(self, f):
+        if f.succeeded:
+            print 'future returned successfully.'
+        else:
+            self._error_handler.handle_error(f.exception)
+
+
+    def run(self):
+        print 'processing one or more Futures...'
+        for f in self._futures:
+            self.process_entry(f)
+
+        print 'done.'
+
+
+
+
+
 
 
