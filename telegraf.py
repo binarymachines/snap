@@ -128,8 +128,9 @@ class IngestWritePromiseQueue(threading.Thread):
 
     def append(self, future):
         futures = copy.deepcopy(self._futures)
-        futures.append(future)
-        return IngestWritePromiseQueue(self._error_handler, futures)
+        self._futures.append(future)
+        #return IngestWritePromiseQueue(self._error_handler, futures)
+        return self
 
 
     def process_entry(self, f):
@@ -143,8 +144,8 @@ class IngestWritePromiseQueue(threading.Thread):
     def run(self):
         print 'processing %d Futures...' % len(self._futures)
         for f in self._futures:
-            while not f.done():
-                time.sleep(1)
+            while not f.is_done:
+                time.sleep(0.1)
             self.process_entry(f)
 
         print 'done.'
