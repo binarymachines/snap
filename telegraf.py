@@ -140,7 +140,10 @@ class IngestWritePromiseQueue(threading.Thread):
 
 
     def process_entry(self, f):
-        if not f.succeeded:
+        if f.succeeded:
+            if self._debug_mode:
+                self._log.debug('processed write promise with result: %s' % str(f.metadata))
+        else:
             if self._debug_mode:
                 self._log.debug('write promise failed with exception: %s' % str(f.exception))
             self._error_handler.handle_error(f.exception)
