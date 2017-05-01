@@ -132,6 +132,7 @@ class IngestWritePromiseQueue(threading.Thread):
 
 
     def process_entry(self, f):
+        print str(f)
         if f.succeeded:
             print 'future returned successfully.'
         else:
