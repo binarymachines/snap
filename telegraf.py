@@ -119,40 +119,38 @@ class IngestWritePromiseQueue(threading.Thread):
        and then handles the results of failed requests in a background thread
     '''
 
-    def __init__(self, error_handler, futures = []):
+    def __init__(self, error_handler, log, futures = [], **kwargs):
         threading.Thread.__init__(self)
-        self._futures = []
+        self._futures = futures
         self._error_handler = error_handler
+        self._log = log
+        self._debug_mode = False
+        if kwargs.get('debug_mode') == True:
+            self._debug_mode = True
 
+        self._future_retry_wait_time = 0.01
 
 
     def append(self, future):
         futures = copy.deepcopy(self._futures)
-        self._futures.append(future)
-        #return IngestWritePromiseQueue(self._error_handler, futures)
-        return self
+        futures.append(future)
+        return IngestWritePromiseQueue(self._error_handler,
+                                       self._log, futures,
+                                       debug_mode=self._debug_mode)
 
 
     def process_entry(self, f):
-        print str(f)
-        if f.succeeded:
-            print 'future returned successfully.'
-        else:
+        if not f.succeeded:
+            if self._debug_mode:
+                self._log.debug('write promise failed with exception: %s' % str(f.exception))
             self._error_handler.handle_error(f.exception)
 
 
     def run(self):
-        print 'processing %d Futures...' % len(self._futures)
+        self._log.info('processing %d Futures...' % len(self._futures))
         for f in self._futures:
             while not f.is_done:
-                time.sleep(0.1)
+                time.sleep(self._future_retry_wait_time)
             self.process_entry(f)
-
-        print 'done.'
-
-
-
-
-
-
+        self._log.info('all futures processed.')
 
