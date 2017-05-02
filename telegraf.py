@@ -149,6 +149,13 @@ class IngestWritePromiseQueue(threading.Thread):
                                        self._log, futures,
                                        debug_mode=self._debug_mode)
 
+    def append_all(self, future_array):
+        futures = copy.deepcopy(self._futures)
+        futures.extend(future_array)
+        return IngestWritePromiseQueue(self._error_handler,
+                                       self._log, futures,
+                                       debug_mode=self._debug_mode)
+
 
     def process_entry(self, f):
         if f.succeeded:
