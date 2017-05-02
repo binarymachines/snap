@@ -10,11 +10,11 @@ import docopt
 import common
 import copy
 from kafka import KafkaProducer, KafkaConsumer
+from raven import Client
 
 
 
-
-class IngestMessageHeader(object):
+class IngestRecordHeader(object):
     def __init__(self, record_type, stream_id, asset_id, **kwargs):
         self._version = 1
         self._record_type = record_type
@@ -37,9 +37,10 @@ class IngestMessageHeader(object):
         return result
 
 
-class IngestMessageBuilder(object):
-    def __init__(self, message_header, **kwargs):
-        self.header = message_header
+
+class IngestRecordBuilder(object):
+    def __init__(self, record_header, **kwargs):
+        self.header = record_header
         self.source_data = kwargs or {}
 
 
@@ -79,8 +80,8 @@ class KafkaIngestLogWriter(object):
                                       acks=1)
 
 
-    def write(self, topic, ingest_message):
-        return self.producer.send(topic, ingest_message)
+    def write(self, topic, ingest_record):
+        return self.producer.send(topic, ingest_record)
 
 
     def sync(self, timeout=0):
@@ -96,8 +97,8 @@ class KafkaIngestLogReader(object):
 
 
     def read(self):
-        for message in self.consumer:
-            print (message)
+        for record in self.consumer:
+            print record
 
 
     @property
@@ -111,6 +112,16 @@ class ConsoleErrorHandler(object):
 
     def handle_error(self, exception_obj):
         print str(exception_obj)
+
+
+
+class SentryErrorHandler(object):
+    def __init__(self, sentry_dsn):
+        self.client = Client(sentry_dsn)
+
+
+    def handle_error(self, exception_obj):
+        self.client.send(str(exception_obj))
 
 
 
