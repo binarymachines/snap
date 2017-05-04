@@ -103,20 +103,23 @@ class KafkaIngestLogWriter(object):
 
 
 class KafkaIngestLogReader(object):
-    def __init__(self, topic, kafka_node_array):
+    def __init__(self, topic, kafka_node_array, **kwargs):
         self._topic = topic
-        self.consumer = KafkaConsumer(bootstrap_servers=','.join([n() for n in kafka_node_array]),
-                                      auto_offset_reset='earliest')
+        self.consumer = KafkaConsumer(group_id=None,
+                                      bootstrap_servers=','.join([n() for n in kafka_node_array]),
+                                      auto_offset_reset='latest')
 
+        self.consumer.subscribe(topic)
 
     def read(self):
-        for record in self.consumer:
-            print record
+        for message in self.consumer:
+            print message
 
 
     @property
     def topic(self):
         return self._topic
+
 
 
 class ConsoleErrorHandler(object):
