@@ -12,7 +12,7 @@ import logging
 import copy
 from kafka import KafkaProducer, KafkaConsumer
 from raven import Client
-
+from raven.handlers.logging import SentryHandler
 
 
 from logging import Formatter
