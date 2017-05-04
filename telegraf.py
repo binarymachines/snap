@@ -8,9 +8,22 @@ import datetime
 import json
 import docopt
 import common
+import logging
 import copy
 from kafka import KafkaProducer, KafkaConsumer
 from raven import Client
+
+
+
+from logging import Formatter
+
+
+sentry_logger = logging.getLogger('telegraf_log')
+client = Client('https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031')
+telegraf_error_handler = SentryHandler() 
+telegraf_error_handler.setLevel(logging.ERROR)
+sentry_logger.addHandler(telegraf_error_handler)
+
 
 
 
@@ -137,7 +150,7 @@ class IngestWritePromiseQueue(threading.Thread):
         threading.Thread.__init__(self)
         self._futures = futures
         self._error_handler = error_handler
-        self._log = log
+        self._log = sentry_logger
         self._debug_mode = False
         if kwargs.get('debug_mode') == True:
             self._debug_mode = True
@@ -152,12 +165,16 @@ class IngestWritePromiseQueue(threading.Thread):
                                        self._log, futures,
                                        debug_mode=self._debug_mode)
 
+    def append_all(self, future_array):
+        futures = copy.deepcopy(self._futures)
+        futures.extend(future_array)
+        return IngestWritePromiseQueue(self._error_handler,
+                                       self._log, futures,
+                                       debug_mode=self._debug_mode)
+
 
     def process_entry(self, f):
-        if f.succeeded:
-            if self._debug_mode:
-                self._log.debug('processed write promise with result:\n%s' % f.value.__dict__)
-        else:
+        if not f.succeeded:
             if self._debug_mode:
                 self._log.debug('write promise failed with exception: %s' % str(f.exception))
             self._error_handler.handle_error(f.exception)
