@@ -84,6 +84,10 @@ def json_serializer(value):
     return json.dumps(value).encode('utf-8')
 
 
+def json_deserializer(value):
+    return json.loads(value)
+
+
 class KafkaIngestLogWriter(object):
     def __init__(self, kafka_node_array, serializer=json_serializer):
         #KafkaProducer(bootstrap_servers=['broker1:1234'])
@@ -103,17 +107,18 @@ class KafkaIngestLogWriter(object):
 
 
 class KafkaIngestLogReader(object):
-    def __init__(self, topic, kafka_node_array, **kwargs):
+    def __init__(self, topic, kafka_node_array, deserializer=json_deserializer, **kwargs):
         self._topic = topic
         self.consumer = KafkaConsumer(group_id=None,
                                       bootstrap_servers=','.join([n() for n in kafka_node_array]),
-                                      auto_offset_reset='latest')
+                                      auto_offset_reset='earliest')
 
         self.consumer.subscribe(topic)
 
     def read(self):
+        print dir(self.consumer)
         for message in self.consumer:
-            print message
+            print message.value
 
 
     @property
