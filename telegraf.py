@@ -14,7 +14,6 @@ from kafka import KafkaProducer, KafkaConsumer
 from raven import Client
 from raven.handlers.logging import SentryHandler
 
-
 from logging import Formatter
 
 
@@ -79,13 +78,13 @@ class KafkaNode(object):
         return '%s:%s' % (self._host, self._port)
 
 
-
 def json_serializer(value):
     return json.dumps(value).encode('utf-8')
 
 
 def json_deserializer(value):
     return json.loads(value)
+
 
 
 class KafkaIngestLogWriter(object):
@@ -107,23 +106,67 @@ class KafkaIngestLogWriter(object):
 
 
 class KafkaIngestLogReader(object):
-    def __init__(self, topic, kafka_node_array, deserializer=json_deserializer, **kwargs):
+    def __init__(self,
+                 topic,
+                 kafka_node_array,
+                 deserializer=json_deserializer,
+                 **kwargs):
+
         self._topic = topic
-        self.consumer = KafkaConsumer(group_id=None,
-                                      bootstrap_servers=','.join([n() for n in kafka_node_array]),
-                                      auto_offset_reset='earliest')
+        self._consumer = KafkaConsumer(group_id=None,
+                                       bootstrap_servers=','.join([n() for n in kafka_node_array]),
+                                       auto_offset_reset='earliest')
 
-        self.consumer.subscribe(topic)
+        self._consumer.subscribe(topic)
 
-    def read(self):
-        print dir(self.consumer)
-        for message in self.consumer:
-            print message.value
+
+    def read(self, data_relay):
+        for message in self._consumer:
+            data_relay.send(message.value)
+
+
+    @property
+    def consumer(self):
+        return self._consumer
 
 
     @property
     def topic(self):
         return self._topic
+
+
+class DataRelay(object):
+    def __init__(self, **kwargs):
+        pass
+
+
+    def pre_send(self, kafka_message, logger, **kwargs):
+        pass
+
+
+    def post_send(self, kafka_message, logger, **kwargs):
+        pass
+
+
+    def _send(self, kafka_message, logger, **kwargs):
+        pass
+
+
+    def send(self, kafka_message, logger, **kwargs):
+        self.pre_send(kafka_message, logger, **kwargs)
+        self._send(kafka_message, logger, **kwargs)
+        self.post_send(kafka_message, logger, **kwargs)
+
+
+
+class ConsoleRelay(DataRelay):
+    def __init__(self, **kwargs):
+        DataRelay.__init__(self, **kwargs)
+
+
+    def _send(self, ingest_record, logger):
+        print ingest_record
+
 
 
 
@@ -157,7 +200,7 @@ class IngestWritePromiseQueue(threading.Thread):
         self._error_handler = error_handler
         self._log = sentry_logger
         self._debug_mode = False
-        if kwargs.get('debug_mode') == True:
+        if kwargs.get('debug_mode'):
             self._debug_mode = True
 
         self._future_retry_wait_time = 0.01
