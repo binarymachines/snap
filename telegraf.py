@@ -113,7 +113,7 @@ class KafkaIngestLogReader(object):
                  **kwargs):
 
         self._topic = topic
-        self._consumer = KafkaConsumer(group_id=None,
+        self._consumer = KafkaConsumer(group_id='test_group',
                                        bootstrap_servers=','.join([n() for n in kafka_node_array]),
                                        auto_offset_reset='earliest')
 
