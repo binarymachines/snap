@@ -200,10 +200,12 @@ class K2Relay(DataRelay):
         DataRelay.__init__(self, **kwargs)
         self._target_log_writer = kafka_ingest_log_writer
         self._target_topic = topic
+        # default is to commit on every send
+        self._commit_interval = int(kwargs.get('commit_interval', 1)) 
 
     
     def _send(self, kafka_message, logger):
-        
+        self._target_log_writer.write(self._target_topic, kafka_message.value)
         
 
 
