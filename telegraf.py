@@ -8,6 +8,7 @@ import datetime
 import json
 import docopt
 import common
+import couchbasedbx as cbx
 import logging
 import copy
 from kafka import KafkaProducer, KafkaConsumer
@@ -109,20 +110,23 @@ class KafkaIngestLogReader(object):
     def __init__(self,
                  topic,
                  kafka_node_array,
+                 group=None,
                  deserializer=json_deserializer,
                  **kwargs):
 
         self._topic = topic
-        self._consumer = KafkaConsumer(group_id='test_group',
+        self._consumer = KafkaConsumer(group_id=group,
                                        bootstrap_servers=','.join([n() for n in kafka_node_array]),
-                                       auto_offset_reset='earliest')
+                                       deserializer=deserializer,
+                                       consumer_timeout_ms=2000)
 
-        self._consumer.subscribe(topic)
+        #self._consumer.subscribe(topic)
 
 
-    def read(self, data_relay):
+    def read(self, data_relay, logger):
         for message in self._consumer:
-            data_relay.send(message.value)
+            data_relay.send(message, logger)
+            self._consumer.commit()
 
 
     @property
@@ -133,6 +137,7 @@ class KafkaIngestLogReader(object):
     @property
     def topic(self):
         return self._topic
+
 
 
 class DataRelay(object):
@@ -164,10 +169,42 @@ class ConsoleRelay(DataRelay):
         DataRelay.__init__(self, **kwargs)
 
 
-    def _send(self, ingest_record, logger):
-        print ingest_record
+    def _send(self, kafka_message, logger):
+        print '### record offset %d: %s' % (kafka_message.offset, common.jsonpretty(json.loads(kafka_message.value)))
 
 
+
+class CouchbaseRelay(DataRelay):
+    def __init__(self, host, bucket, **kwargs):
+        DataRelay.__init__(self, **kwargs)
+        couchbase_server = cbx.CouchbaseServer(host)
+        self._couchbase_mgr = cbx.CouchbasePersistenceManager(couchbase_server, bucket)
+        self._couchbase_mgr.register_keygen_function('prx_test', self.generate_test_key)
+        
+
+    def generate_test_key(self, cb_record, **kwargs):
+        return 'prx_test_rec_%s' % datetime.datetime.now().isoformat()
+
+
+    def _send(self, kafka_message, logger):
+        builder = cbx.CouchbaseRecordBuilder('prx_test')
+        builder.from_json(kafka_message.value)
+        cb_record = builder.build()
+        key = self._couchbase_mgr.insert_record(cb_record)
+        logger.info('new record key: %s' % key)
+        
+        
+
+class K2Relay(DataRelay):
+    def __init__(self, target_topic, kafka_ingest_log_writer, **kwargs):
+        DataRelay.__init__(self, **kwargs)
+        self._target_log_writer = kafka_ingest_log_writer
+        self._target_topic = topic
+
+    
+    def _send(self, kafka_message, logger):
+        
+        
 
 
 class ConsoleErrorHandler(object):
@@ -207,14 +244,16 @@ class IngestWritePromiseQueue(threading.Thread):
 
 
     def append(self, future):
-        futures = copy.deepcopy(self._futures)
+        futures = []
+        futures.extend(self._futures)
         futures.append(future)
         return IngestWritePromiseQueue(self._error_handler,
                                        self._log, futures,
                                        debug_mode=self._debug_mode)
 
     def append_all(self, future_array):
-        futures = copy.deepcopy(self._futures)
+        futures = []
+        futures.extend(self._futures)
         futures.extend(future_array)
         return IngestWritePromiseQueue(self._error_handler,
                                        self._log, futures,
