@@ -87,6 +87,10 @@ def json_deserializer(value):
     return json.loads(value)
 
 
+class KafkaMessageHeader(object):
+    def __init__(self, header_dict):
+        self.__dict__ = header_dict
+
 
 class KafkaIngestLogWriter(object):
     def __init__(self, kafka_node_array, serializer=json_serializer):
@@ -115,6 +119,8 @@ class KafkaIngestLogReader(object):
                  **kwargs):
 
         self._topic = topic
+        # commit on every received message by default
+        self._commit_interval = kwargs.get('commit_interval', 1)
         self._consumer = KafkaConsumer(group_id=group,
                                        bootstrap_servers=','.join([n() for n in kafka_node_array]),
                                        deserializer=deserializer,
@@ -124,9 +130,18 @@ class KafkaIngestLogReader(object):
 
 
     def read(self, data_relay, logger):
+        interval_counter = 0
         for message in self._consumer:
             data_relay.send(message, logger)
-            self._consumer.commit()
+            interval_counter += 1
+            if interval_counter % self._commit_interval == 0:
+                self._consumer.commit()
+                interval_counter = 0
+
+
+    @property
+    def commit_interval(self):
+        return self._commit_interval
 
 
     @property
@@ -142,25 +157,36 @@ class KafkaIngestLogReader(object):
 
 class DataRelay(object):
     def __init__(self, **kwargs):
+        self._transformer = kwargs.get('transformer')
+
+
+    def pre_send(self, src_message_header, logger, **kwargs):
         pass
 
 
-    def pre_send(self, kafka_message, logger, **kwargs):
+    def post_send(self, src_message_header, logger, **kwargs):
         pass
 
 
-    def post_send(self, kafka_message, logger, **kwargs):
-        pass
-
-
-    def _send(self, kafka_message, logger, **kwargs):
+    def _send(self, src_message_header, data, logger, **kwargs):
         pass
 
 
     def send(self, kafka_message, logger, **kwargs):
-        self.pre_send(kafka_message, logger, **kwargs)
-        self._send(kafka_message, logger, **kwargs)
-        self.post_send(kafka_message, logger, **kwargs)
+        header_data = {}
+        header_data['topic'] = kafka_message.topic
+        header_data['partition'] = kafka_message.partition
+        header_data['offset'] = kafka_message.offset
+        header_data['key'] = kafka_message.key
+
+        kmsg_header = KafkaMessageHeader(header_data)
+        self.pre_send(kmsg_header, logger, **kwargs)
+        if self._transformer:
+            data_to_send = self._transformer.transform(kafka_message.value)
+        else:
+            data_to_send = kafka_message.value
+        self._send(kmsg_header, data_to_send, logger, **kwargs)
+        self.post_send(kmsg_header, logger, **kwargs)
 
 
 
@@ -169,44 +195,39 @@ class ConsoleRelay(DataRelay):
         DataRelay.__init__(self, **kwargs)
 
 
-    def _send(self, kafka_message, logger):
-        print '### record offset %d: %s' % (kafka_message.offset, common.jsonpretty(json.loads(kafka_message.value)))
+    def _send(self, src_message_header, message_data, logger):
+        print '### record offset %d: %s' % (src_message_header.offset, common.jsonpretty(json.loads(message_data)))
 
 
 
 class CouchbaseRelay(DataRelay):
-    def __init__(self, host, bucket, **kwargs):
+    def __init__(self, host, bucket, record_type, keygen_function, **kwargs):
         DataRelay.__init__(self, **kwargs)
+        self._record_type = record_type
         couchbase_server = cbx.CouchbaseServer(host)
         self._couchbase_mgr = cbx.CouchbasePersistenceManager(couchbase_server, bucket)
-        self._couchbase_mgr.register_keygen_function('prx_test', self.generate_test_key)
-        
-
-    def generate_test_key(self, cb_record, **kwargs):
-        return 'prx_test_rec_%s' % datetime.datetime.now().isoformat()
+        self._couchbase_mgr.register_keygen_function(self._record_type, keygen_function)
 
 
-    def _send(self, kafka_message, logger):
-        builder = cbx.CouchbaseRecordBuilder('prx_test')
-        builder.from_json(kafka_message.value)
+    def _send(self, src_message_header, message_data, logger):
+        builder = cbx.CouchbaseRecordBuilder(self._record_type)
+        builder.from_json(message_data)
         cb_record = builder.build()
         key = self._couchbase_mgr.insert_record(cb_record)
         logger.info('new record key: %s' % key)
-        
-        
+
+
 
 class K2Relay(DataRelay):
     def __init__(self, target_topic, kafka_ingest_log_writer, **kwargs):
         DataRelay.__init__(self, **kwargs)
         self._target_log_writer = kafka_ingest_log_writer
-        self._target_topic = topic
-        # default is to commit on every send
-        self._commit_interval = int(kwargs.get('commit_interval', 1)) 
+        self._target_topic = target_topic
 
-    
+
     def _send(self, kafka_message, logger):
         self._target_log_writer.write(self._target_topic, kafka_message.value)
-        
+
 
 
 class ConsoleErrorHandler(object):
