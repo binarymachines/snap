@@ -21,6 +21,33 @@ class NoSuchLookupMethodException(Exception):
 
 
 
+class BaxaltaLookupDatasource(object):
+    def __init__(self):
+        pass
+
+    def lookup_customer_is_340b(self, target_field_name, source_record):
+        # do whatever
+        return True
+
+
+class FieldValueResolver(object):
+    def __init__(self, field_name_string):
+        self._field_names = field_name_string.split('|')
+
+    def resolve(self, source_record):
+        for name in self._field_names:
+            if source_record.get(name):
+                return source_record[name]
+
+
+class ConstValueResolver(object):
+    def __init__(self, value):
+        self._value = value
+
+    def resolve(self, source_record):
+        return self._value
+
+
 class RecordTransformer:
     def __init__(self):
         self.target_record_fields = set()
@@ -32,10 +59,16 @@ class RecordTransformer:
         self.target_record_fields.add(target_field_name)
 
 
-    def map_source_to_target_field(self, source_field_name, target_field_name):
+    def map_source_to_target_field(self, source_field_designator, target_field_name):
         if not target_field_name in self.target_record_fields:
             raise NoSuchTargetFieldException(target_field_name)
-        self.field_map[target_field_name] = source_field_name
+        self.field_map[target_field_name] = FieldValueResolver(source_field_designator)
+
+
+    def map_const_to_target_field(self, target_field_name, value):
+        if not target_field_name in self.target_record_fields:
+            raise NoSuchTargetFieldException(target_field_name)
+        self.field_map[target_field_name] = ConstValueResolver(value)
 
 
     def register_datasource(self, target_field_name, datasource):
@@ -65,9 +98,9 @@ class RecordTransformer:
         for target_field_name in self.target_record_fields:
             if self.datasources.get(target_field_name):
                 target_record[target_field_name] = self.lookup(target_field_name)
-            else:
-                source_field_name = self.field_map[target_field_name]
-                target_record[target_field_name] = source_record[source_field_name]
+            elif self.field_map.get(target_field_name):
+                source_field_resolver = self.field_map[target_field_name]
+                target_record[target_field_name] = source_field_resolver.resolve(source_record)
 
         return target_record
 
