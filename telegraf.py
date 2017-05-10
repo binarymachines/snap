@@ -123,7 +123,7 @@ class KafkaIngestLogReader(object):
         self._commit_interval = kwargs.get('commit_interval', 1)
         self._consumer = KafkaConsumer(group_id=group,
                                        bootstrap_servers=','.join([n() for n in kafka_node_array]),
-                                       deserializer=deserializer,
+                                       value_deserializer=deserializer,
                                        consumer_timeout_ms=2000)
 
         #self._consumer.subscribe(topic)
