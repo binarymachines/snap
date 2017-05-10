@@ -182,7 +182,7 @@ class DataRelay(object):
         kmsg_header = KafkaMessageHeader(header_data)
         self.pre_send(kmsg_header, logger, **kwargs)
         if self._transformer:
-            data_to_send = self._transformer.transform(kafka_message.value)
+            data_to_send = self._transformer.transform(kafka_message.value['body'])
         else:
             data_to_send = kafka_message.value
         self._send(kmsg_header, data_to_send, logger, **kwargs)
@@ -196,7 +196,7 @@ class ConsoleRelay(DataRelay):
 
 
     def _send(self, src_message_header, message_data, logger):
-        print '### record offset %d: %s' % (src_message_header.offset, common.jsonpretty(json.loads(message_data)))
+        print '### record offset %d: %s' % (src_message_header.offset, message_data)
 
 
 
