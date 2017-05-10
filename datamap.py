@@ -35,7 +35,7 @@ class RecordTransformer:
     def map_source_to_target_field(self, source_field_name, target_field_name):
         if not target_field_name in self.target_record_fields:
             raise NoSuchTargetFieldException(target_field_name)
-        self.field_map[source_field_name] = target_field_name
+        self.field_map[target_field_name] = source_field_name
 
 
     def register_datasource(self, target_field_name, datasource):
