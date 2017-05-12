@@ -21,13 +21,7 @@ class NoSuchLookupMethodException(Exception):
 
 
 
-class BaxaltaLookupDatasource(object):
-    def __init__(self):
-        pass
 
-    def lookup_customer_is_340b(self, target_field_name, source_record):
-        # do whatever
-        return True
 
 
 class FieldValueResolver(object):
@@ -46,6 +40,7 @@ class ConstValueResolver(object):
 
     def resolve(self, source_record):
         return self._value
+
 
 
 class RecordTransformer:
