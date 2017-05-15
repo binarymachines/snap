@@ -3,15 +3,18 @@
 '''Usage:
             xlcr.py <excel_file> sheets
             xlcr.py <excel_file> --sheet=<sheet> --row=<rownum>
+            xlcr.py <excel_file> --sheet=<sheet> --rows=<x:y> [--delimiter=<delimiter_char>]
             xlcr.py <excel_file> --sheet=<sheet> --col=<col_id>
             xlcr.py <excel_file> --sheet=<sheet> --cols=<col_ids> [--delimiter=<delimiter_char>]
             xlcr.py <excel_file> --sheet=<sheet> --cell=<cell_id>
             xlcr.py <excel_file> --sheet=<sheet> --cells=<cell_range>
+            xlcr.py -i <init_file>
 '''
 
 
 import os, sys
 import common
+import core
 import docopt
 import openpyxl as xl
 
@@ -28,7 +31,30 @@ def get_row(worksheet, rownum):
     data = []
     row = worksheet[rownum]
     for cell in row:
-        data.append(cell.value)
+        if cell.value.__class__.__name__ == 'unicode':            
+            data.append(repr(cell.value))
+        else:
+            data.append(str(cell.value))
+    return data
+
+
+def get_rows(worksheet, range_string, delimiter):
+    if not ':' in range_string:
+        raise Exception('range designator must be of the form x:y where y > x.')
+
+    range_values = range_string.split(':')
+    min_row = int(range_values[0])
+    max_row = int(range_values[0])
+
+    if max_row < min_row:
+        raise Exception('range designator must be of the form x:y where y > x.')
+    if len(range_values) == 2:
+        max_row = int(range_values[1])
+
+    data = []
+    for x in range(min_row, max_row):
+        data.append(delimiter.join(get_row(worksheet, x)))
+
     return data
 
 
@@ -49,15 +75,6 @@ def get_columns(worksheet, col_names, delimiter):
             max_col_length = len(data[colname])
     result = []
 
-    '''
-    print "column names: %s" % data.keys()
-    print "column a: %s" % data['a']
-    print "column a cell 0: %s" % data['a'][0]
-    print "max column length = %d" % max_col_length
-
-    print [data[x][0] for x in ['a', 'b']]
-    '''
-
     for index in range(0, max_col_length):
         row = delimiter.join([data[col_name][index] for col_name in col_names])
         result.append(row)
@@ -70,7 +87,7 @@ def get_cell(worksheet, cell_id):
 
 
 def main(args):
-    print common.jsonpretty(args)
+    #rint common.jsonpretty(args)
 
     excel_file = args['<excel_file>']
     workbook = xl.load_workbook(excel_file)
@@ -89,6 +106,15 @@ def main(args):
         rowdata = get_row(worksheet, int(rownum))
         print '\n'.join(rowdata)
 
+
+    if args['--rows']:
+        range_string = args['--rows']
+        if args['--delimiter'] is None:
+            delimiter = ','
+        else:
+            delimiter = args['--delimiter']
+        rowdata = get_rows(worksheet, range_string, delimiter)
+        print '\n'.join(rowdata)
 
     if args['--col']:
         col_name = args['--col']
