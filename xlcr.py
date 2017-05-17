@@ -32,7 +32,7 @@ def get_row(worksheet, rownum):
     row = worksheet[rownum]
     for cell in row:
         if cell.value.__class__.__name__ == 'unicode':            
-            data.append(repr(cell.value))
+            data.append(cell.value.encode('utf-8', 'replace'))
         else:
             data.append(str(cell.value))
     return data
@@ -62,7 +62,10 @@ def get_column(worksheet, col_letter):
     data = []
     column = worksheet[col_letter]
     for cell in column:
-        data.append(str(cell.value))
+        if cell.value.__class__.__name__ == 'unicode':            
+            data.append(cell.value.encode('utf-8', 'replace'))
+        else:
+            data.append(str(cell.value))        
     return data
 
 
@@ -83,7 +86,11 @@ def get_columns(worksheet, col_names, delimiter):
 
 def get_cell(worksheet, cell_id):
     cell = worksheet[cell_id]
-    return cell.value
+    if cell.value.__class__.__name__ == 'unicode':            
+        return cell.value.encode('utf-8', 'replace')
+    else:
+        return str(cell.value)
+    
 
 
 def main(args):
@@ -127,9 +134,20 @@ def main(args):
             delimiter = ','
         else:
             delimiter = args['--delimiter']
-        column_names = col_string.split(',')
-        coldata = get_columns(worksheet, column_names, delimiter)
-        print '\n'.join(coldata)
+        
+        if ',' in col_string:
+            column_names = col_string.split(',')
+            coldata = get_columns(worksheet, column_names, delimiter)
+            print '\n'.join(coldata)
+        '''
+        elif '-' in col_string:
+            column_names = []
+            first_last_cols = col_string.split('-')
+            first_col = first_last_cols[0]
+            last_col = first_last_cols[1]   
+        '''
+
+        
 
 
     if args['--cell']:

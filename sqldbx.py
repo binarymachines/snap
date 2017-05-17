@@ -169,7 +169,20 @@ class Database:
 
         return self.metadata.tables[name]
 
-    
+
+
+class SQLServerDatabase(Database):
+    '''Database type for connecting to Microsoft SQL Server instances
+    '''
+
+    def __init__(self, host, schema, port=1433):
+        Database.__init__(self, 'mssql', host, schema, port)
+
+
+    def __createURL__(self, dbtype, username, password):
+        return '%s+pymssql://%s:%s@%s:%s/%s' % (self.dbType, username, password, self.host, self.port, self.schema)
+
+
 
 class MySQLDatabase(Database):
     """A Database type for connecting to MySQL instances."""
