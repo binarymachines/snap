@@ -124,7 +124,8 @@ class KafkaIngestLogReader(object):
         self._consumer = KafkaConsumer(group_id=group,
                                        bootstrap_servers=','.join([n() for n in kafka_node_array]),
                                        value_deserializer=deserializer,
-                                       consumer_timeout_ms=2000)
+                                       auto_offset_reset='earliest',
+                                       consumer_timeout_ms=5000)
 
         #self._consumer.subscribe(topic)
 
