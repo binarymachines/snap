@@ -147,7 +147,7 @@ class CSVFileDataExtractor(object):
                                         delimiter=self._delimiter,
                                         quotechar=self._quote_char)
             for record in csv_reader:
-                if self._data_handler:
+                if self._processor:
                     self._processor.process(record)
 
 
