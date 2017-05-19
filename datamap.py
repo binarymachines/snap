@@ -104,51 +104,67 @@ class RecordTransformer:
 
 
 
-class ConsoleProcessor(object):
+class DataProcessor(object):
     def __init__(self, processor=None):
         self._processor = processor
+
+
+    def _process(self, record):
+        pass
+
 
     def process(self, record):
         if self._processor:
             data = self._processor.process(record)
         else:
             data = record
-        print common.jsonpretty(data)
-        return data
+        return self._process(record)
+
+
+class ConsoleProcessor(DataProcessor):
+    def __init__(self, processor=None):
+        DataProcessor.__init__(self, processor)
+
+    def _process(self, record):
+        print common.jsonpretty(record)
+        return record
 
 
 
-class WhitespaceCleanupProcessor(object):
-    def __init__(self):
-        pass
+class WhitespaceCleanupProcessor(DataProcessor):
+    def __init__(self, processor=None):
+        DataProcessor.__init__(self, processor)
 
 
-    def process(self, record):
+    def _process(self, record):
         data = {}
         for key, value in record.iteritems():
             data[key] = value.strip()
-
         return data
 
 
 
 class CSVFileDataExtractor(object):
     def __init__(self, processor, **kwargs):
-        self._data_handler = kwargs.get('data_handler')
         self._delimiter = kwargs.get('delimiter', ',')
         self._quote_char = kwargs.get('quotechar')
+        self._header_fields = kwargs.get('header_fields')
         self._processor = processor
 
 
 
-    def extract(self, filename):
+    def extract(self, filename, **kwargs):
+        load_func = kwargs.get('load_function')
         with open(filename, 'rb') as datafile:
             csv_reader = csv.DictReader(datafile,
                                         delimiter=self._delimiter,
                                         quotechar=self._quote_char)
             for record in csv_reader:
+                data = record
                 if self._processor:
-                    self._processor.process(record)
+                    data = self._processor.process(record)
+                if load_func:
+                    load_func(data)
 
 
 
