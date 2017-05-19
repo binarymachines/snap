@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 
+import csv
+import common
+
 
 class NoSuchTargetFieldException(Exception):
     def __init__(self, field_name):
@@ -100,3 +103,53 @@ class RecordTransformer:
         return target_record
 
 
+
+class ConsoleProcessor(object):
+    def __init__(self, processor=None):
+        self._processor = processor
+
+    def process(self, record):
+        if self._processor:
+            data = self._processor.process(record)
+        else:
+            data = record
+        print common.jsonpretty(data)
+        return data
+
+
+
+class WhitespaceCleanupProcessor(object):
+    def __init__(self):
+        pass
+
+
+    def process(self, record):
+        data = {}
+        for key, value in record.iteritems():
+            data[key] = value.strip()
+
+        return data
+
+
+
+class CSVFileDataExtractor(object):
+    def __init__(self, processor, **kwargs):
+        self._data_handler = kwargs.get('data_handler')
+        self._delimiter = kwargs.get('delimiter', ',')
+        self._quote_char = kwargs.get('quotechar')
+        self._processor = processor
+
+
+
+    def extract(self, filename):
+        with open(filename, 'rb') as datafile:
+            csv_reader = csv.DictReader(datafile,
+                                        delimiter=self._delimiter,
+                                        quotechar=self._quote_char)
+            for record in csv_reader:
+                if self._data_handler:
+                    self._processor.process(record)
+
+
+
+    
