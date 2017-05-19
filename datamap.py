@@ -75,7 +75,7 @@ class RecordTransformer:
         self.datasources[target_field_name] = datasource
 
 
-    def lookup(self, target_field_name):
+    def lookup(self, target_field_name, source_record):
         datasource = self.datasources.get(target_field_name)
         if not datasource:
             raise NoDatasourceForFieldException(target_field_name)
@@ -85,7 +85,7 @@ class RecordTransformer:
             raise NoSuchLookupMethodException(transform_func_name)
 
         transform_func = getattr(datasource, transform_func_name)
-        return transform_func(target_field_name)
+        return transform_func(target_field_name, source_record)
 
 
     def transform(self, source_record, **kwargs):
@@ -95,7 +95,7 @@ class RecordTransformer:
 
         for target_field_name in self.target_record_fields:
             if self.datasources.get(target_field_name):
-                target_record[target_field_name] = self.lookup(target_field_name)
+                target_record[target_field_name] = self.lookup(target_field_name, source_record)
             elif self.field_map.get(target_field_name):
                 source_field_resolver = self.field_map[target_field_name]
                 target_record[target_field_name] = source_field_resolver.resolve(source_record)
