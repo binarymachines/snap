@@ -18,9 +18,9 @@ class NoDatasourceForFieldException(Exception):
 
 
 class NoSuchLookupMethodException(Exception):
-    def __init__(self, method_name):
+    def __init__(self, datasource_classname, method_name):
         Exception.__init__(self,
-                           'Registered datasource of type %s has no lookup method "%s(...)' % (method_name))
+                           'Registered datasource %s has no lookup method "%s(...)' % (datasource_classname, method_name))
 
 
 
@@ -82,7 +82,7 @@ class RecordTransformer:
 
         transform_func_name = 'lookup_%s' % (target_field_name)
         if not hasattr(datasource, transform_func_name):
-            raise NoSuchLookupMethodException(transform_func_name)
+            raise NoSuchLookupMethodException(datasource.__class__.__name__, transform_func_name)
 
         transform_func = getattr(datasource, transform_func_name)
         return transform_func(target_field_name, source_record)
@@ -100,6 +100,7 @@ class RecordTransformer:
                 source_field_resolver = self.field_map[target_field_name]
                 target_record[target_field_name] = source_field_resolver.resolve(source_record)
 
+        #print 'transformer returning record: %s' % target_record
         return target_record
 
 

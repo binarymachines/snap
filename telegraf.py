@@ -168,10 +168,10 @@ class DataRelay(object):
     def post_send(self, src_message_header, logger, **kwargs):
         pass
 
-
+    '''
     def _send(self, src_message_header, data, logger, **kwargs):
         pass
-
+    '''
 
     def send(self, kafka_message, logger, **kwargs):
         header_data = {}
@@ -198,6 +198,7 @@ class ConsoleRelay(DataRelay):
 
     def _send(self, src_message_header, message_data, logger):
         print '### record offset %d: %s' % (src_message_header.offset, message_data)
+        
 
 
 
