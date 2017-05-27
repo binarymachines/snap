@@ -197,8 +197,8 @@ class ConsoleRelay(DataRelay):
 
 
     def _send(self, src_message_header, message_data, logger):
-        print '### record offset %d: %s' % (src_message_header.offset, message_data)
-        
+        print '### record at offset %d: %s' % (src_message_header.offset, message_data)
+
 
 
 
