@@ -1,0 +1,29 @@
+#
+# Generated uWSGI init file for snap http endpoints
+#
+#
+
+
+[uwsgi]
+#application's base folder
+base = {{ uwsgi_config.base_dir }}
+
+#python module to import
+app = main
+module = %(app)
+
+# the python home (if using virtualenvs, this should be your venv directory)
+home = {{ uwsgi_config.python_home }}
+pythonpath = %(base)
+
+#socket file's location
+socket = {{ uwsgi_config.socket_dir }}/%n.sock
+
+#permissions for the socket file
+chmod-socket    = 666
+
+#the variable that holds a flask application inside the module imported at line #6
+callable = app
+
+#location of log files
+logto = {{ uwsgi_config.log_dir }}/%n.log

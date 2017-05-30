@@ -1,0 +1,108 @@
+# 
+# sample YAML init file for 'snap' HTTP microservice framework
+#
+#
+
+
+globals:
+        bind_host:                   {{ bind_host }}
+        port:                        {{ port }}
+        debug:                       {{ debug }}
+        logfile:                     {{ logfile }}
+        project_directory:           {{ project_directory }}
+        transform_function_module:   {{ transform_module  }}
+        service_module:              {{ service_module }} 
+        preprocessor_module:         {{ preprocessor_module }}
+        
+
+
+nginx_servers:
+        local_dev:
+                hostname:       localhost
+                port:           8080
+                uwsgi_sock:     /tmp/uwsgi.sock
+
+
+uwsgi_environments:
+# you can create an arbitrary number of environments here and generate init files for them by name
+# using the uwsgi initfile generator script
+        dev:
+                base_directory:         {{ project_directory }}
+
+                # python_home should be the parent of your python bin and lib dirs. 
+                # If you are using virtualenv, it should be your active venv directory
+                python_home:            ~/.virtualenvs/snap            
+
+                socket_directory:       /tmp
+
+                # this is separate from the application and webserver logs
+                log_directory:          /var/log/uwsgi
+        prod:
+                base_directory:         $SNAP_BASE
+                python_home:            $SNAP_PYTHON_HOME
+                socket_directory:       $SNAP_SOCKET
+                log_directory:          $SNAP_LOG
+
+                                
+
+service_objects:
+        {% for so in service_objects %}
+        {{ so.name }}:
+            class:
+                {{ so.classname }}
+            init_params:
+                {% for p in so.init_params %}
+                - name: {{ p['name'] }}
+                  value: {{ p['value'] }}
+                {% endfor %}
+        {% endfor %}
+
+
+data_shapes:
+        {% for shape in data_shapes %}
+        {{shape.name}}:
+                fields:
+                        {% for field in shape.fields %}
+			- name: {{ field.name }}
+			  type: {{ field.data_type }}
+			  required: {{ field.required }}
+                        {% endfor %}
+        {% endfor %}
+
+transforms:
+        {% for t in transforms %}
+        create_sample:
+            route:              {{ t.route }}
+            method:             {{ t.method }}
+	    input_shape: 	{{ t.input_shape }}
+            output_mimetype:    {{ t.output_mimetype }}
+        {% endfor %}
+
+error_handlers:
+        - error:                NoSuchObjectException
+          tx_status_code:       HTTP_NOT_FOUND 
+                
+        - error:                DuplicateIDException
+          tx_status_code:       HTTP_BAD_REQUEST
+
+
+#---------------------------------------------------
+#
+# This section contains optional config structures
+# for Serpentine application components.
+#
+#---------------------------------------------------
+
+
+datasources:
+        schedules:
+            type:           menu   
+            table:          schedules
+            name_field:     name            # default
+            value_field:    id              # default
+            
+        schedule_index:
+            type:           table
+            table:          schedules
+            class:          ScheduleIndexDataSource
+            fields:         id, name, begin_date, end_date, date_created, export_date, is_active

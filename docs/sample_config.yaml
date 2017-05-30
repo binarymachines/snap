@@ -1,0 +1,123 @@
+# 
+# sample YAML init file for 'snap' HTTP microservice framework
+#
+#
+
+
+globals:
+        transform_function_module:   transforms
+        service_module:              service_objects
+        port:                        5000
+        debug:                       True
+        logfile:                     snapfoo.log
+        project_directory:           ~/workshop/python/dsx/python
+
+
+nginx_servers:
+        local_dev:
+                hostname:       localhost
+                port:           8080
+                uwsgi_sock:     /tmp/uwsgi.sock
+
+
+uwsgi_environments:
+# you can create an arbitrary number of environments here and generate init files for them by name
+# using the uwsgi initfile generator script
+        dev:
+                base_directory:         ~/workshop/python/project_snap
+
+                # python_home should be the parent of your python bin and lib dirs. 
+                # If you are using virtualenv, it should be your active venv directory
+                python_home:            ~/.virtualenvs/snap            
+
+                socket_directory:       /tmp
+
+                # this is separate from the application and webserver logs
+                log_directory:          /var/log/uwsgi
+        prod:
+                base_directory:         $SNAP_BASE
+                python_home:            $SNAP_PYTHON_HOME
+                socket_directory:       $SNAP_SOCKET
+                log_directory:          $SNAP_LOG
+
+                                
+
+service_objects:
+        db_manager:
+            class:
+                DBServiceObject
+            init_params:
+                
+
+data_shapes:
+        default:
+                fields:
+
+        create_user:
+                fields:         
+                        - name: candidate
+                          type: string
+                          
+                        - name: first_name
+                          type: string
+
+                        - name: last_name
+                          type: string
+                        
+                        - name: email
+                          type: string
+
+        lookup_user:
+                fields:                        
+                        - name: id
+                          type: string
+                          required: True
+
+
+                         
+transforms:
+        create_user:
+            route:              /user
+            method:             POST            
+            output_mimetype:    application/json
+                        
+        lookup_user:
+            route:              /user/<id>
+            method:             GET
+            input_shape:        lookup_user
+            output_mimetype:    application/json
+
+        delete_user:
+            route:              /user/<id>
+            method:             DELETE
+            input_shape:        default
+            output_mimetype:    application/json
+
+error_handlers:
+        - error:                NoSuchUserException
+          tx_status_code:       HTTP_NOT_FOUND 
+                
+        - error:                DuplicateEmailAddressException
+          tx_status_code:       HTTP_BAD_REQUEST
+
+
+#---------------------------------------------------
+#
+# This section contains optional config structures
+# for Serpentine application components.
+#
+#---------------------------------------------------
+
+
+datasources:
+        schedules:
+            type:           menu   
+            table:          schedules
+            name_field:     name            # default
+            value_field:    id              # default
+            
+        schedule_index:
+            type:           table
+            table:          schedules
+            class:          ScheduleIndexDataSource
+            fields:         id, name, begin_date, end_date, date_created, export_date, is_active
