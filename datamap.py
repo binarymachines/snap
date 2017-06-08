@@ -52,7 +52,7 @@ class FieldValueMap(object):
     def add_resolver(self, field_value_resolver, field_name):
         self._resolvers[field_name] = field_value_resolver
 
-        
+
     def get_value(self, field_name, source_record):
         resolver = self._resolvers.get(field_name)
         if not resolver:
