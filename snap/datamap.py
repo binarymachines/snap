@@ -24,9 +24,6 @@ class NoSuchLookupMethodException(Exception):
 
 
 
-
-
-
 class FieldValueResolver(object):
     def __init__(self, field_name_string):
         self._field_names = field_name_string.split('|')
@@ -35,6 +32,7 @@ class FieldValueResolver(object):
         for name in self._field_names:
             if source_record.get(name):
                 return source_record[name]
+
 
 
 class ConstValueResolver(object):
@@ -46,11 +44,29 @@ class ConstValueResolver(object):
 
 
 
+class FieldValueMap(object):
+    def __init__(self):
+        self._resolvers = {}
+
+
+    def add_resolver(self, field_value_resolver, field_name):
+        self._resolvers[field_name] = field_value_resolver
+
+
+    def get_value(self, field_name, source_record):
+        resolver = self._resolvers.get(field_name)
+        if not resolver:
+            raise Exception('No FieldValueResolver registered with value map under the name "%s".' % field_name)
+        return resolver.resolve(source_record)
+
+
+
 class RecordTransformer:
     def __init__(self):
         self.target_record_fields = set()
         self.datasources = {}
         self.field_map = {}
+        self.value_map = FieldValueMap()
 
 
     def add_target_field(self, target_field_name):
@@ -60,7 +76,9 @@ class RecordTransformer:
     def map_source_to_target_field(self, source_field_designator, target_field_name):
         if not target_field_name in self.target_record_fields:
             raise NoSuchTargetFieldException(target_field_name)
-        self.field_map[target_field_name] = FieldValueResolver(source_field_designator)
+        resolver = FieldValueResolver(source_field_designator)
+        self.field_map[target_field_name] = resolver
+        self.value_map.add_resolver(resolver, target_field_name)
 
 
     def map_const_to_target_field(self, target_field_name, value):
@@ -71,7 +89,7 @@ class RecordTransformer:
 
     def register_datasource(self, target_field_name, datasource):
         if not target_field_name in self.target_record_fields:
-            raise Exception()
+            raise Exception('No target field "%s" has been added to the transformer.' % target_field_name)
         self.datasources[target_field_name] = datasource
 
 
@@ -85,7 +103,7 @@ class RecordTransformer:
             raise NoSuchLookupMethodException(datasource.__class__.__name__, transform_func_name)
 
         transform_func = getattr(datasource, transform_func_name)
-        return transform_func(target_field_name, source_record)
+        return transform_func(target_field_name, source_record, self.value_map)
 
 
     def transform(self, source_record, **kwargs):
