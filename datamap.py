@@ -3,6 +3,7 @@
 
 import csv
 import common
+import yaml
 
 
 class NoSuchTargetFieldException(Exception):
@@ -21,6 +22,11 @@ class NoSuchLookupMethodException(Exception):
     def __init__(self, datasource_classname, method_name):
         Exception.__init__(self,
                            'Registered datasource %s has no lookup method "%s(...)' % (datasource_classname, method_name))
+
+
+class NonexistentDatasourceException(Exception):
+    def __init__(self, src_name, module_name):
+        Exception.__init__(self, 'No datasource named "%s" in target Python module "%s".' % (src_name, module_name))
 
 
 
@@ -121,6 +127,64 @@ class RecordTransformer:
         #print 'transformer returning record: %s' % target_record
         return target_record
 
+
+
+class RecordTransformerBuilder(object):
+    def __init__(self, yaml_config_filename, **kwargs):
+
+        self._map_name = kwargs.get('map_name')
+        if not self._map_name:
+            raise Exception('Missing keyword argument: "map_name"')
+
+        '''
+        self._datasource_name = kwargs.get('datasource')
+        if not self._datasource_name:
+            raise Exception('Missing keyword argument: "datasource_name"')
+        '''
+
+        self._transform_config = {}
+        with open(yaml_config_filename) as f:
+            self._transform_config = yaml.load(f)
+
+
+    def load_datasource(self, src_name, transform_config):
+        src_module = __import__(self._transform_config['globals']['lookup_source_module'])
+        datasource_class_name = self._transform_config['sources'][src_name]['class']
+
+        if not hasattr(src_module, datasource_class_name):
+            raise NonexistentDatasourceException(datasource_class_name, src_module)
+
+        klass = getattr(src_module, datasource_class_name)
+        init_params = self._transform_config['sources'][src_name].get('init_params', {})
+        return klass(**init_params)
+
+
+    def build(self):
+
+        datasource_name = self._transform_config['maps'][self._map_name]['lookup_source']
+        datasource = self.load_datasource(datasource_name, self._transform_config)
+        transformer = RecordTransformer()
+
+        for fieldname in self._transform_config['maps'][self._map_name]['fields']:
+            transformer.add_target_field(fieldname)
+
+            field_config = self._transform_config['maps'][self._map_name]['fields'][fieldname]
+
+            if field_config['source'] == 'record':
+                transformer.map_source_to_target_field(field_config['key'], fieldname)
+            elif field_config['source'] == 'lookup':
+                transformer.register_datasource(fieldname, datasource)
+            elif field_config['source'] == 'value':
+                transformer.map_const_to_target_field(fieldname, field_config['value'])
+            else:
+                raise Exception('unrecognized source type "%s." Allowed types are record, lookup, and value.' % field_config['source'])                
+
+        return transformer
+
+
+    @property
+    def config(self):
+        return self._transform_config
 
 
 class DataProcessor(object):
