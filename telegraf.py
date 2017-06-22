@@ -18,12 +18,21 @@ from raven.handlers.logging import SentryHandler
 from logging import Formatter
 
 
-sentry_logger = logging.getLogger('telegraf_log')
-client = Client('https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031')
-telegraf_error_handler = SentryHandler() 
-telegraf_error_handler.setLevel(logging.ERROR)
-sentry_logger.addHandler(telegraf_error_handler)
+DEFAULT_SENTRY_DSN = 'https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031'
 
+
+class TelegrafErrorHandler(object):
+    def __init__(self, log_name, logging_level=logging.DEBUG, sentry_dsn=DEFAULT_SENTRY_DSN):
+        self._sentry_logger = logging.getLogger(log_name)
+        self._client = Client(sentry_dsn)
+        sentry_handler = SentryHandler()
+        sentry_handler.setLevel(logging_level)
+        self._sentry_logger.addHandler(sentry_handler)
+
+
+    @property
+    def sentry(self):
+        return self._sentry_logger
 
 
 
@@ -119,6 +128,7 @@ class KafkaIngestLogReader(object):
                  **kwargs):
 
         self._topic = topic
+        self._num_commits = 0
         # commit on every received message by default
         self._commit_interval = kwargs.get('commit_interval', 1)
         self._consumer = KafkaConsumer(group_id=group,
@@ -137,12 +147,18 @@ class KafkaIngestLogReader(object):
             interval_counter += 1
             if interval_counter % self._commit_interval == 0:
                 self._consumer.commit()
+                self._num_commits += 1
                 interval_counter = 0
 
 
     @property
     def commit_interval(self):
         return self._commit_interval
+
+
+    @property
+    def num_commits_issued(self):
+        return self._num_commits
 
 
     @property
@@ -168,10 +184,12 @@ class DataRelay(object):
     def post_send(self, src_message_header, logger, **kwargs):
         pass
 
-    '''
+
     def _send(self, src_message_header, data, logger, **kwargs):
+        '''Override in subclass
+        '''
         pass
-    '''
+
 
     def send(self, kafka_message, logger, **kwargs):
         header_data = {}
