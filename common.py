@@ -18,6 +18,11 @@ class MissingEnvironmentVarException(Exception):
             Exception.__init__(self, 'The environment variable %s has not been set.' % env_var)
 
 
+class MissingKeywordArgException(Exception):
+    def __init__(self, keyword):
+        Exception.__init__(self, 'Required keyword argument "%s" not provided.' % keyword)
+
+
             
 class Enum(set):
     def __getattr__(self, name):
