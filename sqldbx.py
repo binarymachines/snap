@@ -47,10 +47,10 @@ class SQLDataTypeBuilder(object):
         return self
 
 
-    def add_foreign_key_field(self, 
-                              name, 
-                              data_type, 
-                              parent_table_name, 
+    def add_foreign_key_field(self,
+                              name,
+                              data_type,
+                              parent_table_name,
                               parent_table_pk_name):
         field = {}
         field['name'] = name
@@ -72,7 +72,7 @@ class SQLDataTypeBuilder(object):
         self.fields.append(field)
         return self
 
-    
+
     def add_relationship(self, relationship_name, related_type_name):
         field = {}
         field['name'] = relationship_name
@@ -91,7 +91,7 @@ class SQLDataTypeBuilder(object):
             class_attrs[f['name']] = f['column']
         klass = type(self.name, (Base,), class_attrs)
         return klass
-        
+
 
 
 class Database:
@@ -139,7 +139,7 @@ class Database:
         self.metadata.reflect(bind=self.engine)
         
         #self.sessionFactory.configure(bind=self.engine)
-        Session.configure(bind=self.engine)        
+        Session.configure(bind=self.engine)
         
 
     def getMetaData(self):
@@ -148,7 +148,7 @@ class Database:
     def getEngine(self):
         return self.engine
 
-    def getSession(self):        
+    def getSession(self):
         return Session()
 
     def listTables(self):
@@ -187,26 +187,26 @@ class SQLServerDatabase(Database):
 class MySQLDatabase(Database):
     """A Database type for connecting to MySQL instances."""
 
-    def __init__(self, host, schema, port=3306):        
+    def __init__(self, host, schema, port=3306):
         Database.__init__(self, "mysql", host, schema, port)
-        
-        
+
+
     def __createURL__(self, dbType, username, password):
         return "%s://%s:%s@%s:%d/%s" % (self.dbType, username, password, self.host, self.port, self.schema)
 
 
-    
+
 class PostgreSQLDatabase(Database):
     """A Database type for connecting to PostgreSQL instances."""
 
     def __init__(self, host, schema, port=5432):
         Database.__init__(self, "postgresql+psycopg2", host, schema, port)
-        
-        
+
+
     def __createURL__(self, dbType, username, password):
         return "%s://%s:%s@%s:%d/%s" % (self.dbType, username, password, self.host, self.port, self.schema)
 
-        
+
 
 class NoSuchPluginError(Exception):
     def __init__(self, pluginName):
@@ -219,10 +219,10 @@ class PluginMethodError(Exception):
 
 
 class PersistenceManager:
-    """A logic center for database operations in a Serpentine app. 
+    """A logic center for database operations in a Serpentine app.
 
     Wraps SQLAlchemy lookup, insert/update, general querying, and O/R mapping facilities."""
-    
+
     def __init__(self, database):
         self._typeMap = {}
         self.modelAliasMap = {}
@@ -295,11 +295,11 @@ class PersistenceManager:
         Arguments:
         modelClassName -- a fully-qualified class name (packagename.classname)
         tableName -- the name of the database table to be mapped to this class
-        
+
         """
 
-        dbTable = Table(tableName, self.metaData, autoload=True)        
-        objectType = self.str_to_class(modelClassName)     
+        dbTable = Table(tableName, self.metaData, autoload=True)
+        objectType = self.str_to_class(modelClassName)
         if objectType not in self.mappers:
             self.mappers[objectType] = mapper(objectType, dbTable)
 
@@ -337,9 +337,9 @@ class PersistenceManager:
 
         self.mapTypeToTable(parentTypeName, parentTable.name, model_alias = parentAlias)
         self.mapTypeToTable(childTypeName, childTable.name, model_alias = childAlias)
-        
 
-        
+
+
     def mapPeerToPeer(self, parentTypeName, parentTableName, parentTypeRefName, peerTypeName, peerTableName, peerTypeRefName, **kwargs):
         """Create a peer-peer (one to one) relationship between two DB-mapped entities in SQLAlchemy's O/R mapping layer.
 
