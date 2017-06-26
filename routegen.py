@@ -49,7 +49,7 @@ class Transform(object):
         self._methods = [method_name.strip() for method_name in method_string.split(',')]
         self.output_type = output_type
         self.function_module_name = transform_function_module
-        
+
 
     def get_methods(self):
         method_list = ["'%s'" % m for m in self._methods]
@@ -57,15 +57,15 @@ class Transform(object):
 
     methods = property(get_methods)
 
-    
+
     def get_function_name(self):
-        if self.function_module_name: 
+        if self.function_module_name:
             return '%s.%s_func' % (self.function_module_name, self.name)
         return '%s_func' % self.name
 
     function_name = property(get_function_name)
-    
-    
+
+
     def get_route_variables(self):
         route_var_regex = re.compile(r'<[a-z]+>')
         return [match.group().lstrip('<').rstrip('>') for match in re.finditer(route_var_regex, self.route)]
@@ -73,11 +73,11 @@ class Transform(object):
     route_variables = property(get_route_variables)
 
 
-        
+
 class RouteGenerator():
-    def __init__(self, yaml_config):        
+    def __init__(self, yaml_config):
         self.transform_function_module = yaml_config['globals'].get('transform_function_module')
-        
+
 
     def read_environment_value(self, val_name):
         '''Read a value (i.e. from a YAML file) in the standard format
@@ -93,33 +93,35 @@ class RouteGenerator():
                 return True
         return False
 
-    
+
     def load_shapes(self, yaml_config):
         data_shapes = {}
 
         shapes_segment = yaml_config['data_shapes']
 
         for shape_name in shapes_segment:
+            '''
             if not shape_name.endswith('shape'):
                 internal_shape_name = '%s_shape' % shape_name
-            input_shape = core.InputShape(internal_shape_name)
+            '''
+            input_shape = core.InputShape(shape_name)
             input_field_tables = shapes_segment[shape_name]['fields']
             if input_field_tables:
                 for tbl in input_field_tables:
                     input_shape.add_field(tbl['name'], bool(tbl.get('required')))
 
             data_shapes[shape_name] = input_shape
-            
-        return data_shapes
-                
 
-    
+        return data_shapes
+
+
+
     def load_transforms(self, yaml_config):
-        
+
         data_shapes = self.load_shapes(yaml_config)
         transforms = {}
 
-        transforms_segment =  yaml_config['transforms']
+        transforms_segment = yaml_config['transforms']
         for transform_name in transforms_segment:
             shape_name = transforms_segment[transform_name]['input_shape']
             current_transform = transforms_segment[transform_name]
@@ -133,45 +135,51 @@ class RouteGenerator():
 
             methods = current_transform['method'].upper()
             output_mime_type = current_transform['output_mimetype']
-            
-            new_transform = Transform(transform_name, 
-                                      data_shapes[shape_name], 
-                                      route, 
-                                      methods, 
+
+            '''
+            print 'creating new Transform with input shape name: %s' % shape_name
+            print 'datashape internal name is: %s' % data_shapes[shape_name].name
+            '''
+            if not data_shapes.get(shape_name):
+                raise Exception('Error creating transform: no datashape registered under the name "%s"' % shape_name)
+            new_transform = Transform(transform_name,
+                                      data_shapes[shape_name],
+                                      route,
+                                      methods,
                                       output_mime_type,
                                       self.transform_function_module)
-                              
+
             transforms[transform_name] = new_transform
-            
+
         return transforms
 
-    
-    
+
+
     def generate_transform_function_names(self, yaml_config):
         transforms_segment = yaml_config['transforms']
         return ['%s_func' % f for f in transforms_segment]
-        
+
 
 ProgramMode = common.Enum(['GENERATE', 'EXTEND'])
 
-        
+
 
 def main(argv):
     try:
         args = docopt.docopt(__doc__)
-        
-        preview = args.get('--preview') or False        
-        config_filename = args.get('<initfile>') or default_config_filename                    
-        yaml_config = common.read_config_file(config_filename)    
 
-        
+        preview = args.get('--preview') or False
+        config_filename = args.get('<initfile>') or default_config_filename
+        yaml_config = common.read_config_file(config_filename)
+
+
         if args.get('--extend'):
             mode = ProgramMode.EXTEND
         elif args.get('--generate'):
             mode = ProgramMode.GENERATE
-                
+
         route_gen = RouteGenerator(yaml_config)
-    
+
         j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
         template_mgr = common.JinjaTemplateManager(j2env)
 
@@ -189,7 +197,7 @@ def main(argv):
         else: # mode is ProgramMode.EXTEND
             # load existing transforms module
             tmodule = __import__(transform_module_name)
-            
+
             # we will generate transform code for every function in the config file
             # that is not already defined in the module
             new_transforms = []
@@ -202,29 +210,29 @@ def main(argv):
             with open(transform_module_filename, 'a') as transform_file:
                 transform_file.write('\n\n')
                 transform_file.write(transform_code)
-                
+
 
         routing_module_template = template_mgr.get_template('routes.py.j2')
 
-        listener_port = yaml_config['globals']['port']        
+        listener_port = yaml_config['globals']['port']
         bind_host_addr = yaml_config['globals'].get('bind_host', '127.0.0.1')
         project_directory_var = yaml_config['globals']['project_directory']
         project_directory = common.load_config_var(project_directory_var)
 
         if project_directory_var.startswith('$') and not project_directory:
             raise common.MissingEnvironmentVarException(project_directory_var[1:])
-        
-        
+
+
         print routing_module_template.render(project_dir=project_directory,
                                              transforms=route_gen.load_transforms(yaml_config),
-                                             transform_module = route_gen.transform_function_module,
+                                             transform_module=route_gen.transform_function_module,
                                              port=listener_port,
                                              bind_host=bind_host_addr)
-        
+
 
     except docopt.DocoptExit as e:
         print e.message
-                                        
-                                         
+
+
 if __name__ == '__main__':
    main(sys.argv[1:])
