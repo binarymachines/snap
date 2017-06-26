@@ -8,6 +8,7 @@ import datetime
 import json
 import docopt
 import common
+import sqldbx as sqlx
 import couchbasedbx as cbx
 import logging
 import copy
@@ -18,12 +19,21 @@ from raven.handlers.logging import SentryHandler
 from logging import Formatter
 
 
-sentry_logger = logging.getLogger('telegraf_log')
-client = Client('https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031')
-telegraf_error_handler = SentryHandler() 
-telegraf_error_handler.setLevel(logging.ERROR)
-sentry_logger.addHandler(telegraf_error_handler)
+DEFAULT_SENTRY_DSN = 'https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031'
 
+
+class TelegrafErrorHandler(object):
+    def __init__(self, log_name, logging_level=logging.DEBUG, sentry_dsn=DEFAULT_SENTRY_DSN):
+        self._sentry_logger = logging.getLogger(log_name)
+        self._client = Client(sentry_dsn)
+        sentry_handler = SentryHandler()
+        sentry_handler.setLevel(logging_level)
+        self._sentry_logger.addHandler(sentry_handler)
+
+
+    @property
+    def sentry(self):
+        return self._sentry_logger
 
 
 
@@ -119,6 +129,7 @@ class KafkaIngestLogReader(object):
                  **kwargs):
 
         self._topic = topic
+        self._num_commits = 0
         # commit on every received message by default
         self._commit_interval = kwargs.get('commit_interval', 1)
         self._consumer = KafkaConsumer(group_id=group,
@@ -137,12 +148,18 @@ class KafkaIngestLogReader(object):
             interval_counter += 1
             if interval_counter % self._commit_interval == 0:
                 self._consumer.commit()
+                self._num_commits += 1
                 interval_counter = 0
 
 
     @property
     def commit_interval(self):
         return self._commit_interval
+
+
+    @property
+    def num_commits_issued(self):
+        return self._num_commits
 
 
     @property
@@ -168,10 +185,12 @@ class DataRelay(object):
     def post_send(self, src_message_header, logger, **kwargs):
         pass
 
-    '''
+
     def _send(self, src_message_header, data, logger, **kwargs):
+        '''Override in subclass
+        '''
         pass
-    '''
+
 
     def send(self, kafka_message, logger, **kwargs):
         header_data = {}
@@ -229,6 +248,75 @@ class K2Relay(DataRelay):
 
     def _send(self, kafka_message, logger):
         self._target_log_writer.write(self._target_topic, kafka_message.value)
+
+
+
+class OLAPSchemaDimension(object):
+    def __init__(self, fact_table_field_name, dim_table_name, id_lookup_function):
+        self._fact_table_field_name = fact_table_field_name
+        self._dim_table_name = dim_table_name
+        self._lookup_func = id_lookup_function
+
+
+    def lookup_id_for_value(self, value):
+        return self._lookup_func(value, self._dim_table_name)
+
+    @property
+    def fact_field(self):
+        return self._fact_table_field_name
+
+
+
+class OLAPSchemaFact(object):
+    def __init__(self, table_name, pk_field_name, pk_field_type):
+        self._table_name = table_name
+        self._pk_field = pk_field_name
+        self._pk_field_type = pk_field_type
+
+
+
+class OLAPSchemaMappingContext(object):
+    def __init__(self, schema_fact):
+        self._fact = schema_fact
+        self._dimensions = {}
+        self._direct_mappings = {}
+
+
+    def map_src_record_field_to_dimension(self, src_record_field_name, olap_schema_dimension):
+        self._dimensions[src_record_field_name] = olap_schema_dimension
+
+
+    def map_src_record_field_to_fact_value(self, src_record_field_name, fact_field_name):
+        self._direct_mappings[src_record_field_name] = fact_field_name
+
+
+    def get_fact_values(self, source_record):
+        data = {}
+        for src_record_field_name in self._direct_mappings.keys():
+            fact_field_name = self._direct_mappings[src_record_field_name]
+            data[fact_field_name] = source_record[src_record_field_name]
+
+        for src_record_field_name in self._dimensions.keys():
+            dimension = self._dimensions[src_record_field_name]
+            data[dimension.fact_field] = dimension.lookup_id_for_value(source_record[src_record_field_name])
+
+        return data
+
+
+
+class OLAPStarSchemaRelay(DataRelay):
+    def __init__(self, postgres_db, olap_schema_map_ctx, **kwargs):
+        DataRelay.__init__(self, **kwargs)
+        self._pmgr = sqlx.PersistenceManager(postgres_db)
+        self._schema_mapping_context = olap_schema_map_ctx
+
+
+    def _send(self, kafka_message, logger):
+        logger.debug("writing kafka log message to db...")
+        outbound_record = {}
+        fact_data = self._schema_mapping_context.get_fact_values(kafka_message.value)
+
+        print common.jsonpretty(fact_data)
 
 
 

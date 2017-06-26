@@ -92,6 +92,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         
         transform_status = xformer.transform('{{ t.name }}', 
                                              core.convert_multidict(input_data), 
+                                             app.logger,
                                              headers=request.headers)
         {%- else %}
         {%- endif %}        
