@@ -252,14 +252,26 @@ class K2Relay(DataRelay):
 
 
 class OLAPSchemaDimension(object):
-    def __init__(self, fact_table_field_name, dim_table_name, id_lookup_function):
-        self._fact_table_field_name = fact_table_field_name
-        self._dim_table_name = dim_table_name
-        self._lookup_func = id_lookup_function
+    def __init__(self, **kwargs):
+        kwreader = common.KeywordArgReader(['fact_table_field_name',
+                                            'dim_table_name',
+                                            'key_field_name',
+                                            'value_field_name', 
+                                            'id_lookup_function'])
+
+        kwreader.read(kwargs)
+
+        self._fact_table_field_name = kwreader.get_value('fact_table_field_name')
+        self._dim_table_name = kwreader.get_value('dim_table_name')
+        self._key_field_name = kwreader.get_value('key_field_name')
+        self._value_field_name = kwreader.get_value('value_field_name')
+        self._lookup_func = kwreader.get_value('id_lookup_function')
+
 
 
     def lookup_id_for_value(self, value):
-        return self._lookup_func(value, self._dim_table_name)
+        return self._lookup_func(value, self._dim_table_name, self._key_field_name, self._value_field_name)
+        
 
     @property
     def fact_field(self):
