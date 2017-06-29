@@ -107,13 +107,14 @@ class KafkaLoader(object):
     def __init__(self, topic, kafka_ingest_log_writer, **kwargs):
         self.topic = topic
         self.kloader = kafka_ingest_log_writer
-        self.record_type = kwargs.get('record_type')
-        self.stream_id = kwargs.get('stream_id')
-        self.asset_id = kwargs.get('asset_id')
+        self.kwarg_reader = common.KeywordArgReader(['record_type', 'stream_id', 'asset_id'])
+        self.kwarg_reader.read(**kwargs)
 
     def load(self, data):
-        
-        header = telegraf.IngestRecordHeader(self.record_type, self.stream_id, self.asset_id)
+        record_type = self.kwarg_reader.get_value('record_type')
+        stream_id = self.kwarg_reader.get_value('stream_id')
+        asset_id = self.kwarg_reader.get_value('asset_id')
+        header = telegraf.IngestRecordHeader(record_type, stream_id, asset_id)
         msg_builder = telegraf.IngestRecordBuilder(header)
         for key, value in data.iteritems():
             msg_builder.add_field(key, value)
