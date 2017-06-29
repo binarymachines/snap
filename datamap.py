@@ -238,17 +238,25 @@ class CSVFileDataExtractor(object):
 
     def extract(self, filename, **kwargs):
         load_func = kwargs.get('load_function')
+        max_lines = int(kwargs.get('max_lines', -1))
+
         with open(filename, 'rb') as datafile:
             csv_reader = csv.DictReader(datafile,
                                         delimiter=self._delimiter,
                                         quotechar=self._quote_char)
+            lines_read = 0
+            if not max_lines:
+                return
+            
             for record in csv_reader:
                 data = record
                 if self._processor:
                     data = self._processor.process(record)
                 if load_func:
                     load_func(data)
-
+                lines_read += 1
+                if max_lines > 0 and lines_read == max_lines:
+                    break
 
 
     
