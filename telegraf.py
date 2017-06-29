@@ -109,15 +109,29 @@ class KafkaIngestLogWriter(object):
         self.producer = KafkaProducer(bootstrap_servers=','.join([n() for n in kafka_node_array]),
                                       value_serializer=serializer,
                                       acks=1)
+        log = logging.getLogger(__name__)
+        ch = logging.StreamHandler()
+        formatter = logging.Formatter('%(levelname)s:%(message)s')
+        ch.setFormatter(formatter)
+        log.setLevel(logging.DEBUG)
+        log.addHandler(ch)
 
+        error_handler = ConsoleErrorHandler()
+        self._promise_queue = IngestWritePromiseQueue(error_handler, log, debug_mode=True)
 
+        
     def write(self, topic, ingest_record):
-        return self.producer.send(topic, ingest_record)
-
+        future = self.producer.send(topic, ingest_record)
+        self._promise_queue.append(future)
+        return future
+        
 
     def sync(self, timeout=0):
         self.producer.flush(timeout or None)
 
+    def run_promise_queue(self):
+        self._promise_queue.run()
+        return self._promise_queue.errors()
 
 
 class KafkaIngestLogReader(object):
