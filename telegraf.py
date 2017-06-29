@@ -348,7 +348,9 @@ class IngestWritePromiseQueue(threading.Thread):
         threading.Thread.__init__(self)
         self._futures = futures
         self._error_handler = error_handler
-        self._log = sentry_logger
+        self._errors = []
+        self._log = log
+        self._sentry_logger = kwargs.get('sentry_logger')
         self._debug_mode = False
         if kwargs.get('debug_mode'):
             self._debug_mode = True
@@ -374,17 +376,30 @@ class IngestWritePromiseQueue(threading.Thread):
 
 
     def process_entry(self, f):
+        result = {
+            'status': 'ok',
+            'message': ''
+        }
         if not f.succeeded:
-            if self._debug_mode:
-                self._log.debug('write promise failed with exception: %s' % str(f.exception))
+            result['status'] = 'error'
+            result['message'] = f.exception.message
+            self._log.error('write promise failed with exception: %s' % str(f.exception))
+            self._sentry_logger.error('write promise failed with exception: %s' % str(f.exception))
             self._error_handler.handle_error(f.exception)
+        return result
 
 
     def run(self):
         self._log.info('processing %d Futures...' % len(self._futures))
+        results = []
         for f in self._futures:
             while not f.is_done:
                 time.sleep(self._future_retry_wait_time)
-            self.process_entry(f)
+            results.append(self.process_entry(f))
+        self._errors = [r for r in results if r['status'] is not 'ok']
         self._log.info('all futures processed.')
 
+
+    @property
+    def errors(self):
+        return self._errors
