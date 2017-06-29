@@ -104,29 +104,29 @@ class KafkaMessageHeader(object):
 
 
 class KafkaLoader(object):
-    def __init__(self, topic, kafka_ingest_log_writer, **kwargs):
-        self.topic = topic
-        self.kloader = kafka_ingest_log_writer
-        self.kwarg_reader = common.KeywordArgReader(['record_type', 'stream_id', 'asset_id'])
-        self.kwarg_reader.read(**kwargs)
+    def __init__(self, topic, kafka_ingest_record_writer, **kwargs):
+        self._topic = topic
+        self._kwriter = kafka_ingest_record_writer
+        kwarg_reader = common.KeywordArgReader(['record_type', 'stream_id', 'asset_id'])
+        kwarg_reader.read(**kwargs)
+        record_type = kwarg_reader.get_value('record_type')
+        stream_id = kwarg_reader.get_value('stream_id')
+        asset_id = kwarg_reader.get_value('asset_id')
+        self._header = telegraf.IngestRecordHeader(record_type, stream_id, asset_id)        
 
     def load(self, data):
-        record_type = self.kwarg_reader.get_value('record_type')
-        stream_id = self.kwarg_reader.get_value('stream_id')
-        asset_id = self.kwarg_reader.get_value('asset_id')
-        header = telegraf.IngestRecordHeader(record_type, stream_id, asset_id)
-        msg_builder = telegraf.IngestRecordBuilder(header)
+        msg_builder = telegraf.IngestRecordBuilder(self._header)
         for key, value in data.iteritems():
             msg_builder.add_field(key, value)
         ingest_record = msg_builder.build()
 
-        print '### writing ingest record to kafka topic: %s' % self.topic
+        print '### writing ingest record to kafka topic: %s' % self._topic
         print ingest_record
 
-        self.kloader.write(self.topic, ingest_record)
+        self._kwriter.write(self._topic, ingest_record)
 
 
-class KafkaIngestLogWriter(object):
+class KafkaIngestRecordWriter(object):
     def __init__(self, kafka_node_array, serializer=json_serializer):
         #KafkaProducer(bootstrap_servers=['broker1:1234'])
         # = KafkaProducer(value_serializer=lambda v: json.dumps(v).encode('utf-8'))
@@ -158,7 +158,7 @@ class KafkaIngestLogWriter(object):
         return self._promise_queue.errors()
 
 
-class KafkaIngestLogReader(object):
+class KafkaIngestRecordReader(object):
     def __init__(self,
                  topic,
                  kafka_node_array,
