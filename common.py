@@ -96,6 +96,59 @@ def get_template_mgr_for_location(directory):
       
 
 
+class KeywordReadStatus(object):
+    def __init__(self, error_msg_array):
+        self._errors = error_msg_array
+        if len(self._errors):
+            self._is_ok = False
+        else:
+            self._is_ok = True
+
+    @staticmethod
+    def OK():
+        return KeywordReadStatus([])
+ 
+    @property
+    def is_ok(self):
+        return self._is_ok
+
+    @property
+    def errors(self):
+        return self._errors
+
+
+    @property
+    def message(self):
+        return ', '.join(self._errors)
+
+
+
+class KeywordArgReader(object):
+    def __init__(self, required_keyword_array):
+        self.values = {}
+        self.keywords = required_keyword_array
+
+
+    @property
+    def required_keywords(self):
+        return self.keywords
+
+
+    def read(self, **kwargs):
+        errors = []
+        for k in self.keywords:
+            if not kwargs.get(k):
+                errors.append(str(MissingKeywordArgException(k)))
+            else:
+                self.values[k] = kwargs[k]
+
+        if len(errors):
+            return KeywordReadStatus(errors)
+        return KeywordReadStatus.OK()
+
+
+    def get_value(self, name):
+        return self.values.get(name)
 
 
 class ServiceObjectRegistry():

@@ -252,14 +252,26 @@ class K2Relay(DataRelay):
 
 
 class OLAPSchemaDimension(object):
-    def __init__(self, fact_table_field_name, dim_table_name, id_lookup_function):
-        self._fact_table_field_name = fact_table_field_name
-        self._dim_table_name = dim_table_name
-        self._lookup_func = id_lookup_function
+    def __init__(self, **kwargs):
+        kwreader = common.KeywordArgReader(['fact_table_field_name',
+                                            'dim_table_name',
+                                            'key_field_name',
+                                            'value_field_name', 
+                                            'id_lookup_function'])
+
+        kwreader.read(**kwargs)
+
+        self._fact_table_field_name = kwreader.get_value('fact_table_field_name')
+        self._dim_table_name = kwreader.get_value('dim_table_name')
+        self._key_field_name = kwreader.get_value('key_field_name')
+        self._value_field_name = kwreader.get_value('value_field_name')
+        self._lookup_func = kwreader.get_value('id_lookup_function')
+
 
 
     def lookup_id_for_value(self, value):
-        return self._lookup_func(value, self._dim_table_name)
+        return self._lookup_func(value, self._dim_table_name, self._key_field_name, self._value_field_name)
+        
 
     @property
     def fact_field(self):
@@ -292,6 +304,8 @@ class OLAPSchemaMappingContext(object):
 
     def get_fact_values(self, source_record):
         data = {}
+        print '### source record info: %s'%  source_record
+
         for src_record_field_name in self._direct_mappings.keys():
             fact_field_name = self._direct_mappings[src_record_field_name]
             data[fact_field_name] = source_record[src_record_field_name]
@@ -305,16 +319,17 @@ class OLAPSchemaMappingContext(object):
 
 
 class OLAPStarSchemaRelay(DataRelay):
-    def __init__(self, postgres_db, olap_schema_map_ctx, **kwargs):
+    def __init__(self, persistence_mgr, olap_schema_map_ctx, **kwargs):
         DataRelay.__init__(self, **kwargs)
-        self._pmgr = sqlx.PersistenceManager(postgres_db)
+        self._pmgr = persistence_mgr
         self._schema_mapping_context = olap_schema_map_ctx
 
 
-    def _send(self, kafka_message, logger):
+    def _send(self, msg_header, kafka_message, logger, **kwargs):
         logger.debug("writing kafka log message to db...")
-        outbound_record = {}
-        fact_data = self._schema_mapping_context.get_fact_values(kafka_message.value)
+        logger.debug('### kafka_message keys: %s' % '\n'.join(kafka_message.keys()))
+        outbound_record = {}        
+        fact_data = self._schema_mapping_context.get_fact_values(kafka_message.get('body'))
 
         print common.jsonpretty(fact_data)
 
