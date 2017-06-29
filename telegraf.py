@@ -102,6 +102,29 @@ class KafkaMessageHeader(object):
         self.__dict__ = header_dict
 
 
+
+class KafkaLoader(object):
+    def __init__(self, topic, kafka_ingest_log_writer, **kwargs):
+        self.topic = topic
+        self.kloader = kafka_ingest_log_writer
+        self.record_type = kwargs.get('record_type')
+        self.stream_id = kwargs.get('stream_id')
+        self.asset_id = kwargs.get('asset_id')
+
+    def load(self, data):
+        
+        header = telegraf.IngestRecordHeader(self.record_type, self.stream_id, self.asset_id)
+        msg_builder = telegraf.IngestRecordBuilder(header)
+        for key, value in data.iteritems():
+            msg_builder.add_field(key, value)
+        ingest_record = msg_builder.build()
+
+        print '### writing ingest record to kafka topic: %s' % self.topic
+        print ingest_record
+
+        self.kloader.write(self.topic, ingest_record)
+
+
 class KafkaIngestLogWriter(object):
     def __init__(self, kafka_node_array, serializer=json_serializer):
         #KafkaProducer(bootstrap_servers=['broker1:1234'])
