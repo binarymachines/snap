@@ -129,7 +129,7 @@ class KafkaIngestLogWriter(object):
     def sync(self, timeout=0):
         self.producer.flush(timeout or None)
 
-    def run_promise_queue(self):
+    def process_write_promise_queue(self):
         self._promise_queue.run()
         return self._promise_queue.errors()
 
