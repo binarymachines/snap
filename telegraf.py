@@ -112,10 +112,10 @@ class KafkaLoader(object):
         record_type = kwarg_reader.get_value('record_type')
         stream_id = kwarg_reader.get_value('stream_id')
         asset_id = kwarg_reader.get_value('asset_id')
-        self._header = telegraf.IngestRecordHeader(record_type, stream_id, asset_id)        
+        self._header = IngestRecordHeader(record_type, stream_id, asset_id)        
 
     def load(self, data):
-        msg_builder = telegraf.IngestRecordBuilder(self._header)
+        msg_builder = IngestRecordBuilder(self._header)
         for key, value in data.iteritems():
             msg_builder.add_field(key, value)
         ingest_record = msg_builder.build()
