@@ -12,7 +12,10 @@ import sqldbx as sqlx
 import couchbasedbx as cbx
 import logging
 import copy
-from kafka import KafkaProducer, KafkaConsumer
+from kafka import KafkaProducer, KafkaConsumer, KafkaClient
+from kafka.protocol.offset import OffsetRequest, OffsetResetStrategy
+from kafka.common import OffsetRequestPayload
+
 from raven import Client
 from raven.handlers.logging import SentryHandler
 
@@ -20,6 +23,12 @@ from logging import Formatter
 
 
 DEFAULT_SENTRY_DSN = 'https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031'
+
+
+class NoSuchPartitionException(Exception):
+    def __init__(self, partition_id):
+        Exception.__init__(self, 'The target Kafka cluster has no partition "%s".' % partition_id)
+
 
 
 class TelegrafErrorHandler(object):
@@ -102,6 +111,45 @@ class KafkaMessageHeader(object):
         self.__dict__ = header_dict
 
 
+class KafkaCluster(object):
+    def __init__(self, **kwargs):
+        self._nodes = []
+
+
+    def add_node(self, kafka_node):
+        self._nodes.append(kafka_node)
+
+
+    @property
+    def nodes(self):
+        return ','.join([n() for n in self._nodes])
+
+
+
+class KafkaOffsetManagementContext(object):
+    def __init__(self, kafka_cluster, topic, **kwargs):
+        #NOTE: keep this code for now
+        self._client = KafkaClient(bootstrap_servers=kafka_cluster.nodes)
+        self._metadata = self._client.cluster
+        self._partition_table = {}
+
+    @property
+    def partitions(self):
+        # TODO: figure out how to do this
+        return None
+
+
+    def get_offset_for_partition(self, partition_id):
+        '''NOTE TO SARAH: this should stay more or less as-is, because
+        however we retrieve the partition & offset data from the cluster,
+        we should store it in a dictionary'''
+
+        offset = self._partition_table.get(partition_id)
+        if offset is None:
+            raise NoSuchPartitionException(partition_id)
+        return offset
+
+
 
 class KafkaLoader(object):
     def __init__(self, topic, kafka_ingest_record_writer, **kwargs):
@@ -112,7 +160,7 @@ class KafkaLoader(object):
         record_type = kwarg_reader.get_value('record_type')
         stream_id = kwarg_reader.get_value('stream_id')
         asset_id = kwarg_reader.get_value('asset_id')
-        self._header = IngestRecordHeader(record_type, stream_id, asset_id)        
+        self._header = IngestRecordHeader(record_type, stream_id, asset_id)
 
     def load(self, data):
         msg_builder = IngestRecordBuilder(self._header)
