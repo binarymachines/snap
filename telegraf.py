@@ -131,7 +131,7 @@ class KafkaIngestLogWriter(object):
 
     def process_write_promise_queue(self):
         self._promise_queue.run()
-        return self._promise_queue.errors()
+        return self._promise_queue.errors
 
 
 class KafkaIngestLogReader(object):
