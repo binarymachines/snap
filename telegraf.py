@@ -118,6 +118,7 @@ class KafkaCluster(object):
 
     def add_node(self, kafka_node):
         self._nodes.append(kafka_node)
+        return self
 
 
     @property
@@ -140,8 +141,7 @@ class KafkaOffsetManagementContext(object):
         '''
         self._partition_table = {}
 
-
-        consumer_group = kwargs.get('consumer', 'test_group')
+        consumer_group = kwargs.get('consumer_group', 'test_group')
         kreader = KafkaIngestRecordReader(topic, kafka_cluster.node_array, consumer_group)
         self._metadata = kreader.consumer.partitions_for_topic(topic)
         print dir(self._metadata)
