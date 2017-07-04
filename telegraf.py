@@ -125,13 +125,27 @@ class KafkaCluster(object):
         return ','.join([n() for n in self._nodes])
 
 
+    @property
+    def node_array(self):
+        return self._nodes
+
+
 
 class KafkaOffsetManagementContext(object):
     def __init__(self, kafka_cluster, topic, **kwargs):
         #NOTE: keep this code for now
+        '''
         self._client = KafkaClient(bootstrap_servers=kafka_cluster.nodes)
         self._metadata = self._client.cluster
+        '''
         self._partition_table = {}
+
+
+        consumer_group = kwargs.get('consumer', 'test_group')
+        kreader = KafkaIngestRecordReader(topic, kafka_cluster.node_array, consumer_group)
+        self._metadata = kreader.consumer.partitions_for_topic(topic)
+        print dir(self._metadata)
+
 
     @property
     def partitions(self):
