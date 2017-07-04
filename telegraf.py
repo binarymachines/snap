@@ -143,8 +143,10 @@ class KafkaOffsetManagementContext(object):
 
         consumer_group = kwargs.get('consumer_group', 'test_group')
         kreader = KafkaIngestRecordReader(topic, kafka_cluster.node_array, consumer_group)
-        self._metadata = kreader.consumer.partitions_for_topic(topic)
-        print dir(self._metadata)
+
+        print '### partitions for topic %s: %s' % (topic, kreader.consumer.partitions)
+        part1 = kreader.consumer.partitions[0]
+        print '### last committed offset for first partition: %s' % kreader.consumer.committed(part1)
 
 
     @property
