@@ -240,7 +240,7 @@ class KafkaIngestRecordReader(object):
                                        auto_offset_reset='earliest',
                                        consumer_timeout_ms=5000)
 
-        self._consumer.subscribe(topic)
+        #self._consumer.subscribe(topic)
 
 
     def read(self, data_relay, logger):
