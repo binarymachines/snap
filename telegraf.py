@@ -244,15 +244,14 @@ class KafkaIngestRecordReader(object):
 
 
     def read(self, data_relay, logger):
-        interval_counter = 0
+        message_counter = 0
         for message in self._consumer:
             data_relay.send(message, logger)
-            interval_counter += 1
-            if interval_counter % self._commit_interval == 0:
+            message_counter += 1
+            if message_counter % self._commit_interval == 0:
                 self._consumer.commit()
                 self._num_commits += 1
-                interval_counter = 0
-
+                
 
     @property
     def commit_interval(self):
