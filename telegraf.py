@@ -240,7 +240,7 @@ class KafkaIngestRecordReader(object):
                                        auto_offset_reset='earliest',
                                        consumer_timeout_ms=5000)
 
-        #self._consumer.subscribe(topic)
+        self._consumer.subscribe(topic)
 
 
     def read(self, data_relay, logger):
@@ -251,7 +251,7 @@ class KafkaIngestRecordReader(object):
             if message_counter % self._commit_interval == 0:
                 self._consumer.commit()
                 self._num_commits += 1
-                
+
 
     @property
     def commit_interval(self):
