@@ -1,3 +1,7 @@
+#
+# yaml config file for Kafka-based data pipelines
+# 
+
 globals:
   cluster_nodes:
     - 172.31.17.24:1000
@@ -22,12 +26,24 @@ input_files:
       location: $TEST_DATA_DIR
 
 
+user_defined_consumer_groups:
+  - alias: scratch_group_1
+    name: group1  
+
+  - alias: scratch_group_2
+    name: group2  
+
 
 phases:
   extract:
-    datasource:
-      - type: file
-        name: my_datafile
+    consumer_group_alias: scratch_group_1
+
+  transform:
+    consumer_group_alias: scratch_group_2
+
+
+
+
 
 
         

@@ -526,6 +526,7 @@ class IngestWritePromiseQueue(threading.Thread):
 class KafkaPipelineConfig(object):
     def __init__(self, yaml_config, **kwargs):
         self._user_topics = {}
+        self._user_defined_consumer_groups = {}
         self._file_references = {}
 
         self._cluster = KafkaCluster()
@@ -547,6 +548,11 @@ class KafkaPipelineConfig(object):
                 filename = yaml_config['input_files'][datasource_alias]['name']
                 location = common.load_config_var(yaml_config['input_files'][datasource_alias]['location'])
                 self._file_references[datasource_alias] = os.path.join(location, filename)
+
+        if yaml_config.get('user_defined_consumer_groups'):
+            for entry in yaml_config['user_defined_consumer_groups']:
+                self._user_defined_consumer_groups[entry['alias']] = entry['name']
+
 
 
     @property
@@ -571,6 +577,19 @@ class KafkaPipelineConfig(object):
     @property
     def file_ref_aliases(self):
         return self._file_references.keys()
+
+
+    @property
+    def group_aliases(self):
+        return self._user_defined_consumer_groups.keys()
+
+
+    def get_user_defined_consumer_group(self, alias):
+        cgroup = self._user_defined_consumer_groups.get(alias)
+        if not cgroup:
+            #TODO: create custom exception
+            raise Exception('No consumer group with alias "%s" registered in pipeline config' % alias)
+        return cgroup
 
 
     def get_file_reference(self, alias):
