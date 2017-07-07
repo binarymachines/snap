@@ -11,4 +11,7 @@ staging_topic:
   test_run_01_staging
 
 
+user_topics:
+  - alias: scratch_topic
+    name: t1
 

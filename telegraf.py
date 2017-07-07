@@ -524,6 +524,7 @@ class IngestWritePromiseQueue(threading.Thread):
 
 class KafkaPipelineConfig(object):
     def __init__(self, yaml_config, **kwargs):
+        self._user_topics = {}
         self._cluster = KafkaCluster()
         for entry in yaml_config['globals']['cluster_nodes']:
             tokens = entry.split(':')
@@ -533,7 +534,11 @@ class KafkaPipelineConfig(object):
 
         self._raw_topic = yaml_config['raw_record_topic']
         self._staging_topic = yaml_config['staging_topic']
-        
+
+        if yaml_config.get('user_topics'):
+            for entry in yaml_config['user_topics']:
+                self._user_topics[entry['alias']] = entry['name']
+
 
     @property
     def raw_topic(self):
@@ -549,4 +554,18 @@ class KafkaPipelineConfig(object):
     def node_addresses(self):
         return self._cluster.nodes
     
-        
+    @property
+    def topic_aliases(self):
+        return self._user_topics.keys()    
+    
+
+    def get_user_topic(self, alias):
+        topic = self._user_topics.get(alias)
+        if not topic:
+            raise Exception('No topic with alias "%s" registered in pipeline config' % alias)
+        return topic
+
+
+
+
+    
