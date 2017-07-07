@@ -207,12 +207,12 @@ class KafkaIngestRecordWriter(object):
         error_handler = ConsoleErrorHandler()
         self._promise_queue = IngestWritePromiseQueue(error_handler, log, debug_mode=True)
 
-        
+
     def write(self, topic, ingest_record):
         future = self.producer.send(topic, ingest_record)
         self._promise_queue.append(future)
         return future
-        
+
 
     def sync(self, timeout=0):
         self.producer.flush(timeout or None)
@@ -357,7 +357,7 @@ class OLAPSchemaDimension(object):
         kwreader = common.KeywordArgReader(['fact_table_field_name',
                                             'dim_table_name',
                                             'key_field_name',
-                                            'value_field_name', 
+                                            'value_field_name',
                                             'id_lookup_function'])
 
         kwreader.read(**kwargs)
@@ -372,7 +372,7 @@ class OLAPSchemaDimension(object):
 
     def lookup_id_for_value(self, value):
         return self._lookup_func(value, self._dim_table_name, self._key_field_name, self._value_field_name)
-        
+
 
     @property
     def fact_field(self):
@@ -429,7 +429,7 @@ class OLAPStarSchemaRelay(DataRelay):
     def _send(self, msg_header, kafka_message, logger, **kwargs):
         logger.debug("writing kafka log message to db...")
         logger.debug('### kafka_message keys: %s' % '\n'.join(kafka_message.keys()))
-        outbound_record = {}        
+        outbound_record = {}
         fact_data = self._schema_mapping_context.get_fact_values(kafka_message.get('body'))
 
         print common.jsonpretty(fact_data)
@@ -519,3 +519,29 @@ class IngestWritePromiseQueue(threading.Thread):
     @property
     def errors(self):
         return self._errors
+
+
+
+class KafkaPipelineConfig(object):
+    def __init__(self, yaml_config, **kwargs):
+        pass
+
+
+    @property
+    def raw_topic(self):
+        return self._raw_topic
+
+
+    @property
+    def staging_topic(self):
+        return self._staging_topic
+
+
+    @property
+    def node_addresses(self):
+        return self._nodes
+
+
+    @property
+    def cluster(self):
+        #return KafkaCluster().add_node(self._nod)

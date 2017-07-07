@@ -1,0 +1,14 @@
+globals:
+  kafka_cluster_nodes:
+    - <ip>:port
+    - <ip>:port
+    - <ip>>port
+
+raw_record_topic:
+  test_run_01_raw
+
+staging_topic:
+  test_run_01_staging
+
+
+
