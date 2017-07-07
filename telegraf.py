@@ -112,13 +112,14 @@ class KafkaMessageHeader(object):
 
 
 class KafkaCluster(object):
-    def __init__(self, **kwargs):
-        self._nodes = []
+    def __init__(self, nodes=[], **kwargs):
+        self._nodes = nodes
 
 
     def add_node(self, kafka_node):
-        self._nodes.append(kafka_node)
-        return self
+        new_nodes = copy.deepcopy(self._nodes)
+        new_nodes.append(kafka_node)
+        return KafkaCluster(new_nodes)
 
 
     @property
@@ -530,7 +531,7 @@ class KafkaPipelineConfig(object):
             tokens = entry.split(':')
             ip = tokens[0]
             port = tokens[1]
-            self._cluster.add_node(KafkaNode(ip, port))
+            self._cluster = self._cluster.add_node(KafkaNode(ip, port))
 
         self._raw_topic = yaml_config['raw_record_topic']
         self._staging_topic = yaml_config['staging_topic']
@@ -554,10 +555,16 @@ class KafkaPipelineConfig(object):
     def node_addresses(self):
         return self._cluster.nodes
     
+
     @property
     def topic_aliases(self):
         return self._user_topics.keys()    
     
+
+    @property
+    def cluster(self):
+        return self.cluster
+
 
     def get_user_topic(self, alias):
         topic = self._user_topics.get(alias)
