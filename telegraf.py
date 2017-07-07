@@ -526,6 +526,8 @@ class IngestWritePromiseQueue(threading.Thread):
 class KafkaPipelineConfig(object):
     def __init__(self, yaml_config, **kwargs):
         self._user_topics = {}
+        self._file_references = {}
+
         self._cluster = KafkaCluster()
         for entry in yaml_config['globals']['cluster_nodes']:
             tokens = entry.split(':')
@@ -539,6 +541,12 @@ class KafkaPipelineConfig(object):
         if yaml_config.get('user_topics'):
             for entry in yaml_config['user_topics']:
                 self._user_topics[entry['alias']] = entry['name']
+
+        if yaml_config.get('input_files'):
+            for datasource_alias in yaml_config['input_files']:
+                filename = yaml_config['input_files'][datasource_alias]['name']
+                location = common.load_config_var(yaml_config['input_files'][datasource_alias]['location'])
+                self._file_references[datasource_alias] = os.path.join(location, filename)
 
 
     @property
@@ -560,6 +568,18 @@ class KafkaPipelineConfig(object):
     def topic_aliases(self):
         return self._user_topics.keys()    
     
+    @property
+    def file_ref_aliases(self):
+        return self._file_references.keys()
+
+
+    def get_file_reference(self, alias):
+        fileref = self._file_references.get(alias)
+        if not fileref:
+            #TODO: create custom exception
+            raise Exception('No file reference with alias "%s" registered in pipeline config' % alias)
+        return fileref
+
 
     @property
     def cluster(self):
@@ -569,6 +589,7 @@ class KafkaPipelineConfig(object):
     def get_user_topic(self, alias):
         topic = self._user_topics.get(alias)
         if not topic:
+            # TODO: create custom exception
             raise Exception('No topic with alias "%s" registered in pipeline config' % alias)
         return topic
 
