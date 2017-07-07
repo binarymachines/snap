@@ -524,8 +524,16 @@ class IngestWritePromiseQueue(threading.Thread):
 
 class KafkaPipelineConfig(object):
     def __init__(self, yaml_config, **kwargs):
-        pass
+        self._cluster = KafkaCluster()
+        for entry in yaml_config['globals']['cluster_nodes']:
+            tokens = entry.split(':')
+            ip = tokens[0]
+            port = tokens[1]
+            self._cluster.add_node(KafkaNode(ip, port))
 
+        self._raw_topic = yaml_config['raw_record_topic']
+        self._staging_topic = yaml_config['staging_topic']
+        
 
     @property
     def raw_topic(self):
@@ -539,9 +547,6 @@ class KafkaPipelineConfig(object):
 
     @property
     def node_addresses(self):
-        return self._nodes
-
-
-    @property
-    def cluster(self):
-        #return KafkaCluster().add_node(self._nod)
+        return self._cluster.nodes
+    
+        
