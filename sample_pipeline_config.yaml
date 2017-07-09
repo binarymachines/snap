@@ -1,8 +1,12 @@
+#
+# yaml config file for Kafka-based data pipelines
+# 
+
 globals:
-  kafka_cluster_nodes:
-    - <ip>:port
-    - <ip>:port
-    - <ip>>port
+  cluster_nodes:
+    - 172.31.17.24:1000
+    - 172.31.18.160:1000
+    - 172.31.17.250:1000
 
 raw_record_topic:
   test_run_01_raw
@@ -11,4 +15,35 @@ staging_topic:
   test_run_01_staging
 
 
+user_topics:
+  - alias: scratch_topic
+    name: t1
 
+
+input_files: 
+    my_datafile:
+      name: GPR_Sales.txt
+      location: $TEST_DATA_DIR
+
+
+user_defined_consumer_groups:
+  - alias: scratch_group_1
+    name: group1  
+
+  - alias: scratch_group_2
+    name: group2  
+
+
+phases:
+  extract:
+    consumer_group_alias: scratch_group_1
+
+  transform:
+    consumer_group_alias: scratch_group_2
+
+
+
+
+
+
+        

@@ -112,13 +112,14 @@ class KafkaMessageHeader(object):
 
 
 class KafkaCluster(object):
-    def __init__(self, **kwargs):
-        self._nodes = []
+    def __init__(self, nodes=[], **kwargs):
+        self._nodes = nodes
 
 
     def add_node(self, kafka_node):
-        self._nodes.append(kafka_node)
-        return self
+        new_nodes = copy.deepcopy(self._nodes)
+        new_nodes.append(kafka_node)
+        return KafkaCluster(new_nodes)
 
 
     @property
@@ -524,7 +525,34 @@ class IngestWritePromiseQueue(threading.Thread):
 
 class KafkaPipelineConfig(object):
     def __init__(self, yaml_config, **kwargs):
-        pass
+        self._user_topics = {}
+        self._user_defined_consumer_groups = {}
+        self._file_references = {}
+
+        self._cluster = KafkaCluster()
+        for entry in yaml_config['globals']['cluster_nodes']:
+            tokens = entry.split(':')
+            ip = tokens[0]
+            port = tokens[1]
+            self._cluster = self._cluster.add_node(KafkaNode(ip, port))
+
+        self._raw_topic = yaml_config['raw_record_topic']
+        self._staging_topic = yaml_config['staging_topic']
+
+        if yaml_config.get('user_topics'):
+            for entry in yaml_config['user_topics']:
+                self._user_topics[entry['alias']] = entry['name']
+
+        if yaml_config.get('input_files'):
+            for datasource_alias in yaml_config['input_files']:
+                filename = yaml_config['input_files'][datasource_alias]['name']
+                location = common.load_config_var(yaml_config['input_files'][datasource_alias]['location'])
+                self._file_references[datasource_alias] = os.path.join(location, filename)
+
+        if yaml_config.get('user_defined_consumer_groups'):
+            for entry in yaml_config['user_defined_consumer_groups']:
+                self._user_defined_consumer_groups[entry['alias']] = entry['name']
+
 
 
     @property
@@ -539,9 +567,52 @@ class KafkaPipelineConfig(object):
 
     @property
     def node_addresses(self):
-        return self._nodes
+        return self._cluster.nodes
+    
+
+    @property
+    def topic_aliases(self):
+        return self._user_topics.keys()    
+    
+    @property
+    def file_ref_aliases(self):
+        return self._file_references.keys()
+
+
+    @property
+    def group_aliases(self):
+        return self._user_defined_consumer_groups.keys()
+
+
+    def get_user_defined_consumer_group(self, alias):
+        cgroup = self._user_defined_consumer_groups.get(alias)
+        if not cgroup:
+            #TODO: create custom exception
+            raise Exception('No consumer group with alias "%s" registered in pipeline config' % alias)
+        return cgroup
+
+
+    def get_file_reference(self, alias):
+        fileref = self._file_references.get(alias)
+        if not fileref:
+            #TODO: create custom exception
+            raise Exception('No file reference with alias "%s" registered in pipeline config' % alias)
+        return fileref
 
 
     @property
     def cluster(self):
-        #return KafkaCluster().add_node(self._nod)
+        return self.cluster
+
+
+    def get_user_topic(self, alias):
+        topic = self._user_topics.get(alias)
+        if not topic:
+            # TODO: create custom exception
+            raise Exception('No topic with alias "%s" registered in pipeline config' % alias)
+        return topic
+
+
+
+
+    
