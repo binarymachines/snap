@@ -23,6 +23,11 @@ class TransformMeta(object):
 
 
     @property
+    def method(self):
+        return self._method
+
+
+    @property
     def input_shape(self):
         return self._input_shape_ref
 

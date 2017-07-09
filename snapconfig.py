@@ -65,7 +65,7 @@ def docopt_cmd(func):
             # The DocoptExit is thrown when the args do not match.
             # We print a message to the user and the usage block.
 
-            print('\nPlease specify one or more command parameters.')
+            print('\nPlease specify one or more valid command parameters.')
             print(e)
             return
 
@@ -94,6 +94,20 @@ class SnapCLI(Cmd):
         self.service_objects = []
         self.global_settings = GlobalSettingsMeta(app_name)
         #self.replay_stack = Stack()
+
+    @property
+    def service_object_names(self):
+        return [so.name for so in self.service_objects]
+
+
+    @property
+    def transform_names(self):
+        return [t.name for t in self.transforms]
+
+
+    @property
+    def datashape_names(self):
+        return [shape.name for shape in self.data_shapes]
 
 
     def get_config_data(self):
@@ -235,12 +249,16 @@ class SnapCLI(Cmd):
     def make_shape(self, name=None):
         shape_name = name or cli.InputPrompt('Enter a name for this datashape').show()
         if shape_name:
-            print 'Add 1 or more fields to this datashape.'
+            empty_shape = False
+            print 'Add 1 or more fields to this datashape. (Enter "-" to create an empty shape.)'
             fields = []
             while True:
                 missing_params = 3
                 field_name = cli.InputPrompt('field name').show()
                 if not field_name:
+                    break
+                elif field_name == '-':
+                    empty_shape = True
                     break
                 missing_params -= 1
 
@@ -261,16 +279,19 @@ class SnapCLI(Cmd):
                 should_continue = cli.InputPrompt('Add another field (Y/n)?', 'y').show()
                 if should_continue == 'n':
                     break
-            if missing_params:
+            if missing_params and not empty_shape:
                 return None
-
-            self.data_shapes.append(DataShapeMeta(shape_name, fields))
+            if empty_shape:
+                self.data_shapes.append(DataShapeMeta(shape_name, []))
+            else:
+                self.data_shapes.append(DataShapeMeta(shape_name, fields))
             return shape_name
+
         return None
 
 
     def edit_shape(self, shape_name):
-        print 'Updating datashape "%s"' % shape_name
+        print '+++ Updating datashape "%s"' % shape_name
         shape = self.find_shape(shape_name)
 
         if not shape:
@@ -283,6 +304,8 @@ class SnapCLI(Cmd):
         operation = opt_prompt.show()
 
         while True:
+            if not operation:
+                break
             if operation == 'add_field':
                 new_field = self.create_shape_field()
                 if new_field:
@@ -300,7 +323,7 @@ class SnapCLI(Cmd):
 
 
     def edit_transform(self, transform_name):
-        print 'Updating transform "%s"' % transform_name
+        print '+++ Updating transform "%s"' % transform_name
         transform = self.find_transform(transform_name)
 
         if not transform:
@@ -312,6 +335,8 @@ class SnapCLI(Cmd):
                                     CHTFM_OPTIONS)
         operation = opt_prompt.show()
         while True:
+            if not operation:
+                break
             if operation == 'update_properties':
                 transform = self.find_transform(transform_name)
 
@@ -369,7 +394,7 @@ class SnapCLI(Cmd):
 
         return so_params
 
-    
+
     def make_svcobject(self, name):
         print '+++ Register new service object'
         so_name = name or cli.InputPrompt('service object name').show()
@@ -379,7 +404,7 @@ class SnapCLI(Cmd):
 
 
     def edit_svcobject(self, so_name):
-        print '+++ Update service object'
+        print '+++ Updating service object'
         so_index = self.get_service_object_index(so_name)
         if so_index < 0:
             print 'No service object registered under the name %s.' % so_name
@@ -415,14 +440,22 @@ class SnapCLI(Cmd):
     def show_svcobject(self, name):
         index = self.get_service_object_index(name)
         if index < 0:
-            print 'no service object registered under the name %s.' % name
-
+            print '> No service object registered under the name %s.' % name
+            return
         print common.jsonpretty(self.service_objects[index].data())
 
 
     def list_svcobjects(self):
+        if not len(self.service_objects):
+            print '[]'
+            return
         for so in self.service_objects:
-            print so.name()
+            print so.name
+
+
+    def select_service_object(self):
+        options = [{'value': name, 'label': name} for name in self.service_object_names]
+        svc_object_name = cli.MenuPrompt('select service object', options).show()
 
 
     def make_transform(self, name):
@@ -435,7 +468,7 @@ class SnapCLI(Cmd):
 
         self.transforms.append(TransformMeta(transform_name, route, method, mimetype))
 
-        print 'Creating new transform: %s' % transform_name
+        print '> Creating new transform: %s' % transform_name
         self.edit_transform(transform_name)
         return
 
@@ -443,7 +476,7 @@ class SnapCLI(Cmd):
     def show_transform(self, transform_name):
         transform = self.find_transform(transform_name)
         if not transform:
-            print 'No such transform found.'
+            print '> No such transform found.'
             return
 
         config = self.get_config_data()
@@ -451,26 +484,44 @@ class SnapCLI(Cmd):
 
 
     def list_transforms(self):
-        '''list all transforms'''
-        print '\n'.join([t.name for t in self.transforms])
+        if not len(self.transforms):
+            print '[]'
+            return
+        for t in self.transforms:
+            print t.name
+
+
+    def select_transform(self):
+        options = [{'value': name, 'label': name} for name in self.transform_names]
+        transform_name = cli.MenuPrompt('select transform', options).show()
+        return transform_name
 
 
 
     def show_shape(self, shape_name):
         shape = self.find_shape(shape_name)
         if not shape:
-            print 'No such datashape found.'
+            print '> No such datashape found.'
             return
         print common.jsonpretty(shape.data())
 
 
     def list_shapes(self):
+        if not len(self.data_shapes):
+            print '[]'
+            return
         for shape in self.data_shapes:
             print shape.name
 
 
-    def edit_globals(self):
-        print 'updating application settings...'
+    def select_shape(self):
+        options = [{'value': name, 'label': name} for name in self.datashape_names]
+        shape_name = cli.MenuPrompt('select datashape', options).show()
+        return shape_name
+
+
+    def edit_global_settings(self):
+        print '> updating application settings...'
         settings_menu = []
         defaults = self.global_settings.current_values
         for key, value in defaults.iteritems():
@@ -478,6 +529,8 @@ class SnapCLI(Cmd):
 
         while True:
             setting_name = cli.MenuPrompt('global setting to update', settings_menu).show()
+            if not setting_name:
+                break
             setting_value = cli.InputPrompt(setting_name, defaults[setting_name]).show()
 
             attr_name = 'set_%s' % setting_name
@@ -488,8 +541,20 @@ class SnapCLI(Cmd):
             if should_continue.lower() != 'y':
                 break
 
+    def edit_global_setting(self, setting_name):
+        if not setting_name in self.global_settings.current_values.keys():
+            print "> No such global setting. Available global settings are: "
+            print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
+            return
 
-    def show_globals(self):
+        defaults = self.global_settings.current_values
+        setting_value = cli.InputPrompt(setting_name, defaults[setting_name]).show()
+        attr_name = 'set_%s' % setting_name
+        setter_func = getattr(self.global_settings, attr_name)
+        self.global_settings = setter_func(setting_value)
+
+
+    def show_global_settings(self):
         print common.jsonpretty(self.global_settings.data())
 
 
@@ -500,19 +565,20 @@ class SnapCLI(Cmd):
 
     @docopt_cmd
     def do_make(self, cmd_args):
-        '''Usage: make (shape | svcobject | transform | ?)
+        '''Usage:
+                  make (transform | shape | svcobj | ?)
                   make shape <name>
-                  make svcobject <name>
+                  make svcobj <name>
                   make transform <name>
         '''
 
-        object_name = cmd_args.get('name')
+        object_name = cmd_args.get('<name>')
 
         if cmd_args['?']:
             self.show_help_prompt('make')
         elif cmd_args['shape']:
             self.make_shape(object_name)
-        elif cmd_args['svcobject']:
+        elif cmd_args['svcobj']:
             self.make_svcobject(object_name)
         elif cmd_args['transform']:
             self.make_transform(object_name)
@@ -520,13 +586,14 @@ class SnapCLI(Cmd):
 
     @docopt_cmd
     def do_show(self, cmd_args):
-        '''Usage: show (shape | svcobject | transform | ?)
+        '''Usage:
+                  show (transform | shape | svcobj | ?)
                   show shape <name>
-                  show svcobject <name>
+                  show svcobj <name>
                   show transform <name>
         '''
 
-        object_name = cmd_args.get('name')
+        object_name = cmd_args.get('<name>')
 
         if cmd_args['?']:
             self.show_help_prompt('show')
@@ -534,37 +601,96 @@ class SnapCLI(Cmd):
             if object_name:
                 self.show_shape(object_name)
             else:
+                print 'Available DataShapes:'
                 self.list_shapes()
-        elif cmd_args['svcobject']:
+        elif cmd_args['svcobj']:
             if object_name:
                 self.show_svcobject(object_name)
             else:
+                print 'Available ServiceObjects:'
                 self.list_svcobjects()
         elif cmd_args['transform']:
             if object_name:
                 self.show_transform(object_name)
             else:
+                print 'Available Transforms:'
                 self.list_transforms()
 
 
     @docopt_cmd
     def do_edit(self, arg):
-        '''Usage: edit (shape | svcobj | transform | ?)'''
+        '''Usage: edit ( transform | shape | svcobj | ?)'''
 
         if arg['?']:
             self.show_help_prompt('edit')
+        elif arg['shape']:
+            if not len(self.data_shapes):
+                print 'You have not created any DataShapes yet.'
+                return
+            shape_name = self.select_shape()
+            if shape_name:
+                self.edit_shape(shape_name)
+        elif arg['svcobj']:
+            if not len(self.service_objects):
+                print 'You have not created any ServiceObjects yet.'
+                return
+            svcobj_name = self.select_service_object()
+            if svcobj_name:
+                self.edit_svcobject(svcobj_name)
+        elif arg['transform']:
+            if not len(self.transforms):
+                print 'You have not created any Transforms yet.'
+                return
+            transform_name = self.select_transform()
+            if transform_name:
+                self.edit_transform(transform_name)
 
 
     @docopt_cmd
     def do_list(self, arg):
-        '''Usage: list (shapes | svcobjects | transforms | ?)'''
+        '''Usage: list (transforms | shapes | svcobjs |  ?)'''
 
         if arg['?']:
             self.show_help_prompt('list')
 
+        if arg['shapes']:
+            self.list_shapes()
+        elif arg['svcobjs']:
+            self.list_svcobjects()
+        elif arg['transforms']:
+            self.list_transforms()
 
+
+
+    @docopt_cmd
     def do_globals(self, arg):
-        self.show_globals()
+        '''Usage:
+                    globals [update]
+                    globals set <setting_name>
+                    globals set <setting_name> <setting_value>
+        '''
+
+        setting_name = arg.get('<setting_name>')
+        if arg['update']:
+            self.edit_global_settings()
+        elif arg['set']:
+            name = arg['<setting_name>']
+            value = arg.get('<setting_value>')
+
+            if value is None:
+                self.edit_global_setting(name)
+            else:
+                if not name in self.global_settings.data().keys():
+                    print "Available global settings are: "
+                    print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
+                    return
+
+                attr_name = 'set_%s' % name
+                setter_func = getattr(self.global_settings, attr_name)
+                self.global_settings = setter_func(value)
+
+        else:
+            self.show_global_settings()
 
 
     def emptyline(self):
