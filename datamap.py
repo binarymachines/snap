@@ -248,7 +248,7 @@ class CSVFileDataExtractor(object):
             lines_read = 0
             if not max_lines:
                 return
-            
+
             for record in csv_reader:
                 data = record
                 if self._processor:
@@ -259,5 +259,3 @@ class CSVFileDataExtractor(object):
                 if max_lines > 0 and lines_read == max_lines:
                     break
 
-
-    

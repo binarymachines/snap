@@ -432,6 +432,7 @@ class OLAPStarSchemaRelay(DataRelay):
         outbound_record = {}
         fact_data = self._schema_mapping_context.get_fact_values(kafka_message.get('body'))
 
+        print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
 
 
@@ -537,7 +538,7 @@ class KafkaPipelineConfig(object):
 
         self._raw_topic = yaml_config['raw_record_topic']
         self._staging_topic = yaml_config['staging_topic']
-
+        
         if yaml_config.get('user_topics'):
             for entry in yaml_config['user_topics']:
                 self._user_topics[entry['alias']] = entry['name']
@@ -552,6 +553,7 @@ class KafkaPipelineConfig(object):
             for entry in yaml_config['user_defined_consumer_groups']:
                 self._user_defined_consumer_groups[entry['alias']] = entry['name']
 
+        self._transform_map = yaml_config.get('transform_map', None)
 
 
     @property
@@ -610,3 +612,9 @@ class KafkaPipelineConfig(object):
             # TODO: create custom exception
             raise Exception('No topic with alias "%s" registered in pipeline config' % alias)
         return topic
+
+    
+    @property
+    def transform_map(self):
+        return self._transform_map
+
