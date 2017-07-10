@@ -11,7 +11,7 @@ class TestContext(object):
     def __init__(self, name, **kwargs):
         self._name = name
         for name, value in kwargs.iteritems():
-            self.__setattr__(name, value)
+            setattr(self, name, value)
 
     
 
