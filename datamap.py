@@ -162,7 +162,6 @@ class RecordTransformerBuilder(object):
 
 
     def build(self):
-
         datasource_name = self._transform_config['maps'][self._map_name]['lookup_source']
         datasource = self.load_datasource(datasource_name, self._transform_config)
         transformer = RecordTransformer()
