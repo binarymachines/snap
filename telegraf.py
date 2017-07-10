@@ -602,7 +602,7 @@ class KafkaPipelineConfig(object):
 
     @property
     def cluster(self):
-        return self.cluster
+        return self._cluster
 
 
     def get_user_topic(self, alias):
