@@ -614,5 +614,3 @@ class KafkaPipelineConfig(object):
 
 
 
-
-    
