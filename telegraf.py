@@ -538,7 +538,7 @@ class KafkaPipelineConfig(object):
 
         self._raw_topic = yaml_config['raw_record_topic']
         self._staging_topic = yaml_config['staging_topic']
-
+        
         if yaml_config.get('user_topics'):
             for entry in yaml_config['user_topics']:
                 self._user_topics[entry['alias']] = entry['name']
@@ -553,6 +553,7 @@ class KafkaPipelineConfig(object):
             for entry in yaml_config['user_defined_consumer_groups']:
                 self._user_defined_consumer_groups[entry['alias']] = entry['name']
 
+        self._transform_map = yaml_config.get('transform_map', None)
 
 
     @property
@@ -613,6 +614,6 @@ class KafkaPipelineConfig(object):
         return topic
 
 
-
-
-    
+    @property
+    def transform_map(self):
+        return self._transform_map
