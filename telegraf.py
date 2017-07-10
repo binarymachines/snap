@@ -610,8 +610,3 @@ class KafkaPipelineConfig(object):
             # TODO: create custom exception
             raise Exception('No topic with alias "%s" registered in pipeline config' % alias)
         return topic
-
-
-
-
-    
