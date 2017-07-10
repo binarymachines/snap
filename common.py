@@ -116,7 +116,7 @@ class LocalEnvironment(object):
 
     def get_variable(self, name):
         if not name in self._env_vars.keys():
-            raise Exception('The environment var "" was not registered with this LocalEnvironment.' % name)
+            raise Exception('The environment var "%s" was not registered with this LocalEnvironment.' % name)
         return self._env_vars[name]
 
 
