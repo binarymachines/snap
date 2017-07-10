@@ -21,7 +21,6 @@ from raven.handlers.logging import SentryHandler
 
 from logging import Formatter
 
-
 DEFAULT_SENTRY_DSN = 'https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031'
 
 
@@ -433,6 +432,7 @@ class OLAPStarSchemaRelay(DataRelay):
         outbound_record = {}
         fact_data = self._schema_mapping_context.get_fact_values(kafka_message.get('body'))
 
+        print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
 
 
@@ -538,7 +538,7 @@ class KafkaPipelineConfig(object):
 
         self._raw_topic = yaml_config['raw_record_topic']
         self._staging_topic = yaml_config['staging_topic']
-
+        
         if yaml_config.get('user_topics'):
             for entry in yaml_config['user_topics']:
                 self._user_topics[entry['alias']] = entry['name']
@@ -553,6 +553,7 @@ class KafkaPipelineConfig(object):
             for entry in yaml_config['user_defined_consumer_groups']:
                 self._user_defined_consumer_groups[entry['alias']] = entry['name']
 
+        self._transform_map = yaml_config.get('transform_map', None)
 
 
     @property
@@ -612,7 +613,8 @@ class KafkaPipelineConfig(object):
             raise Exception('No topic with alias "%s" registered in pipeline config' % alias)
         return topic
 
-
-
-
     
+    @property
+    def transform_map(self):
+        return self._transform_map
+

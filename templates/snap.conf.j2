@@ -71,7 +71,7 @@ data_shapes:
 
 transforms:
         {% for t in transforms %}
-        create_sample:
+        {{ t.name }}:
             route:              {{ t.route }}
             method:             {{ t.method }}
 	    input_shape: 	{{ t.input_shape }}

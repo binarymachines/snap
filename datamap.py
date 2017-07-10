@@ -146,6 +146,8 @@ class RecordTransformerBuilder(object):
         with open(yaml_config_filename) as f:
             self._transform_config = yaml.load(f)
 
+        self._pmgr = kwargs.get('persistence_mgr')
+        
 
     def load_datasource(self, src_name, transform_config):
         src_module = __import__(self._transform_config['globals']['lookup_source_module'])
@@ -156,11 +158,10 @@ class RecordTransformerBuilder(object):
 
         klass = getattr(src_module, datasource_class_name)
         init_params = self._transform_config['sources'][src_name].get('init_params', {})
-        return klass(**init_params)
+        return klass(self._pmgr, **init_params)
 
 
     def build(self):
-
         datasource_name = self._transform_config['maps'][self._map_name]['lookup_source']
         datasource = self.load_datasource(datasource_name, self._transform_config)
         transformer = RecordTransformer()
@@ -247,7 +248,7 @@ class CSVFileDataExtractor(object):
             lines_read = 0
             if not max_lines:
                 return
-            
+
             for record in csv_reader:
                 data = record
                 if self._processor:
@@ -258,5 +259,3 @@ class CSVFileDataExtractor(object):
                 if max_lines > 0 and lines_read == max_lines:
                     break
 
-
-    
