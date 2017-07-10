@@ -19,7 +19,7 @@ class InputPrompt():
             self.prompt = '>> %s: ' % prompt_string
         self.default = default_value
 
-    def show(self):        
+    def show(self):
         result = raw_input(self.prompt).strip()
         if not result:
             result = self.default
@@ -41,12 +41,14 @@ class MenuPrompt(object):
         except ValueError:
             return False
 
+
     def display_menu(self):
         print '%s:' % self.prompt
         opt_id = 1
         for opt in self.menu_options:
             print '  [%d]...%s' % (opt_id, opt['label'])
             opt_id += 1
+
 
     def show(self):
         result = None
@@ -81,13 +83,13 @@ class OptionPrompt(object):
 
         prompt_text = '%s %s  : ' % (self.prompt_string, ','.join(display_options))
         result = raw_input(prompt_text).strip()
-        
+
         if not result: # user did not choose a value
             result = self.default_value
 
         return result
 
-    
+
 
 class Notifier():
     def __init__(self, prompt_string, info_string):

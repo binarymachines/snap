@@ -7,10 +7,13 @@
 from cmd import Cmd
 import copy
 import docopt
+from docopt import docopt as docopt_func
+from docopt import DocoptExit
 import os
 import yaml
 import logging
 import common
+from metaobjects import *
 import cli_tools as cli
 
 #pylint: disable=C0301
@@ -49,305 +52,35 @@ FIELD_TYPE_OPTIONS = [{'value': 'string', 'label': 'String'},
 DEFAULT_MIMETYPE = 'application/json'
 
 
-class TransformMeta(object):
-    def __init__(self, name, route, method, output_mimetype, input_shape=None, **kwargs):
-        self._name = name
-        self._route = route
-        self._method = method
-        self._mime_type = output_mimetype
-        if input_shape:
-            self._input_shape_ref = input_shape.name
-        else:
-            self._input_shape_ref = kwargs.get('input_shape_name')
-
-
-    @property
-    def name(self):
-        return self._name
-
-
-    @property
-    def input_shape(self):
-        return self._input_shape_ref
-
-
-    @property
-    def output_mimetype(self):
-        return self._mime_type
-
-
-    @property
-    def route(self):
-        return self._route
-
-
-    def set_name(self, name):
-        return TransformMeta(name,
-                             self._route,
-                             self._method,
-                             self._mime_type,
-                             None,
-                             input_shape_name=self._input_shape_ref)
-
-
-    def set_route(self, route):
-        return TransformMeta(self._name,
-                             route,
-                             self._method,
-                             self._mime_type,
-                             None,
-                             input_shape_name=self._input_shape_ref)
-
-
-    def set_input_shape(self, input_shape):
-        return TransformMeta(self._name,
-                             self._route,
-                             self._method,
-                             self._mime_type,
-                             input_shape)
-
-
-    def set_method(self, method):
-        return TransformMeta(self._name,
-                             self._route,
-                             method,
-                             self._mime_type,
-                             None,
-                             input_shape_name=self._input_shape_ref)
-
-
-    def data(self, config_data):
-        result = {'name': self._name,
-                  'route': self._route,
-                  'method': self._method,
-                  'output_mimetype': self._mime_type}
-        if self._input_shape_ref:
-            result['input_shape'] = config_data['data_shapes'][self._input_shape_ref].data()
-
-        return result
-
-
-
-class DataShapeFieldMeta(object):
-    def __init__(self, name, data_type, is_required=False):
-        self.name = name
-        self.data_type = data_type
-        self.required = is_required
-
-
-    def data(self):
-        result = {'name': self.name,
-                  'type': self.data_type}
-        if self.required:
-            result['required'] = True
-        return result
-
-
-
-class DataShapeMeta(object):
-    def __init__(self, name, field_array):
-        self._name = name
-        self._fields = field_array
-
-
-    @property
-    def name(self):
-        return self._name
-
-
-    @property
-    def fields(self):
-        return self._fields
-
-
-    def set_name(self, name):
-        fields = copy.deepcopy(self.fields)
-        return DataShapeMeta(name, fields)
-
-
-    def add_field(self, f_name, f_type, is_required=False):
-        fields = copy.deepcopy(self._fields)
-        fields.append(DataShapeFieldMeta(f_name, f_type, is_required))
-        return DataShapeMeta(self._name, fields)
-
-
-    def replace_field(self, name, datashape_field):
-        field_array = copy.deepcopy(self._fields)
-        for i in range(0, len(field_array)):
-            if field_array[i].name == name:
-                field_array[i] = datashape_field
-        return DataShapeMeta(self._name, field_array)
-
-
-    def data(self):
-        return {'name': self.name,
-                'fields': [f.data() for f in self._fields]}
-
-
-
-class ServiceObjectMeta(object):
-    def __init__(self, name, class_name, **kwargs):
-        self._name = name
-        self._classname = class_name
-        self._init_params = []
-        for param_name, param_value in kwargs.iteritems():
-            self._init_params.append({'name': param_name, 'value': param_value})
-
-
-    @property
-    def name(self):
-        return self._name
-
-
-    @property
-    def classname(self):
-        return self._classname
-
-
-    @property
-    def init_params(self):
-        return self._init_params
-
-
-    def _params_to_dict(self, param_array):
-        result = {}
-        for p in param_array:
-            result[p['name']] = p['value']
-        return result
-
-
-    def find_param_by_name(self, param_name):
-        param = None
-        for p in self._init_params:
-            if p['name'] == param_name:
-                param = p
-                break
-        return param
-
-
-    def set_name(self, name):
-        return ServiceObjectMeta(name, self._classname, **self._params_to_dict(self._init_params))
-
-
-    def set_classname(self, classname):
-        return ServiceObjectMeta(self._name, classname, **self._params_to_dict(self._init_params))
-
-
-    def add_param(self, name, value):
-        new_param_list = copy.deepcopy(self._init_params)
-        new_param_list.append({'name': name, 'value': value})
-        params = self._params_to_dict(new_param_list)
-
-        return ServiceObjectMeta(self._name, self._classname, **params)
-
-
-    def add_params(self, **kwargs):
-        updated_so = self
-        for name, value in kwargs.iteritems():
-            updated_so = updated_so.add_param(name, value)
-        return updated_so
-
-
-    def remove_param(self, name):
-        param = self.find_param_by_name(name)
-        if not param:
-            return self
-
-        new_param_list = copy.deepcopy(self._init_params)
-        new_param_list.remove(param)
-        params = {}
-        for p in new_param_list:
-            params[p['name']] = p['value']
-
-        return ServiceObjectMeta(self._name, self._classname, **params)
-
-
-    def data(self):
-        result = {'name': self._name,
-                  'class': self._classname,
-                  'init_params': self._init_params}
-        return result
-
-
-
-class GlobalSettingsMeta(object):
-    def __init__(self, app_name, **kwargs):
-        self._app_name = app_name
-        self._bind_host = kwargs.get('bind_host') or '127.0.0.1'
-        self._port = kwargs.get('port') or 5000
-        self._debug = kwargs.get('debug') or True
-        self._transform_module = kwargs.get('transform_module') or '%s_transforms' % self._app_name
-        self._service_module = kwargs.get('service_module') or '%s_services' % self._app_name
-        self._preprocessor_module = kwargs.get('preprocessor_module') or '%s_decode' % self._app_name
-        self._project_directory = kwargs.get('project_directory') or  '$%s_HOME' % self._app_name.upper()
-        self._logfile = kwargs.get('logfile') or '%s.log' % self._app_name
-
-
-    @property
-    def current_values(self):
-        original_attrs = self.__dict__
-        attrs = {}
-        for key in original_attrs:
-            if key != '_app_name':
-                attrs[key.lstrip('_')] = original_attrs[key]
-        return attrs
-
-
-    def set_bind_host(self, host):
-        new_attrs = self.current_values
-        new_attrs['bind_host'] = host
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def set_app_name(self, name):
-        new_attrs = self.current_values
-        return GlobalSettingsMeta(name, **new_attrs)
-
-
-    def set_port(self, port):
-        new_attrs = self.current_values
-        new_attrs['port'] = port
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def set_debug(self, debug_status):
-        new_attrs = self.current_values
-        new_attrs['debug'] = debug_status
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def set_transform_module(self, transform_module_name):
-        new_attrs = self.current_values
-        new_attrs['transform_module'] = transform_module_name
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def set_service_module(self, service_module_name):
-        new_attrs = self.current_values
-        new_attrs['service_module'] = service_module_name
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def set_preprocessor_module(self, preprocessor_module_name):
-        new_attrs = self.current_values
-        new_attrs['preprocessor_module'] = preprocessor_module_name
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def set_project_directory(self, project_directory):
-        new_attrs = self.current_values
-        new_attrs['project_directory'] = project_directory
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def set_logfile(self, logfile):
-        new_attrs = self.current_values
-        new_attrs['logfile'] = logfile
-        return GlobalSettingsMeta(self._app_name, **new_attrs)
-
-
-    def data(self):
-        return self.current_values
+def docopt_cmd(func):
+    """
+    This decorator is used to simplify the try/except block and pass the result
+    of the docopt parsing to the called action.
+    """
+    def fn  (self, arg):
+        try:
+            opt = docopt_func(fn.__doc__, arg)
+
+        except DocoptExit as e:
+            # The DocoptExit is thrown when the args do not match.
+            # We print a message to the user and the usage block.
+
+            print('\nPlease specify one or more valid command parameters.')
+            print(e)
+            return
+
+        except SystemExit:
+            # The SystemExit exception prints the usage for --help
+            # We do not need to do the print here.
+
+            return
+
+        return func(self, opt)
+
+    fn.__name__ = func.__name__
+    fn.__doc__ = func.__doc__
+    fn.__dict__.update(func.__dict__)
+    return fn
 
 
 
@@ -361,6 +94,20 @@ class SnapCLI(Cmd):
         self.service_objects = []
         self.global_settings = GlobalSettingsMeta(app_name)
         #self.replay_stack = Stack()
+
+    @property
+    def service_object_names(self):
+        return [so.name for so in self.service_objects]
+
+
+    @property
+    def transform_names(self):
+        return [t.name for t in self.transforms]
+
+
+    @property
+    def datashape_names(self):
+        return [shape.name for shape in self.data_shapes]
 
 
     def get_config_data(self):
@@ -499,15 +246,19 @@ class SnapCLI(Cmd):
         return None
 
 
-    def create_shape(self, *cmd_args):
-        shape_name = cli.InputPrompt('Enter a name for this datashape').show()
+    def make_shape(self, name=None):
+        shape_name = name or cli.InputPrompt('Enter a name for this datashape').show()
         if shape_name:
-            print 'Add 1 or more fields to this datashape.'
+            empty_shape = False
+            print 'Add 1 or more fields to this datashape. (Enter "-" to create an empty shape.)'
             fields = []
             while True:
                 missing_params = 3
                 field_name = cli.InputPrompt('field name').show()
                 if not field_name:
+                    break
+                elif field_name == '-':
+                    empty_shape = True
                     break
                 missing_params -= 1
 
@@ -528,16 +279,19 @@ class SnapCLI(Cmd):
                 should_continue = cli.InputPrompt('Add another field (Y/n)?', 'y').show()
                 if should_continue == 'n':
                     break
-            if missing_params:
+            if missing_params and not empty_shape:
                 return None
-
-            self.data_shapes.append(DataShapeMeta(shape_name, fields))
+            if empty_shape:
+                self.data_shapes.append(DataShapeMeta(shape_name, []))
+            else:
+                self.data_shapes.append(DataShapeMeta(shape_name, fields))
             return shape_name
+
         return None
 
 
-    def update_shape(self, shape_name):
-        print 'Updating datashape "%s"' % shape_name
+    def edit_shape(self, shape_name):
+        print '+++ Updating datashape "%s"' % shape_name
         shape = self.find_shape(shape_name)
 
         if not shape:
@@ -550,6 +304,8 @@ class SnapCLI(Cmd):
         operation = opt_prompt.show()
 
         while True:
+            if not operation:
+                break
             if operation == 'add_field':
                 new_field = self.create_shape_field()
                 if new_field:
@@ -566,8 +322,8 @@ class SnapCLI(Cmd):
 
 
 
-    def update_transform(self, transform_name):
-        print 'Updating transform "%s"' % transform_name
+    def edit_transform(self, transform_name):
+        print '+++ Updating transform "%s"' % transform_name
         transform = self.find_transform(transform_name)
 
         if not transform:
@@ -579,6 +335,8 @@ class SnapCLI(Cmd):
                                     CHTFM_OPTIONS)
         operation = opt_prompt.show()
         while True:
+            if not operation:
+                break
             if operation == 'update_properties':
                 transform = self.find_transform(transform_name)
 
@@ -600,7 +358,7 @@ class SnapCLI(Cmd):
                     if should_create_shape == 'n':
                         break
                     print 'Creating the input datashape for transform "%s"...' % transform_name
-                    shape_name = self.create_shape()
+                    shape_name = self.make_shape()
                     transform = transform.set_input_shape(self.find_shape(shape_name))
                     self.transforms[transform_index] = transform
                     break
@@ -611,7 +369,7 @@ class SnapCLI(Cmd):
                         should_create_shape = cli.InputPrompt('Create a new datashape (Y/n)?', 'y').show().lower()
                         if should_create_shape == 'n':
                             break
-                        shape_name = self.create_shape(transform_name)
+                        shape_name = self.make_shape(shape_name)
 
                     transform = transform.set_input_shape(self.find_shape(shape_name))
                     self.transforms[transform_index] = transform
@@ -637,21 +395,16 @@ class SnapCLI(Cmd):
         return so_params
 
 
-    def do_mksvcobj(self, *cmd_args):
+    def make_svcobject(self, name):
         print '+++ Register new service object'
-        so_name = cli.InputPrompt('service object name').show()
+        so_name = name or cli.InputPrompt('service object name').show()
         so_classname = cli.InputPrompt('service object class').show()
         so_params = self.create_service_object_params()
         self.service_objects.append(ServiceObjectMeta(so_name, so_classname, **so_params))
 
 
-    def do_chsvcobj(self, *cmd_args):
-        if not len(*cmd_args):
-            print 'chsvcobj (change service object) command requires the service object name.'
-            return
-
-        print '+++ Update service object'
-        so_name = cmd_args[0]
+    def edit_svcobject(self, so_name):
+        print '+++ Updating service object'
         so_index = self.get_service_object_index(so_name)
         if so_index < 0:
             print 'No service object registered under the name %s.' % so_name
@@ -684,22 +437,29 @@ class SnapCLI(Cmd):
                     break
 
 
-    def do_svcobj(self, *cmd_args):
-        if not len(*cmd_args):
-            print 'svcobj (show service object) command required the service object name.'
-            return
-
-        name = cmd_args[0]
+    def show_svcobject(self, name):
         index = self.get_service_object_index(name)
         if index < 0:
-            print 'no service object registered under the name %s.' % name
-
+            print '> No service object registered under the name %s.' % name
+            return
         print common.jsonpretty(self.service_objects[index].data())
 
 
+    def list_svcobjects(self):
+        if not len(self.service_objects):
+            print '[]'
+            return
+        for so in self.service_objects:
+            print so.name
 
-    def do_mktfm(self, *cmd_args):
-        transform_name = cli.InputPrompt('transform name').show()
+
+    def select_service_object(self):
+        options = [{'value': name, 'label': name} for name in self.service_object_names]
+        svc_object_name = cli.MenuPrompt('select service object', options).show()
+
+
+    def make_transform(self, name):
+        transform_name = name or cli.InputPrompt('transform name').show()
         if not transform_name:
             return
         route = cli.InputPrompt('transform route', '/%s' % transform_name).show()
@@ -708,79 +468,60 @@ class SnapCLI(Cmd):
 
         self.transforms.append(TransformMeta(transform_name, route, method, mimetype))
 
-        print 'Creating new transform: %s' % transform_name
-        self.update_transform(transform_name)
+        print '> Creating new transform: %s' % transform_name
+        self.edit_transform(transform_name)
         return
 
 
-    def do_tfm(self, *cmd_args):
-        if not len(*cmd_args):
-            print 'tfm (show transform) command requires the transform name.'
-            return
-        transform_name = cmd_args[0]
+    def show_transform(self, transform_name):
         transform = self.find_transform(transform_name)
         if not transform:
-            print 'No such transform found.'
+            print '> No such transform found.'
             return
 
         config = self.get_config_data()
         print common.jsonpretty(transform.data(config))
 
 
-    def do_lstfm(self, *cmd_args):
-        '''list all transforms'''
-        print '\n'.join([t.name for t in self.transforms])
-
-
-    def do_chtfm(self, *cmd_args):
-        if not len(*cmd_args):
-            print 'chtfm (change transform) command requires the transform name.'
+    def list_transforms(self):
+        if not len(self.transforms):
+            print '[]'
             return
-
-        transform_name = cmd_args[0]
-        if not self.find_transform(transform_name):
-            print 'no transform registered with name "".' % transform_name
-            return
-
-        self.update_transform(transform_name)
+        for t in self.transforms:
+            print t.name
 
 
-    def do_mkshape(self, *cmd_args):
-        self.create_shape()
+    def select_transform(self):
+        options = [{'value': name, 'label': name} for name in self.transform_names]
+        transform_name = cli.MenuPrompt('select transform', options).show()
+        return transform_name
 
 
-    def do_shape(self, *cmd_args):
-        if not len(*cmd_args):
-            print 'shape (show datashape) command requires the datashape name.'
-            return
-        shape_name = cmd_args[0]
+
+    def show_shape(self, shape_name):
         shape = self.find_shape(shape_name)
         if not shape:
-            print 'No such datashape found.'
+            print '> No such datashape found.'
             return
         print common.jsonpretty(shape.data())
 
 
-    def do_lsshape(self, *cmd_args):
+    def list_shapes(self):
+        if not len(self.data_shapes):
+            print '[]'
+            return
         for shape in self.data_shapes:
             print shape.name
 
 
-    def do_chshape(self, *cmd_args):
-        if not len(*cmd_args):
-            print 'chshape (change shape) command requires the datashape name.'
-            return
-
-        shape_name = cmd_args[0]
-        if not self.find_shape(shape_name):
-            print 'no datashape registered with name "".' % shape_name
-            return
-
-        self.update_shape(shape_name)
+    def select_shape(self):
+        options = [{'value': name, 'label': name} for name in self.datashape_names]
+        shape_name = cli.MenuPrompt('select datashape', options).show()
+        return shape_name
 
 
-    def do_chsettings(self, *cmd_args):
-        print 'updating application settings...'
+    def edit_global_settings(self):
+        print '> updating application settings...'
         settings_menu = []
         defaults = self.global_settings.current_values
         for key, value in defaults.iteritems():
@@ -788,6 +529,8 @@ class SnapCLI(Cmd):
 
         while True:
             setting_name = cli.MenuPrompt('global setting to update', settings_menu).show()
+            if not setting_name:
+                break
             setting_value = cli.InputPrompt(setting_name, defaults[setting_name]).show()
 
             attr_name = 'set_%s' % setting_name
@@ -798,9 +541,156 @@ class SnapCLI(Cmd):
             if should_continue.lower() != 'y':
                 break
 
+    def edit_global_setting(self, setting_name):
+        if not setting_name in self.global_settings.current_values.keys():
+            print "> No such global setting. Available global settings are: "
+            print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
+            return
 
-    def do_settings(self, *cmd_args):
+        defaults = self.global_settings.current_values
+        setting_value = cli.InputPrompt(setting_name, defaults[setting_name]).show()
+        attr_name = 'set_%s' % setting_name
+        setter_func = getattr(self.global_settings, attr_name)
+        self.global_settings = setter_func(setting_value)
+
+
+    def show_global_settings(self):
         print common.jsonpretty(self.global_settings.data())
+
+
+
+    def show_help_prompt(self, cmd_name):
+        print 'PLACEHOLDER: show user additional options for the %s command' % cmd_name
+
+
+    @docopt_cmd
+    def do_make(self, cmd_args):
+        '''Usage:
+                  make (transform | shape | svcobj | ?)
+                  make shape <name>
+                  make svcobj <name>
+                  make transform <name>
+        '''
+
+        object_name = cmd_args.get('<name>')
+
+        if cmd_args['?']:
+            self.show_help_prompt('make')
+        elif cmd_args['shape']:
+            self.make_shape(object_name)
+        elif cmd_args['svcobj']:
+            self.make_svcobject(object_name)
+        elif cmd_args['transform']:
+            self.make_transform(object_name)
+
+
+    @docopt_cmd
+    def do_show(self, cmd_args):
+        '''Usage:
+                  show (transform | shape | svcobj | ?)
+                  show shape <name>
+                  show svcobj <name>
+                  show transform <name>
+        '''
+
+        object_name = cmd_args.get('<name>')
+
+        if cmd_args['?']:
+            self.show_help_prompt('show')
+        elif cmd_args['shape']:
+            if object_name:
+                self.show_shape(object_name)
+            else:
+                print 'Available DataShapes:'
+                self.list_shapes()
+        elif cmd_args['svcobj']:
+            if object_name:
+                self.show_svcobject(object_name)
+            else:
+                print 'Available ServiceObjects:'
+                self.list_svcobjects()
+        elif cmd_args['transform']:
+            if object_name:
+                self.show_transform(object_name)
+            else:
+                print 'Available Transforms:'
+                self.list_transforms()
+
+
+    @docopt_cmd
+    def do_edit(self, arg):
+        '''Usage: edit ( transform | shape | svcobj | ?)'''
+
+        if arg['?']:
+            self.show_help_prompt('edit')
+        elif arg['shape']:
+            if not len(self.data_shapes):
+                print 'You have not created any DataShapes yet.'
+                return
+            shape_name = self.select_shape()
+            if shape_name:
+                self.edit_shape(shape_name)
+        elif arg['svcobj']:
+            if not len(self.service_objects):
+                print 'You have not created any ServiceObjects yet.'
+                return
+            svcobj_name = self.select_service_object()
+            if svcobj_name:
+                self.edit_svcobject(svcobj_name)
+        elif arg['transform']:
+            if not len(self.transforms):
+                print 'You have not created any Transforms yet.'
+                return
+            transform_name = self.select_transform()
+            if transform_name:
+                self.edit_transform(transform_name)
+
+
+    @docopt_cmd
+    def do_list(self, arg):
+        '''Usage: list (transforms | shapes | svcobjs |  ?)'''
+
+        if arg['?']:
+            self.show_help_prompt('list')
+
+        if arg['shapes']:
+            self.list_shapes()
+        elif arg['svcobjs']:
+            self.list_svcobjects()
+        elif arg['transforms']:
+            self.list_transforms()
+
+
+
+    @docopt_cmd
+    def do_globals(self, arg):
+        '''Usage:
+                    globals [update]
+                    globals set <setting_name>
+                    globals set <setting_name> <setting_value>
+        '''
+
+        setting_name = arg.get('<setting_name>')
+        if arg['update']:
+            self.edit_global_settings()
+        elif arg['set']:
+            name = arg['<setting_name>']
+            value = arg.get('<setting_value>')
+
+            if value is None:
+                self.edit_global_setting(name)
+            else:
+                if not name in self.global_settings.data().keys():
+                    print "Available global settings are: "
+                    print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
+                    return
+
+                attr_name = 'set_%s' % name
+                setter_func = getattr(self.global_settings, attr_name)
+                self.global_settings = setter_func(value)
+
+        else:
+            self.show_global_settings()
 
 
     def emptyline(self):
