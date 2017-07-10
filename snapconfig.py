@@ -12,8 +12,10 @@ from docopt import DocoptExit
 import os
 import yaml
 import logging
+import jinja2
 import common
 from metaobjects import *
+import config_templates
 import cli_tools as cli
 
 #pylint: disable=C0301
@@ -65,8 +67,8 @@ def docopt_cmd(func):
             # The DocoptExit is thrown when the args do not match.
             # We print a message to the user and the usage block.
 
-            print('\nPlease specify one or more valid command parameters.')
-            print(e)
+            print '\nPlease specify one or more valid command parameters.'
+            print e
             return
 
         except SystemExit:
@@ -82,6 +84,21 @@ def docopt_cmd(func):
     fn.__dict__.update(func.__dict__)
     return fn
 
+
+
+class SnapConfigWriter(object):
+    def __init__(self):
+        pass
+
+    def write(self, **kwargs):
+        kwreader = common.KeywordArgReader(['settings', 'transforms', 'shapes', 'services'])
+        kwreader.read(**kwargs)
+        j2env = jinja2.Environment()
+        template = j2env.from_string(config_templates.INIT_FILE)
+        return template.render(global_settings=kwreader.get_value('settings'),
+                               transforms=kwreader.get_value('transforms') or [],
+                               data_shapes=kwreader.get_value('shapes') or [],
+                               service_objects=kwreader.get_value('services') or [])
 
 
 class SnapCLI(Cmd):
@@ -187,7 +204,6 @@ class SnapCLI(Cmd):
     def do_quit(self, *cmd_args):
         print '%s CLI exiting.' % self.name
         raise SystemExit
-
 
     do_q = do_quit
 
@@ -321,7 +337,6 @@ class SnapCLI(Cmd):
         self.data_shapes[shape_index] = shape
 
 
-
     def edit_transform(self, transform_name):
         print '+++ Updating transform "%s"' % transform_name
         transform = self.find_transform(transform_name)
@@ -395,7 +410,7 @@ class SnapCLI(Cmd):
         return so_params
 
 
-    def make_svcobject(self, name):
+    def make_svcobject(self, name=None):
         print '+++ Register new service object'
         so_name = name or cli.InputPrompt('service object name').show()
         so_classname = cli.InputPrompt('service object class').show()
@@ -458,7 +473,7 @@ class SnapCLI(Cmd):
         svc_object_name = cli.MenuPrompt('select service object', options).show()
 
 
-    def make_transform(self, name):
+    def make_transform(self, name=None):
         transform_name = name or cli.InputPrompt('transform name').show()
         if not transform_name:
             return
@@ -541,6 +556,7 @@ class SnapCLI(Cmd):
             if should_continue.lower() != 'y':
                 break
 
+
     def edit_global_setting(self, setting_name):
         if not setting_name in self.global_settings.current_values.keys():
             print "> No such global setting. Available global settings are: "
@@ -559,24 +575,18 @@ class SnapCLI(Cmd):
 
 
 
-    def show_help_prompt(self, cmd_name):
-        print 'PLACEHOLDER: show user additional options for the %s command' % cmd_name
-
-
     @docopt_cmd
     def do_make(self, cmd_args):
         '''Usage:
-                  make (transform | shape | svcobj | ?)
+                  make (transform | shape | svcobj)
+                  make transform <name>
                   make shape <name>
                   make svcobj <name>
-                  make transform <name>
         '''
 
         object_name = cmd_args.get('<name>')
 
-        if cmd_args['?']:
-            self.show_help_prompt('make')
-        elif cmd_args['shape']:
+        if cmd_args['shape']:
             self.make_shape(object_name)
         elif cmd_args['svcobj']:
             self.make_svcobject(object_name)
@@ -584,20 +594,23 @@ class SnapCLI(Cmd):
             self.make_transform(object_name)
 
 
+    def complete_make(self, text, line, begidx, endidx):
+        MAKE_OPTIONS = ('transform', 'shape', 'svcobj')
+        return [i for i in MAKE_OPTIONS if i.startswith(text)]
+
+
     @docopt_cmd
     def do_show(self, cmd_args):
         '''Usage:
-                  show (transform | shape | svcobj | ?)
+                  show (transform | shape | svcobj)
+                  show transform <name>
                   show shape <name>
                   show svcobj <name>
-                  show transform <name>
         '''
 
         object_name = cmd_args.get('<name>')
 
-        if cmd_args['?']:
-            self.show_help_prompt('show')
-        elif cmd_args['shape']:
+        if cmd_args['shape']:
             if object_name:
                 self.show_shape(object_name)
             else:
@@ -617,41 +630,52 @@ class SnapCLI(Cmd):
                 self.list_transforms()
 
 
+    def complete_show(self, text, line, begidx, endidx):
+        SHOW_OPTIONS = ('transform', 'shape', 'svcobj')
+        return [i for i in SHOW_OPTIONS if i.startswith(text)]
+
+
     @docopt_cmd
     def do_edit(self, arg):
-        '''Usage: edit ( transform | shape | svcobj | ?)'''
+        '''Usage:
+                    edit (transform | shape | svcobj)
+                    edit transform <name>
+                    edit shape <name>
+                    edit svcobj <name>'''
 
-        if arg['?']:
-            self.show_help_prompt('edit')
-        elif arg['shape']:
+        object_name = arg.get('<name>')
+
+        if arg['shape']:
             if not len(self.data_shapes):
                 print 'You have not created any DataShapes yet.'
                 return
-            shape_name = self.select_shape()
+            shape_name = object_name or self.select_shape()
             if shape_name:
                 self.edit_shape(shape_name)
         elif arg['svcobj']:
             if not len(self.service_objects):
                 print 'You have not created any ServiceObjects yet.'
                 return
-            svcobj_name = self.select_service_object()
+            svcobj_name = object_name or self.select_service_object()
             if svcobj_name:
                 self.edit_svcobject(svcobj_name)
         elif arg['transform']:
             if not len(self.transforms):
                 print 'You have not created any Transforms yet.'
                 return
-            transform_name = self.select_transform()
+            transform_name = object_name or self.select_transform()
             if transform_name:
                 self.edit_transform(transform_name)
 
 
+    def complete_edit(self, text, line, begidx, endidx):
+        EDIT_OPTIONS = ('transform', 'shape', 'svcobj')
+        return [i for i in EDIT_OPTIONS if i.startswith(text)]
+
+
     @docopt_cmd
     def do_list(self, arg):
-        '''Usage: list (transforms | shapes | svcobjs |  ?)'''
-
-        if arg['?']:
-            self.show_help_prompt('list')
+        '''Usage: list (transforms | shapes | svcobjs )'''
 
         if arg['shapes']:
             self.list_shapes()
@@ -660,6 +684,10 @@ class SnapCLI(Cmd):
         elif arg['transforms']:
             self.list_transforms()
 
+
+    def complete_list(self, text, line, begidx, endidx):
+        LIST_OPTIONS = ('transforms', 'shapes', 'svcobjs')
+        return [i for i in LIST_OPTIONS if i.startswith(text)]
 
 
     @docopt_cmd
@@ -674,13 +702,12 @@ class SnapCLI(Cmd):
         if arg['update']:
             self.edit_global_settings()
         elif arg['set']:
-            name = arg['<setting_name>']
             value = arg.get('<setting_value>')
 
             if value is None:
-                self.edit_global_setting(name)
+                self.edit_global_setting(setting_name)
             else:
-                if not name in self.global_settings.data().keys():
+                if not setting_name in self.global_settings.data().keys():
                     print "Available global settings are: "
                     print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
                     return
@@ -692,6 +719,73 @@ class SnapCLI(Cmd):
         else:
             self.show_global_settings()
 
+
+    def complete_globals(self, text, line, begidx, endidx):
+        GLOBALS_OPTIONS = ('update', 'set')
+        return [i for i in GLOBALS_OPTIONS if i.startswith(text)]
+
+
+    def yaml_config(self):
+        cwriter = SnapConfigWriter()
+        config = cwriter.write(settings=self.global_settings,
+                               shapes=self.data_shapes,
+                               transforms=self.transforms,
+                               services=self.service_objects)
+        return config
+
+
+    def do_preview(self, arg):
+        '''display current configuration in YAML format'''
+
+        print self.yaml_config()
+
+
+    def backup_file(self, filename):
+        pass
+
+
+    def write_file(self, filename):
+        pass
+
+
+    @docopt_cmd
+    def do_save(self, arg):
+        '''Usage:
+                    save [filename]
+                    save [-rb] <filename>
+
+          Options:
+                    -r  --replace   replace an existing file
+                    -b  --backup    make a copy of the existing file
+        '''
+
+        should_backup = arg.get('--backup')
+        should_overwrite = arg.get('--replace')
+
+        output_filename = arg.get('filename') or arg.get('<filename>')
+        if not output_filename:
+            output_filename = cli.InputPrompt('output filename').show()
+            if not output_filename:
+                return
+
+        if os.path.isdir(output_filename):
+            print 'you have specified a directory, rather than a filename.'
+            return
+
+        if os.path.isfile(output_filename):
+            if should_overwrite and should_backup:
+                self.backup_file(output_filename)
+            elif should_overwrite:
+                self.write_file(output_filename)
+            else:
+                print 'the specified output file already exists.'
+                return
+        else:
+            self.write_file(output_filename)
+
+
+    def do_shell(self, s):
+        os.system(s)
 
     def emptyline(self):
         pass
