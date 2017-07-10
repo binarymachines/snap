@@ -617,3 +617,4 @@ class KafkaPipelineConfig(object):
     @property
     def transform_map(self):
         return self._transform_map
+
