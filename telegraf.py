@@ -433,6 +433,7 @@ class OLAPStarSchemaRelay(DataRelay):
         outbound_record = {}
         fact_data = self._schema_mapping_context.get_fact_values(kafka_message.get('body'))
 
+        print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
 
 
