@@ -10,8 +10,9 @@ class UnregisteredTestContextException(Exception):
 class TestContext(object):
     def __init__(self, name, **kwargs):
         self._name = name
-        for name, value in kwargs.iteritems():
-            setattr(self, name, value)
+        self.__dict__.update(kwargs)
+        #for name, value in kwargs.iteritems():
+        #    self.__dict__.update((name, value))
 
     
 
@@ -29,9 +30,3 @@ class TestEnvironment(object):
             raise UnregisteredTestContextException(scenario_name)
         return self._data[scenario_name]
     
-
-
-
-
-    
-
