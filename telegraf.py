@@ -464,7 +464,7 @@ class OLAPSchemaMappingContext(object):
 
         for src_record_field_name in self._dimensions.keys():
             dimension = self._dimensions[src_record_field_name]
-            data[dimension.fact_field] = dimension.lookup_id_for_value(source_record[src_record_field_name])
+            data[dimension.fact_table_field_name] = dimension.lookup_id_for_value(source_record[src_record_field_name])
 
         return data
 
