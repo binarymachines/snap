@@ -480,7 +480,7 @@ class OLAPSchemaMappingContext(object):
 
         for src_record_field_name in self._direct_mappings.keys():
             non_dimension_field = self._direct_mappings[src_record_field_name]
-            data[non_dimension_field.field_name] = source_record[non_dimension_field.field_name]
+            data[non_dimension_field.field_name] = source_record[src_record_field_name]
 
         for src_record_field_name in self._dimensions.keys():
             dimension = self._dimensions[src_record_field_name]
