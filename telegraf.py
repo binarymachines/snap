@@ -452,8 +452,10 @@ class OLAPSchemaMappingContext(object):
 
 
     def get_non_dimension_field(self, field_name):
-        pass
-        #TODO: fill in the blanks -- might need to update a method sig upstream
+        if not self._direct_mappings.get(field_name):
+            #TODO: create custom exception
+            raise Exception('No non-dimensional field "%s" registered with mapping context.' % field_name)
+        return self._direct_mappings[field_name]
         
     
     def get_dimension(self, dimension_name):
