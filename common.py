@@ -73,27 +73,28 @@ def load_config_var(value):
       
 
 def load_class(class_name, module_name):
-    module = __import__(module_name)    
+    module = __import__(module_name)
     return getattr(module, class_name)
 
 
-def jsonpretty(dict):
-    return json.dumps(dict, indent=4, sort_keys=True)
+def jsonpretty(data_dict):
+    return json.dumps(data_dict, indent=4, sort_keys=True)
 
 
-class JinjaTemplateManager:
+class JinjaTemplateManager(object):
     def __init__(self, j2_environment):
         self.environment = j2_environment
-        
+
+
     def get_template(self, filename):
         return self.environment.get_template(filename)
-        
+
 
 
 def get_template_mgr_for_location(directory):
-      j2env = jinja2.Environment(loader = jinja2.FileSystemLoader(directory))
-      return JinjaTemplateManager(j2env)
-      
+    j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(directory))
+    return JinjaTemplateManager(j2env)
+
 
 
 class KeywordReadStatus(object):
