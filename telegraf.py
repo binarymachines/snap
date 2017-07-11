@@ -358,6 +358,7 @@ class OLAPSchemaDimension(object):
                                             'dim_table_name',
                                             'key_field_name',
                                             'value_field_name',
+                                            'primary_key_type',
                                             'id_lookup_function'])
 
         kwreader.read(**kwargs)
@@ -366,17 +367,18 @@ class OLAPSchemaDimension(object):
         self._dim_table_name = kwreader.get_value('dim_table_name')
         self._key_field_name = kwreader.get_value('key_field_name')
         self._value_field_name = kwreader.get_value('value_field_name')
+        self._pk_type = kwreader.get_value('primary_key_type')
         self._lookup_func = kwreader.get_value('id_lookup_function')
 
+
+    @property
+    def fact_table_field_name(self):
+        return self._fact_table_field_name
 
 
     def lookup_id_for_value(self, value):
         return self._lookup_func(value, self._dim_table_name, self._key_field_name, self._value_field_name)
 
-
-    @property
-    def fact_field(self):
-        return self._fact_table_field_name
 
 
 
@@ -386,6 +388,18 @@ class OLAPSchemaFact(object):
         self._pk_field = pk_field_name
         self._pk_field_type = pk_field_type
 
+    @property
+    def table_name(self):
+        return self._table_name
+
+    @property
+    def primary_key_field_name(self):
+        return self._pk_field
+
+    @property
+    def primary_key_field_type(self):
+        return self._pk_field_type
+
 
 
 class OLAPSchemaMappingContext(object):
@@ -393,6 +407,30 @@ class OLAPSchemaMappingContext(object):
         self._fact = schema_fact
         self._dimensions = {}
         self._direct_mappings = {}
+
+    @property
+    def fact(self):
+        return self._fact
+
+    @property
+    def dimension_names(self):
+        return self._dimensions.keys()
+
+    @property 
+    def non_dimension_names(self):
+        return self._direct_mappings.keys()
+
+
+    def get_non_dimension_field(self, field_name):
+        pass
+        #TODO: fill in the blanks -- might need to update a method sig upstream
+        
+    
+    def get_dimension(self, dimension_name):
+        if not self._dimensions.get(dimension_name):
+            #TODO: create custom exception
+            raise Exception('No dimension "%s" registered with mapping context.' % dimension_name)
+        return self._dimensions[dimension_name]
 
 
     def map_src_record_field_to_dimension(self, src_record_field_name, olap_schema_dimension):
@@ -425,6 +463,18 @@ class OLAPStarSchemaRelay(DataRelay):
         self._pmgr = persistence_mgr
         self._schema_mapping_context = olap_schema_map_ctx
 
+        fact_record_type_builder = sqldbx.SQLDataTypeBuilder('FactRecord', self._schema_mapping_context.fact.table_name)
+        fact_record_type_builder.add_primary_key_field(self._schema_mapping_context.fact.primary_key_field_name, 
+                                                       self._schema_mapping_context.fact.primary_key_field_type)
+
+        for name in self._schema_mapping_context.dimension_names:
+            fact_record_type_builder.add_field(name, 
+                                               self._schema_mapping_context.get_dimension(name).fact_table_field_name, 
+                                               self._schema_mapping_context.get_dimension(name).primary_key_type)
+        
+        #TODO: add non-dimension fields to builder
+        self._FactRecordType = fact_record_type_builder.build()
+
 
     def _send(self, msg_header, kafka_message, logger, **kwargs):
         logger.debug("writing kafka log message to db...")
@@ -434,6 +484,11 @@ class OLAPStarSchemaRelay(DataRelay):
 
         print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
+
+        
+        
+
+
 
 
 
