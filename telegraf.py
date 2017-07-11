@@ -376,8 +376,21 @@ class OLAPSchemaDimension(object):
         return self._fact_table_field_name
 
 
+    @property
+    def primary_key_field_name(self):
+        return self._key_field_name
+
+
+    @property
+    def primary_key_field_type(self):
+        return self._pk_type
+
+
     def lookup_id_for_value(self, value):
-        return self._lookup_func(value, self._dim_table_name, self._key_field_name, self._value_field_name)
+        return self._lookup_func(value,
+                                 self._dim_table_name,
+                                 self._key_field_name, 
+                                 self._value_field_name)
 
 
 
@@ -463,15 +476,15 @@ class OLAPStarSchemaRelay(DataRelay):
         self._pmgr = persistence_mgr
         self._schema_mapping_context = olap_schema_map_ctx
 
-        fact_record_type_builder = sqldbx.SQLDataTypeBuilder('FactRecord', self._schema_mapping_context.fact.table_name)
-        fact_record_type_builder.add_primary_key_field(self._schema_mapping_context.fact.primary_key_field_name, 
+        fact_record_type_builder = sqlx.SQLDataTypeBuilder('FactRecord', self._schema_mapping_context.fact.table_name)
+        fact_record_type_builder.add_primary_key_field(self._schema_mapping_context.fact.primary_key_field_name,
                                                        self._schema_mapping_context.fact.primary_key_field_type)
 
         for name in self._schema_mapping_context.dimension_names:
-            fact_record_type_builder.add_field(name, 
-                                               self._schema_mapping_context.get_dimension(name).fact_table_field_name, 
-                                               self._schema_mapping_context.get_dimension(name).primary_key_type)
-        
+            fact_record_type_builder.add_field(name,
+                                               self._schema_mapping_context.get_dimension(name).fact_table_field_name,
+                                               self._schema_mapping_context.get_dimension(name).primary_key_field_type)
+
         #TODO: add non-dimension fields to builder
         self._FactRecordType = fact_record_type_builder.build()
 
