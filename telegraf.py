@@ -21,7 +21,6 @@ from raven.handlers.logging import SentryHandler
 
 from logging import Formatter
 
-
 DEFAULT_SENTRY_DSN = 'https://64488b5074a94219ba25882145864700:9129da74c26a43cd84760d098b902f97@sentry.io/163031'
 
 
@@ -614,7 +613,7 @@ class KafkaPipelineConfig(object):
             raise Exception('No topic with alias "%s" registered in pipeline config' % alias)
         return topic
 
-
+    
     @property
     def transform_map(self):
         return self._transform_map

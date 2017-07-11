@@ -15,7 +15,7 @@ class UnregisteredServiceObjectException(Exception):
 
 class MissingEnvironmentVarException(Exception):
       def __init__(self, env_var):
-            Exception.__init__(self, 'The environment variable %s has not been set.' % env_var)
+            Exception.__init__(self, 'The following environment variables have not been set: %s' % env_var)
 
 
 class MissingKeywordArgException(Exception):
@@ -94,6 +94,31 @@ class JinjaTemplateManager(object):
 def get_template_mgr_for_location(directory):
     j2env = jinja2.Environment(loader=jinja2.FileSystemLoader(directory))
     return JinjaTemplateManager(j2env)
+
+
+class LocalEnvironment(object):
+    def __init__(self, *vars):
+        self._env_vars = {}
+        for var in vars:
+            self._env_vars[var] = None
+
+
+    def init(self):
+        missing_vars = []
+        for var_name in self._env_vars.keys():
+            value = os.getenv(var_name)
+            if not value:
+                missing_vars.append(var_name)
+            else:
+                self._env_vars[var_name] = value
+        if len(missing_vars):
+            raise MissingEnvironmentVarException(', '.join(missing_vars))
+
+
+    def get_variable(self, name):
+        if not name in self._env_vars.keys():
+            raise Exception('The environment var "%s" was not registered with this LocalEnvironment.' % name)
+        return self._env_vars[name]
 
 
 
