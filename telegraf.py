@@ -415,6 +415,23 @@ class OLAPSchemaFact(object):
 
 
 
+class NonDimensionField(object):
+    def __init__(self, fname, ftype):
+        self._field_name = fname
+        self._field_type = ftype
+
+
+    @property
+    def field_name(self):
+        return self._field_name
+
+
+    @property
+    def field_type(self):
+        return self._field_type
+
+
+
 class OLAPSchemaMappingContext(object):
     def __init__(self, schema_fact):
         self._fact = schema_fact
@@ -450,8 +467,9 @@ class OLAPSchemaMappingContext(object):
         self._dimensions[src_record_field_name] = olap_schema_dimension
 
 
-    def map_src_record_field_to_fact_value(self, src_record_field_name, fact_field_name):
-        self._direct_mappings[src_record_field_name] = fact_field_name
+    def map_src_record_field_to_non_dimension(self, src_record_field_name, fact_field_name, fact_field_type):
+        nd_field = NonDimensionField(fact_field_name, fact_field_type)
+        self._direct_mappings[src_record_field_name] = nd_field
 
 
     def get_fact_values(self, source_record):
@@ -459,8 +477,8 @@ class OLAPSchemaMappingContext(object):
         print '### source record info: %s'%  source_record
 
         for src_record_field_name in self._direct_mappings.keys():
-            fact_field_name = self._direct_mappings[src_record_field_name]
-            data[fact_field_name] = source_record[src_record_field_name]
+            non_dimension_field = self._direct_mappings[src_record_field_name]
+            data[non_dimension_field.field_name] = source_record[src_record_field_name]
 
         for src_record_field_name in self._dimensions.keys():
             dimension = self._dimensions[src_record_field_name]
@@ -486,6 +504,12 @@ class OLAPStarSchemaRelay(DataRelay):
                                                self._schema_mapping_context.get_dimension(name).primary_key_field_type)
 
         #TODO: add non-dimension fields to builder
+
+        for name in self._schema_mapping_context.non_dimension_names:
+            nd_field = self._schema_mapping_context.get_non_dimension_field(name)
+            fact_record_type_builder.add_field(nd_field.field_name,
+                                               nd_field.field_type)
+
         self._FactRecordType = fact_record_type_builder.build()
 
 
@@ -497,10 +521,6 @@ class OLAPStarSchemaRelay(DataRelay):
 
         print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
-
-        
-        
-
 
 
 
