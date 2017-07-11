@@ -386,11 +386,12 @@ class OLAPSchemaDimension(object):
         return self._pk_type
 
 
-    def lookup_id_for_value(self, value):
+    def lookup_id_for_value(self, value, **kwargs):
         return self._lookup_func(value,
                                  self._dim_table_name,
                                  self._key_field_name, 
-                                 self._value_field_name)
+                                 self._value_field_name, 
+                                 **kwargs)
 
 
 
@@ -474,7 +475,7 @@ class OLAPSchemaMappingContext(object):
         self._direct_mappings[src_record_field_name] = nd_field
 
 
-    def get_fact_values(self, source_record):
+    def get_fact_values(self, source_record, **kwargs):
         data = {}
         print '### source record info: %s'%  source_record
 
@@ -484,7 +485,8 @@ class OLAPSchemaMappingContext(object):
 
         for src_record_field_name in self._dimensions.keys():
             dimension = self._dimensions[src_record_field_name]
-            data[dimension.fact_table_field_name] = dimension.lookup_id_for_value(source_record[src_record_field_name])
+            data[dimension.fact_table_field_name] = dimension.lookup_id_for_value(source_record[src_record_field_name],
+                                                                                  **kwargs)
 
         return data
 
@@ -519,7 +521,8 @@ class OLAPStarSchemaRelay(DataRelay):
         logger.debug("writing kafka log message to db...")
         logger.debug('### kafka_message keys: %s' % '\n'.join(kafka_message.keys()))
         outbound_record = {}
-        fact_data = self._schema_mapping_context.get_fact_values(kafka_message.get('body'))
+        fact_data = self._schema_mapping_context.get_fact_values(kafka_message.get('body'), 
+                                                                 persistence_manager=self._pmgr)
 
         print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
