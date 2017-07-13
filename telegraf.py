@@ -238,6 +238,7 @@ class CheckpointTimer(threading.Thread):
 
         
     def run(self):        
+        raise Exception('starting checkpoint timer run loop...')
         self._stopped = False
         self._log.info('starting checkpoint timer at %s.' % datetime.datetime.now().isoformat())
         while not self._stopped:
@@ -314,8 +315,10 @@ class KafkaIngestRecordReader(object):
         # TODO: find out if what's really needed here is a Kafka consumer
         # timeout exception handler
         #
+        '''
         if checkpoint_mode:
             data_relay.checkpoint(logger, **kwargs)
+        '''
 
 
     @property
