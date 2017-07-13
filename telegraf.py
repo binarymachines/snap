@@ -238,7 +238,6 @@ class CheckpointTimer(threading.Thread):
 
         
     def run(self):        
-        raise Exception('starting checkpoint timer run loop...')
         self._stopped = False
         self._log.info('starting checkpoint timer at %s.' % datetime.datetime.now().isoformat())
         while not self._stopped:
