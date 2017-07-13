@@ -175,7 +175,7 @@ class KafkaLoader(object):
     def __init__(self, topic, kafka_ingest_record_writer, **kwargs):
         self._topic = topic
         self._kwriter = kafka_ingest_record_writer
-        kwarg_reader = common.KeywordArgReader(['record_type', 'stream_id', 'asset_id'])
+        kwarg_reader = common.KeywordArgReader('record_type', 'stream_id', 'asset_id')
         kwarg_reader.read(**kwargs)
         record_type = kwarg_reader.get_value('record_type')
         stream_id = kwarg_reader.get_value('stream_id')
