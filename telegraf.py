@@ -188,9 +188,7 @@ class KafkaLoader(object):
             msg_builder.add_field(key, value)
         ingest_record = msg_builder.build()
 
-        print '### writing ingest record to kafka topic: %s' % self._topic
-        print ingest_record
-
+        print '### writing ingest record to kafka topic: %s' % self._topic        
         self._kwriter.write(self._topic, ingest_record)
 
 
@@ -234,7 +232,7 @@ class CheckpointTimer(threading.Thread):
         self._seconds = 0
         self._stopped = True
         self._checkpoint_function = checkpoint_function
-        self._interval = kwreader.get_value(checkpoint_interval)
+        self._interval = kwreader.get_value('checkpoint_interval')
         self._checkpoint_function_args = kwargs
         self._log = log
 
