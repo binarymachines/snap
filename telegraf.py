@@ -222,6 +222,45 @@ class KafkaIngestRecordWriter(object):
         return self._promise_queue.errors
 
 
+
+class CheckpointTimer(threading.Thread):
+    def __init__(self, checkpoint_function, checkpoint_interval, log, **kwargs):
+        threading.Thread.__init__(self)
+        self._seconds = 0
+        self._stopped = True
+        self._checkpoint_function = checkpoint_function
+        self._interval = checkpoint_interval
+        self._checkpoint_function_args = kwargs
+        self._log = log
+
+
+    def run(self):        
+        self._stopped = False
+        self._log.info('starting checkpoint timer at %s.' % datetime.datetime.now().isoformat())
+        while not self._stopped:
+            time.sleep(1)
+            self._seconds += 1
+            if self. _seconds >= self._interval:
+                self._checkpoint_function(self._log, self.kwargs)
+                self.reset()
+
+
+    @property
+    def elapsed_time(self):
+        return self._seconds
+
+
+    def reset(self):        
+        self._seconds = 0
+        self._log.info('resetting checkpoint timer at %s.' % datetime.datetime.now().isoformat())
+
+
+    def stop(self):
+        self._stopped = True
+        self._log.info('stopping checkpoint timer at %s.' % datetime.datetime.now().isoformat())
+
+
+
 class KafkaIngestRecordReader(object):
     def __init__(self,
                  topic,
@@ -243,7 +282,20 @@ class KafkaIngestRecordReader(object):
         #self._consumer.subscribe(topic)
 
 
-    def read(self, data_relay, logger):
+    def read(self, data_relay, logger, **kwargs): # insist on passing a checkpoint_frequency as kwarg?
+
+        # if we are in checkpoint mode, issue a checkpoint signal every <interval> seconds
+        # or every <frequency> records, whichever is shorter
+        checkpoint_frequency = int(kwargs.get('checkpoint_frequency', -1))
+        checkpoint_interval = int(kwargs.get('checkpoint_interval', 300))
+
+        checkpoint_mode = False
+        checkpoint_timer = None
+        if checkpoint_frequency > 0:
+            checkpoint_mode = True
+            checkpoint_timer = CheckpointTimer(data_relay.checkpoint, checkpoint_interval, logger, **kwargs)
+            checkpoint_timer.start()
+
         message_counter = 0
         for message in self._consumer:
             data_relay.send(message, logger)
@@ -251,6 +303,16 @@ class KafkaIngestRecordReader(object):
             if message_counter % self._commit_interval == 0:
                 self._consumer.commit()
                 self._num_commits += 1
+            if checkpoint_mode and message_counter % checkpoint_frequency == 0:
+                data_relay.checkpoint(logger, **kwargs)
+                checkpoint_timer.reset()
+
+        # issue a last checkpoint on our way out the door
+        # TODO: find out if what's really needed here is a Kafka consumer
+        # timeout exception handler
+        #
+        if checkpoint_mode:
+            data_relay.checkpoint(logger, **kwargs)
 
 
     @property
@@ -291,6 +353,20 @@ class DataRelay(object):
         '''Override in subclass
         '''
         pass
+
+
+    def _checkpoint(self, logger, **kwargs):
+        '''Override in subclass'''
+        pass
+
+
+    def checkpoint(self, logger, **kwargs):
+        try:
+            self._checkpoint(logger, **kwargs)
+            logger.INFO('data relay passed checkpoint at %s' % datetime.datetime.now().isoformat())
+        except Exception, err:
+            logger.ERROR('data relay failed checkpoint with error:')
+            logger.ERROR(err)
 
 
     def send(self, kafka_message, logger, **kwargs):
@@ -349,6 +425,32 @@ class K2Relay(DataRelay):
 
     def _send(self, kafka_message, logger):
         self._target_log_writer.write(self._target_topic, kafka_message.value)
+
+
+class BulkTransferAgent(object):
+    def __init__(self):
+        self._local_temp_directory = '/tmp'
+        self._source_filename = 'data.csv'
+        self._source_file_header = ['H', 'E', '...']
+        self._source_file_delimiter = ','
+        self._service_objects = snap.ServiceObjectRegistry()
+        self._transfer_functions = {}
+
+
+    def register_service_object(self, name, service_object_config):
+        pass
+
+
+    def register_transfer_function(self, operation_name, transfer_function):
+        pass
+
+
+    def transfer(self, operation_name, **kwargs):
+        transfer_func = self._transfer_functions.get(operation_name)
+        if not transfer_func:
+            raise UnregisteredTransferOpException(operation_name)
+
+        transfer_func(self._service_objects, log, **kwargs)
 
 
 
@@ -515,6 +617,10 @@ class OLAPStarSchemaRelay(DataRelay):
                                                nd_field.field_type)
 
         self._FactRecordType = fact_record_type_builder.build()
+
+
+    def _handle_checkpoint_event(self, **kwargs):
+        pass
 
 
     def _send(self, msg_header, kafka_message, logger, **kwargs):
