@@ -18,9 +18,9 @@ class MissingEnvironmentVarException(Exception):
             Exception.__init__(self, 'The following environment variables have not been set: %s' % env_var)
 
 
-class MissingKeywordArgException(Exception):
-    def __init__(self, keyword):
-        Exception.__init__(self, 'Required keyword argument "%s" not provided.' % keyword)
+class MissingKeywordArgsException(Exception):
+    def __init__(self, *keywords):
+        Exception.__init__(self, 'The following required keyword arguments were not provided: %s' % (', '.join(keywords)))
 
 
             
@@ -162,16 +162,16 @@ class KeywordArgReader(object):
 
 
     def read(self, **kwargs):
-        errors = []
+        missing_keywords = []
         for k in self.required_keywords:
             if not kwargs.get(k):
-                errors.append(str(MissingKeywordArgException(k)))
+                missing_keywords.append(k)
             else:
                 self.values[k] = kwargs[k]
 
-        if len(errors):
-            return KeywordReadStatus(errors)
-        return KeywordReadStatus.OK()
+        if len(missing_keywords):
+            raise MissingKeywordArgsException(*missing_keywords)
+        return self
 
 
     def get_value(self, name):
