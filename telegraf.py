@@ -469,12 +469,12 @@ class BulkTransferAgent(object):
 
 class OLAPSchemaDimension(object):
     def __init__(self, **kwargs):
-        kwreader = common.KeywordArgReader(['fact_table_field_name',
+        kwreader = common.KeywordArgReader('fact_table_field_name',
                                             'dim_table_name',
                                             'key_field_name',
                                             'value_field_name',
                                             'primary_key_type',
-                                            'id_lookup_function'])
+                                            'id_lookup_function')
 
         kwreader.read(**kwargs)
 
