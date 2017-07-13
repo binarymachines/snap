@@ -230,7 +230,7 @@ class KafkaIngestRecordWriter(object):
 class CheckpointTimer(threading.Thread):
     def __init__(self, checkpoint_function, log, **kwargs):
         threading.Thread.__init__(self)
-        kwreader = common.KeywordArgReader('checkpoint_interval').read(kwargs)
+        kwreader = common.KeywordArgReader('checkpoint_interval').read(**kwargs)
         self._seconds = 0
         self._stopped = True
         self._checkpoint_function = checkpoint_function
