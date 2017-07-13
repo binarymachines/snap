@@ -314,6 +314,7 @@ class KafkaIngestRecordReader(object):
         # TODO: find out if what's really needed here is a Kafka consumer
         # timeout exception handler
         #
+        logger.debug('###~ reader done consuming records, exiting...')
         '''
         if checkpoint_mode:
             data_relay.checkpoint(logger, **kwargs)
