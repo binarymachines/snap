@@ -29,6 +29,10 @@ class NoSuchPartitionException(Exception):
         Exception.__init__(self, 'The target Kafka cluster has no partition "%s".' % partition_id)
 
 
+class UnregisteredTransferFunctionException(Exception):
+    def __init__(self, op_name):
+        Exception.__init__(self, 'No transfer function registered under the name "%s" with transfer agent.' % op_name)
+
 
 class TelegrafErrorHandler(object):
     def __init__(self, log_name, logging_level=logging.DEBUG, sentry_dsn=DEFAULT_SENTRY_DSN):
@@ -428,31 +432,38 @@ class K2Relay(DataRelay):
 
 
 class BulkTransferAgent(object):
-    def __init__(self):
-        self._local_temp_directory = '/tmp'
-        self._source_filename = 'data.csv'
-        self._source_file_header = ['H', 'E', '...']
-        self._source_file_delimiter = ','
-        self._service_objects = snap.ServiceObjectRegistry()
+    def __init__(self, **kwargs):
+        kwreader = common.KeywordArgReader('local_temp_dir',
+                                           'src_filename',
+                                           'src_file_header',
+                                           'src_file_delimiter')
+
+        kwreader.read(kwargs)
+        self._local_temp_directory = kwreader.get_value('local_temp_dir')
+        self._source_filename = kwreader.get_value('src_filename')
+        self._source_file_header = kwreader.get_value('src_file_header')
+        self._source_file_delimiter = kwreader.get_value('src_file_delimiter')
+        self._svc_registry = None
         self._transfer_functions = {}
 
 
-    def register_service_object(self, name, service_object_config):
-        pass
+    def register_service_objects(self, name, service_object_config):
+        service_object_tbl = snap.initialize_services(service_object_config)
+        self._svc_registry = common.ServiceObjectRegistry(service_object_tbl)
 
 
     def register_transfer_function(self, operation_name, transfer_function):
-        pass
+        self._transfer_functions[operation_name] = transfer_function
 
 
     def transfer(self, operation_name, **kwargs):
         transfer_func = self._transfer_functions.get(operation_name)
         if not transfer_func:
-            raise UnregisteredTransferOpException(operation_name)
+            raise UnregisteredTransferFunctionException(operation_name)
 
-        transfer_func(self._service_objects, log, **kwargs)
+        transfer_func(self._svc_registry, log, **kwargs)
 
-
+ 
 
 class OLAPSchemaDimension(object):
     def __init__(self, **kwargs):
