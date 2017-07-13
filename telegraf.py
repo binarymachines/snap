@@ -237,7 +237,7 @@ class CheckpointTimer(threading.Thread):
         self._checkpoint_function_args = kwargs
         self._log = log
 
-
+        
     def run(self):        
         self._stopped = False
         self._log.info('starting checkpoint timer at %s.' % datetime.datetime.now().isoformat())
@@ -245,7 +245,7 @@ class CheckpointTimer(threading.Thread):
             time.sleep(1)
             self._seconds += 1
             if self. _seconds >= self._interval:
-                self._checkpoint_function(self._log, self.kwargs)
+                self._checkpoint_function(self._log, **self._checkpoint_function_args)
                 self.reset()
 
 
@@ -367,10 +367,10 @@ class DataRelay(object):
     def checkpoint(self, logger, **kwargs):
         try:
             self._checkpoint(logger, **kwargs)
-            logger.INFO('data relay passed checkpoint at %s' % datetime.datetime.now().isoformat())
+            logger.info('data relay passed checkpoint at %s' % datetime.datetime.now().isoformat())
         except Exception, err:
-            logger.ERROR('data relay failed checkpoint with error:')
-            logger.ERROR(err)
+            logger.error('data relay failed checkpoint with error:')
+            logger.error(err)
 
 
     def send(self, kafka_message, logger, **kwargs):
