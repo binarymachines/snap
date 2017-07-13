@@ -230,7 +230,7 @@ class CheckpointTimer(threading.Thread):
         self._stopped = True
         self._checkpoint_function = checkpoint_function
         self._interval = checkpoint_interval
-        self._checkpoint_function_args = **kwargs
+        self._checkpoint_function_args = kwargs
         self._log = log
 
         
@@ -241,7 +241,7 @@ class CheckpointTimer(threading.Thread):
             time.sleep(1)
             self._seconds += 1
             if self. _seconds >= self._interval:
-                self._checkpoint_function(self._log, self._checkpoint_function_args)
+                self._checkpoint_function(self._log, **self._checkpoint_function_args)
                 self.reset()
 
 
