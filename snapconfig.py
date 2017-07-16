@@ -10,6 +10,7 @@ import docopt
 from docopt import docopt as docopt_func
 from docopt import DocoptExit
 import os
+import re
 import yaml
 import logging
 import jinja2
@@ -21,6 +22,16 @@ import cli_tools as cli
 #pylint: disable=C0301
 #pylint: disable=W0613
 
+
+BAD_ROUTE_VAR_PROMPT = '''
+It looks like you are attempting to specify a variable in this route.\n
+To specify a route variable, use the form <datatype:routevar>.\n
+If "datatype" is not one of [int, string, float, path],\n 
+you must register a custom converter for your datatype,\n
+otherwise Snap will fail to process the URL correctly at runtime.\n'''
+
+
+BASIC_ROUTE_VAR_REGEX = re.compile(r'<\S+>')
 
 
 CHSHAPE_OPTIONS = [{'value': 'add_field', 'label': 'Add field'},
@@ -91,7 +102,7 @@ class SnapConfigWriter(object):
         pass
 
     def write(self, **kwargs):
-        kwreader = common.KeywordArgReader(['settings', 'transforms', 'shapes', 'services'])
+        kwreader = common.KeywordArgReader('settings', 'transforms', 'shapes')
         kwreader.read(**kwargs)
         j2env = jinja2.Environment()
         template = j2env.from_string(config_templates.INIT_FILE)
@@ -357,6 +368,10 @@ class SnapCLI(Cmd):
 
                 new_route = cli.InputPrompt('transform route',
                                             transform.route).show() or transform.route
+
+                if not self.validate_route(new_route):
+                    continue
+
                 new_method = cli.MenuPrompt('select method',
                                             METHOD_OPTIONS).show() or transform.method
 
@@ -478,14 +493,49 @@ class SnapCLI(Cmd):
         if not transform_name:
             return
         route = cli.InputPrompt('transform route', '/%s' % transform_name).show()
+
+        while True:
+            if not route:
+                return
+            if not self.validate_route(route):
+                route = cli.InputPrompt('transform route', '/%s' % transform_name).show()
+            else:
+                break
+
         method = cli.MenuPrompt('select method', METHOD_OPTIONS).show()
+        if not method:
+            return
+
         mimetype = cli.InputPrompt('output MIME type', DEFAULT_MIMETYPE).show()
+        if not mimetype:
+            return
 
         self.transforms.append(TransformMeta(transform_name, route, method, mimetype))
 
         print '> Creating new transform: %s' % transform_name
         self.edit_transform(transform_name)
         return
+
+
+    def validate_route(self, route_string):
+        if not route_string.startswith('/'):
+            print 'the route string must start with "/".'
+            return False
+
+        if BASIC_ROUTE_VAR_REGEX.search(route_string) and route_string.find(':') == -1:
+            print BAD_ROUTE_VAR_PROMPT
+            return False
+
+        if route_string.count(':') > 1:
+            print BAD_ROUTE_VAR_PROMPT
+            return False
+
+        if not BASIC_ROUTE_VAR_REGEX.search(route_string) and route_string.find(':') > 0:
+            print BAD_ROUTE_VAR_PROMPT
+            return False
+
+        return True
+
 
 
     def show_transform(self, transform_name):

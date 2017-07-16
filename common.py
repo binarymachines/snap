@@ -152,19 +152,23 @@ class KeywordReadStatus(object):
 class KeywordArgReader(object):
     def __init__(self, *required_keywords):
         self.values = {}
+        self._required_keys = []
         for keyword in required_keywords:
-            self.values[keyword] = None
+            self._required_keys.append(keyword)
 
 
     @property
     def required_keywords(self):
-        return self.values.keys()
+        return self._required_keys
 
 
     def read(self, **kwargs):
         missing_keywords = []
-        for k in self.required_keywords:
-            if not kwargs.get(k):
+        all_keys = set(self._required_keys)
+        all_keys.update(kwargs.keys())
+        
+        for k in all_keys:
+            if not kwargs.get(k) and k in self._required_keys:
                 missing_keywords.append(k)
             else:
                 self.values[k] = kwargs[k]

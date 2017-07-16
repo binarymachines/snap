@@ -198,8 +198,8 @@ class Action():
         return self.transform_function(input_data, service_object_registry, logger, **kwargs)
 
 
-    
-class TransformStatus():
+
+class TransformStatus(object):
     def __init__(self, output_data, is_ok=True, **kwargs):
         self.output_data = output_data
         self.ok = is_ok
@@ -215,58 +215,58 @@ class TransformStatus():
 
 
 class Transformer():
-      def __init__(self, service_object_tbl):
-          self.services = service_object_tbl
-          self.actions = {}
-          self.error_table = {}
-          
-          
-      def register_transform(self, type_name, input_shape, transform_func, mimetype):
-          self.actions[type_name] = Action(input_shape, transform_func, mimetype)
+    def __init__(self, service_object_tbl):
+        self.services = service_object_tbl
+        self.actions = {}
+        self.error_table = {}
 
 
-      def register_error_code(self, exception_type, code):          
-          self.error_table[exception_type.__name__] = code
-          
-          
-      def target_mimetype_for_transform(self, type_name):
-          action = self.actions.get(type_name)          
-          if not action:              
-              raise UnregisteredTransformException(type_name)
-          return action.output_mimetype
+    def register_transform(self, type_name, input_shape, transform_func, mimetype):
+        self.actions[type_name] = Action(input_shape, transform_func, mimetype)
+
+
+    def register_error_code(self, exception_type, code):          
+        self.error_table[exception_type.__name__] = code
+
+
+    def target_mimetype_for_transform(self, type_name):
+        action = self.actions.get(type_name)          
+        if not action:              
+             raise UnregisteredTransformException(type_name)
+        return action.output_mimetype
       
           
-      def transform(self, type_name, raw_input_data, logger, **kwargs):
-          if raw_input_data is None:
-              raise NullTransformInputDataException(type_name)
+    def transform(self, type_name, raw_input_data, logger, **kwargs):
+        if raw_input_data is None:
+            raise NullTransformInputDataException(type_name)
 
-          input_data = {}
-          for key in raw_input_data:
-              encoded_key = key
-              encoded_value = raw_input_data[key]
-              if key.__class__.__name__ == 'unicode':
-                  encoded_key = key.encode('utf-8')
+        input_data = {}
+        for key in raw_input_data:
+            encoded_key = key
+            encoded_value = raw_input_data[key]
+            if key.__class__.__name__ == 'unicode':
+                encoded_key = key.encode('utf-8')
 
-              if encoded_value.__class__.__name__ == 'unicode':
-                  encoded_value = encoded_value.encode('utf-8')
-              input_data[encoded_key] = encoded_value
+            if encoded_value.__class__.__name__ == 'unicode':
+                encoded_value = encoded_value.encode('utf-8')
+            input_data[encoded_key] = encoded_value
           
-          action = self.actions.get(type_name)          
-          if not action:              
-              raise UnregisteredTransformException(type_name)
+        action = self.actions.get(type_name)          
+        if not action:              
+            raise UnregisteredTransformException(type_name)
 
-          try:
-              return action.execute(input_data, self.services, logger, **kwargs)
-          except Exception, err:
-              error_type = err.__class__.__name__              
-              if self.error_table.get(error_type):
-                  return TransformStatus(None, 
-                                         False, 
-                                         error_message=err.message,  
-                                         error_code=self.error_table[error_type])
-              # if we don't know what code to return for a given downstream exception, 
-              # re-raise it and assume that someone will handle it upstream
-              raise err
+        try:
+            return action.execute(input_data, self.services, logger, **kwargs)
+        except Exception, err:
+            error_type = err.__class__.__name__              
+            if self.error_table.get(error_type):
+                return TransformStatus(None, 
+                                       False, 
+                                       error_message=err.message,  
+                                       error_code=self.error_table[error_type])
+            # if we don't know what code to return for a given downstream exception, 
+            # re-raise it and assume that someone will handle it upstream
+            raise err
 
 
 

@@ -73,25 +73,22 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
             # dump request headers for easier debugging
             app.logger.info('### HTTP request headers:')
             app.logger.info(request.headers)
-            
-        {%- if t.methods == "'POST'" %}
+
         input_data = {}
-        request.get_data()
-        input_data.update(core.map_content(request))
-        '''
-        if request.headers['Content-Type'] == 'application/json':
-            input_data.update(request.get_json())
-        '''
-        transform_status = xformer.transform('{{ t.name }}', input_data, app.logger, headers=request.headers)
-        {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}        
-        input_data = {}
-        input_data.update(request.args)
-        {%- for route_variable in t.route_variables %}        
+        {%- for route_variable in t.route_variables %}
         input_data['{{ route_variable }}'] = {{ route_variable }}
         {%- endfor %}
+
+        {%- if t.methods == "'POST'" %}
+        request.get_data()
+        input_data.update(core.map_content(request))
         
-        transform_status = xformer.transform('{{ t.name }}', 
-                                             core.convert_multidict(input_data), 
+        transform_status = xformer.transform('{{ t.name }}', input_data, app.logger, headers=request.headers)
+        {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}                
+        input_data.update(request.args)
+        
+        transform_status = xformer.transform('{{ t.name }}',
+                                             core.convert_multidict(input_data),
                                              app.logger,
                                              headers=request.headers)
         {%- else %}

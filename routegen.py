@@ -20,9 +20,10 @@ import common
 import re
 
 
-default_config_filename = 'snap.conf'
+DEFAULT_CONFIG_FILENAME = 'snap.conf'
+RESERVED_ROUTES = ['smp', 'api']
+ROUTE_VARIABLE_REGEX = re.compile(r'<([a-zA-Z_-]+):([a-zA-Z_-]+)>')
 
-RESERVED_ROUTES = ['smp']
 
 
 class MissingHandlerFunctionException(Exception):
@@ -40,6 +41,27 @@ class ReservedRouteException(Exception):
         Exception.__init__(self, 'The URL route "%s" is reserved for internal use; please select a different path.' % path)
 
 
+class BadRouteVariableFormatException(Exception):
+    def __init__(self, name):
+        Exception.__init__(self, 'Bad route variable "%s". Route vars must be specified in the format "<type:variable>".' % name)
+
+
+class RouteVariable(object):
+    def __init__(self, name, var_type):
+        self._name = name
+        self._type = var_type
+
+
+    @property
+    def name(self):
+        return self.name
+
+
+    @property
+    def datatype(self):
+        return self._type
+
+
 
 class Transform(object):
     def __init__(self, name, input_shape, route, method_string, output_type, transform_function_module=None):
@@ -49,6 +71,40 @@ class Transform(object):
         self._methods = [method_name.strip() for method_name in method_string.split(',')]
         self.output_type = output_type
         self.function_module_name = transform_function_module
+        self._routevars = []
+
+        route_var_names = [match.group().lstrip('<').rstrip('>') for match in re.finditer(ROUTE_VARIABLE_REGEX, self.route)]
+
+        for name in route_var_names:
+            tokens = name.split(':')
+            if not len(tokens) == 2:
+                raise BadRouteVariableFormatException(name)
+            self._routevars.append(tokens[1])
+
+        # A route variable is implicitly defined in any route of the format:
+        #
+        # /myroute/<var>
+        #
+        # If we define a route containing a variable, the variable MUST be specified
+        # in a format which defines the proper data type for the route argument.
+        #
+        # So in a hypothetical widgets API, if we wish
+        # to create the route:
+        #
+        # /widget/<id>
+        #
+        # the caller must actually pass us the route string:
+        #
+        # /widget/<int:id>
+        #
+        # (assuming with widget ID is an integer).
+        #
+        # the default accepted types are string, int, float, and path (which is a string that contains slashes).
+        # Users can add new types using Flask custom converters, documented here:
+        #
+        # http://exploreflask.com/en/latest/views.html#url-converters
+        #
+
 
 
     def get_methods(self):
@@ -66,11 +122,9 @@ class Transform(object):
     function_name = property(get_function_name)
 
 
-    def get_route_variables(self):
-        route_var_regex = re.compile(r'<[a-z]+>')
-        return [match.group().lstrip('<').rstrip('>') for match in re.finditer(route_var_regex, self.route)]
-
-    route_variables = property(get_route_variables)
+    @property
+    def route_variables(self):
+        return self._routevars
 
 
 
@@ -169,7 +223,7 @@ def main(argv):
         args = docopt.docopt(__doc__)
 
         preview = args.get('--preview') or False
-        config_filename = args.get('<initfile>') or default_config_filename
+        config_filename = args.get('<initfile>') or DEFAULT_CONFIG_FILENAME
         yaml_config = common.read_config_file(config_filename)
 
 
