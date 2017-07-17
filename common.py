@@ -9,13 +9,13 @@ import json
 
 
 class UnregisteredServiceObjectException(Exception):
-      def __init__(self, alias):
-            Exception.__init__(self, 'No ServiceObject registered under the alias "%s".' % alias)
+    def __init__(self, alias):
+        Exception.__init__(self, 'No ServiceObject registered under the alias "%s".' % alias)
 
 
 class MissingEnvironmentVarException(Exception):
-      def __init__(self, env_var):
-            Exception.__init__(self, 'The following environment variables have not been set: %s' % env_var)
+    def __init__(self, env_var):
+        Exception.__init__(self, 'The following environment variables have not been set: %s' % env_var)
 
 
 class MissingKeywordArgsException(Exception):
@@ -23,22 +23,22 @@ class MissingKeywordArgsException(Exception):
         Exception.__init__(self, 'The following required keyword arguments were not provided: %s' % (', '.join(keywords)))
 
 
-            
+
 class Enum(set):
     def __getattr__(self, name):
         if name in self:
             return name
         raise AttributeError
-            
+
 
 def read_config_file(filename):
     '''Load a YAML initfile by name, returning a dictionary of its contents
 
     '''
     config = None
-    with open(filename, 'r') as f:
-        config = yaml.load(f)
-    return config  
+    with open(filename, 'r') as filehandle:
+        config = yaml.load(filehandle)
+    return config
 
 
 
@@ -50,27 +50,26 @@ def full_path(filename):
 
 
 def load_config_var(value):
-      var = None
-      if not value:
-          pass
-      elif value.__class__.__name__ == 'list':
-          var = value
-      elif isinstance(value, basestring):
-            if value.startswith('$'):
-                  var = os.environ.get(value[1:])            
-                  if not var:
-                        raise MissingEnvironmentVarException(value[1:])
-            elif value.startswith('~%s' % os.path.sep):
-                  home_dir = expanduser(value[0])
-                  path_stub = value[2:]
-                  var = os.path.join(home_dir, path_stub)
-            else:
-                  var = value            
-      else:
-          var = value
-      return var
+    var = None
+    if not value:
+        pass
+    elif value.__class__.__name__ == 'list':
+        var = value
+    elif isinstance(value, basestring):
+        if value.startswith('$'):
+            var = os.environ.get(value[1:])
+            if not var:
+                raise MissingEnvironmentVarException(value[1:])
+        elif value.startswith('~%s' % os.path.sep):
+            home_dir = expanduser(value[0])
+            path_stub = value[2:]
+            var = os.path.join(home_dir, path_stub)
+        else:
+            var = value
+    else:
+        var = value
+    return var
 
-      
 
 def load_class(class_name, module_name):
     module = __import__(module_name)
@@ -97,9 +96,9 @@ def get_template_mgr_for_location(directory):
 
 
 class LocalEnvironment(object):
-    def __init__(self, *vars):
+    def __init__(self, *envvars):
         self._env_vars = {}
-        for var in vars:
+        for var in envvars:
             self._env_vars[var] = None
 
 
@@ -133,7 +132,7 @@ class KeywordReadStatus(object):
     @staticmethod
     def OK():
         return KeywordReadStatus([])
- 
+
     @property
     def is_ok(self):
         return self._is_ok
@@ -152,19 +151,23 @@ class KeywordReadStatus(object):
 class KeywordArgReader(object):
     def __init__(self, *required_keywords):
         self.values = {}
+        self._required_keys = []
         for keyword in required_keywords:
-            self.values[keyword] = None
+            self._required_keys.append(keyword)
 
 
     @property
     def required_keywords(self):
-        return self.values.keys()
+        return self._required_keys
 
 
     def read(self, **kwargs):
         missing_keywords = []
-        for k in self.required_keywords:
-            if not kwargs.get(k):
+        all_keys = set(self._required_keys)
+        all_keys.update(kwargs.keys())
+        
+        for k in all_keys:
+            if not kwargs.get(k) and k in self._required_keys:
                 missing_keywords.append(k)
             else:
                 self.values[k] = kwargs[k]
@@ -179,13 +182,13 @@ class KeywordArgReader(object):
 
 
 class ServiceObjectRegistry():
-      def __init__(self, service_object_dictionary):
+    def __init__(self, service_object_dictionary):
         self.services = service_object_dictionary
 
 
-      def lookup(self, service_object_name):
-            sobj = self.services.get(service_object_name)
-            if not sobj:
-                  raise UnregisteredServiceObjectException(service_object_name)
-            return sobj
+    def lookup(self, service_object_name):
+        sobj = self.services.get(service_object_name)
+        if not sobj:
+            raise UnregisteredServiceObjectException(service_object_name)
+        return sobj
 

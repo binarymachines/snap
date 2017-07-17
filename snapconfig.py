@@ -10,6 +10,8 @@ import docopt
 from docopt import docopt as docopt_func
 from docopt import DocoptExit
 import os
+import shutil
+import re
 import yaml
 import logging
 import jinja2
@@ -21,6 +23,16 @@ import cli_tools as cli
 #pylint: disable=C0301
 #pylint: disable=W0613
 
+
+BAD_ROUTE_VAR_PROMPT = '''
+It looks like you are attempting to specify a variable in this route.\n
+To specify a route variable, use the form <datatype:routevar>.\n
+If "datatype" is not one of [int, string, float, path],\n 
+you must register a custom converter for your datatype,\n
+otherwise Snap will fail to process the URL correctly at runtime.\n'''
+
+
+BASIC_ROUTE_VAR_REGEX = re.compile(r'<\S+>')
 
 
 CHSHAPE_OPTIONS = [{'value': 'add_field', 'label': 'Add field'},
@@ -59,7 +71,7 @@ def docopt_cmd(func):
     This decorator is used to simplify the try/except block and pass the result
     of the docopt parsing to the called action.
     """
-    def fn  (self, arg):
+    def fn(self, arg):
         try:
             opt = docopt_func(fn.__doc__, arg)
 
@@ -91,7 +103,7 @@ class SnapConfigWriter(object):
         pass
 
     def write(self, **kwargs):
-        kwreader = common.KeywordArgReader(['settings', 'transforms', 'shapes', 'services'])
+        kwreader = common.KeywordArgReader('settings', 'transforms', 'shapes')
         kwreader.read(**kwargs)
         j2env = jinja2.Environment()
         template = j2env.from_string(config_templates.INIT_FILE)
@@ -205,7 +217,9 @@ class SnapCLI(Cmd):
         print '%s CLI exiting.' % self.name
         raise SystemExit
 
+
     do_q = do_quit
+    do_exit = do_quit
 
 
     def update_shape_field(self, shape_field):
@@ -357,6 +371,10 @@ class SnapCLI(Cmd):
 
                 new_route = cli.InputPrompt('transform route',
                                             transform.route).show() or transform.route
+
+                if not self.validate_route(new_route):
+                    continue
+
                 new_method = cli.MenuPrompt('select method',
                                             METHOD_OPTIONS).show() or transform.method
 
@@ -478,14 +496,49 @@ class SnapCLI(Cmd):
         if not transform_name:
             return
         route = cli.InputPrompt('transform route', '/%s' % transform_name).show()
+
+        while True:
+            if not route:
+                return
+            if not self.validate_route(route):
+                route = cli.InputPrompt('transform route', '/%s' % transform_name).show()
+            else:
+                break
+
         method = cli.MenuPrompt('select method', METHOD_OPTIONS).show()
+        if not method:
+            return
+
         mimetype = cli.InputPrompt('output MIME type', DEFAULT_MIMETYPE).show()
+        if not mimetype:
+            return
 
         self.transforms.append(TransformMeta(transform_name, route, method, mimetype))
 
         print '> Creating new transform: %s' % transform_name
         self.edit_transform(transform_name)
         return
+
+
+    def validate_route(self, route_string):
+        if not route_string.startswith('/'):
+            print 'the route string must start with "/".'
+            return False
+
+        if BASIC_ROUTE_VAR_REGEX.search(route_string) and route_string.find(':') == -1:
+            print BAD_ROUTE_VAR_PROMPT
+            return False
+
+        if route_string.count(':') > 1:
+            print BAD_ROUTE_VAR_PROMPT
+            return False
+
+        if not BASIC_ROUTE_VAR_REGEX.search(route_string) and route_string.find(':') > 0:
+            print BAD_ROUTE_VAR_PROMPT
+            return False
+
+        return True
+
 
 
     def show_transform(self, transform_name):
@@ -740,17 +793,46 @@ class SnapCLI(Cmd):
         print self.yaml_config()
 
 
-    def backup_file(self, filename):
-        pass
+    def generate_backup_filename(self, directory, filename):
+        if not filename or not directory:
+            return
+
+        filename_tokens = filename.split('.')
+        if filename_tokens[-1].isdigit():
+            backup_version = int(filename_tokens[-1]) + 1
+            base_filename = '.'.join(filename_tokens[0:-1])
+        else:
+            backup_version = 1
+            base_filename = '.'.join(filename_tokens)
+
+        if filename_tokens[-2] == 'backup':
+            final_filename = '%s.%d' % (base_filename, backup_version)
+        else:
+            final_filename = '%s.backup.%d' % (base_filename, backup_version)
+
+        if os.path.exists(os.path.join(directory, final_filename)):
+            return self.generate_backup_filename(directory, final_filename)
+
+        print 'new backup filename is: %s' % final_filename
+
+        return final_filename
 
 
-    def write_file(self, filename):
-        pass
+    def write_configfile(self, filename):
+        configdata = self.yaml_config()
+        with open(filename, 'w') as output_file:
+            output_file.write(configdata)
+
+
+    def backup_configfile(self, current_filename, backup_filename):
+        shutil.copy(current_filename, backup_filename)
 
 
     def get_save_condition(self):
         if not len(self.transforms):
             return 'In order to save a configuration, you must have at least one valid transform.'
+        if not len(self.data_shapes):
+            return 'In order to save a configuration, you must have at least one valid datashape.'
         return 'ok'
 
 
@@ -758,11 +840,10 @@ class SnapCLI(Cmd):
     def do_save(self, arg):
         '''Usage:
                     save [filename]
-                    save [-rb] <filename>
+                    save [-r] [-b] <filename>
 
-          Options:
-                    -r  --replace   replace an existing file
-                    -b  --backup    make a copy of the existing file
+        -r --replace     Replace file if it exists
+        -b --backup      Backup (make a copy of the existing file)
         '''
 
         save_condition = self.get_save_condition()
@@ -773,26 +854,35 @@ class SnapCLI(Cmd):
         should_backup = arg.get('--backup')
         should_overwrite = arg.get('--replace')
 
-        output_filename = arg.get('filename') or arg.get('<filename>')
-        if not output_filename:
-            output_filename = cli.InputPrompt('output filename').show()
-            if not output_filename:
+        filename = arg.get('<filename>')
+        if not filename:
+            filename = cli.InputPrompt('output filename').show()
+            if not filename:
                 return
+        
+        file_loc = os.path.dirname(filename)
+        if not file_loc:
+            file_loc = os.getcwd()
 
-        if os.path.isdir(output_filename):
-            print 'you have specified a directory, rather than a filename.'
+        output_filename = os.path.basename(filename)
+        output_file_fullpath = os.path.join(file_loc, output_filename)
+
+        if os.path.isdir(output_file_fullpath):
+            print '"%s" is a directory. Please specify a filename.' % output_file_fullpath
             return
 
-        if os.path.isfile(output_filename):
+        if os.path.isfile(output_file_fullpath):
             if should_overwrite and should_backup:
-                self.backup_file(output_filename)
+                backup_filename = self.generate_backup_filename(file_loc, output_filename)
+                self.backup_configfile(output_file_fullpath, os.path.join(file_loc, backup_filename))
+                self.write_configfile(output_file_fullpath)
             elif should_overwrite:
-                self.write_file(output_filename)
+                self.write_configfile(output_file_fullpath)
             else:
                 print 'the specified output file already exists.'
                 return
         else:
-            self.write_file(output_filename)
+            self.write_configfile(output_file_fullpath)
 
 
     def do_shell(self, s):
@@ -800,6 +890,7 @@ class SnapCLI(Cmd):
 
     def emptyline(self):
         pass
+
 
 
 def main(args):
