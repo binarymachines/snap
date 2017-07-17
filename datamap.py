@@ -143,7 +143,7 @@ class RecordTransformerBuilder(object):
 
         self._databases=self.load_databases(self._transform_config)
 
-        lookup_src = self._transform_config[self._map_name]['lookup_source']
+        lookup_src = self._transform_config['maps'][self._map_name]['lookup_source']
         target_datasource_db_name = self._transform_config['sources'][lookup_src]['database'] 
         db = self._databases[target_datasource_db_name]
         self._pmgr = sqlx.PersistenceManager(db)
@@ -164,8 +164,8 @@ class RecordTransformerBuilder(object):
                                                'schema',
                                                'username',
                                                'password')
-        for db_name in db_config_section:
-            p_reader.read(db_config_section[db_name])
+        for db_section in db_config_section:
+            p_reader.read(**db_config_section[db_name])
 
             db_class = p_reader.get_value('class')
             db_host = common.load_config_var(p_reader.get_value('host'))
@@ -177,7 +177,7 @@ class RecordTransformerBuilder(object):
             database_class = common.load_class(db_class, db_module)
             database = database_class(db_host, db_name)
             database.login(db_user, db_password, db_schema)
-            dbs[db_name] = database            
+            dbs[db_section] = database            
         
         return dbs
 
