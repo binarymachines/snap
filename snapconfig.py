@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-'''Usage:    snapconfig.py <app_name>
+'''Usage:    snapconfig.py [app_name]
+             snapconfig.py -i <initfile>
 
 '''
 
@@ -894,14 +895,7 @@ class SnapCLI(Cmd):
 
 
 def main(args):
-    '''
-    init_filename = args['initfile']
-    yaml_config = common.read_config_file(init_filename)
-    log_directory = yaml_config['globals']['log_directory']
-    log_filename = 'forge.log'
-    log = metl.init_logging('mx_forge', os.path.join(log_directory, log_filename), logging.DEBUG)
-    '''
-
+    
     app_name = args['<app_name>']
     snap_cli = SnapCLI(app_name)
     snap_cli.cmdloop()
