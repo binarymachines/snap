@@ -165,7 +165,7 @@ class RecordTransformerBuilder(object):
                                                'username',
                                                'password')
         for db_section in db_config_section:
-            p_reader.read(**db_config_section[db_name])
+            p_reader.read(**db_config_section[db_section])
 
             db_class = p_reader.get_value('class')
             db_host = common.load_config_var(p_reader.get_value('host'))
