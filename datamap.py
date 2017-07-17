@@ -4,6 +4,7 @@
 import csv
 import common
 import yaml
+import sqldbx as sqlx
 
 
 class NoSuchTargetFieldException(Exception):
@@ -136,18 +137,50 @@ class RecordTransformerBuilder(object):
         if not self._map_name:
             raise Exception('Missing keyword argument: "map_name"')
 
-        '''
-        self._datasource_name = kwargs.get('datasource')
-        if not self._datasource_name:
-            raise Exception('Missing keyword argument: "datasource_name"')
-        '''
-
         self._transform_config = {}
         with open(yaml_config_filename) as f:
             self._transform_config = yaml.load(f)
 
-        self._pmgr = kwargs.get('persistence_mgr')
+        self._databases=self.load_databases(self._transform_config)
+
+        lookup_src = self._transform_config[self._map_name]['lookup_source']
+        target_datasource_db_name = self._transform_config['sources'][lookup_src]['database'] 
+        db = self._databases[target_datasource_db_name]
+        self._pmgr = sqlx.PersistenceManager(db)
+
+
+    def load_databases(self, transform_config):
+
+        dbs = {}
+        db_config_section = transform_config.get('databases')
         
+        if not db_config_section:
+            raise Exception('The data transform config file must have a "databases" section.')
+
+        db_module = transform_config['globals']['database_module']
+        p_reader = common.KeywordArgReader('class',
+                                               'host',
+                                               'db',
+                                               'schema',
+                                               'username',
+                                               'password')
+        for db_name in db_config_section:
+            p_reader.read(db_config_section[db_name])
+
+            db_class = p_reader.get_value('class')
+            db_host = common.load_config_var(p_reader.get_value('host'))
+            db_name = p_reader.get_value('db')
+            db_schema = p_reader.get_value('schema')
+            db_user = common.load_config_var(p_reader.get_value('username'))
+            db_password = common.load_config_var(p_reader.get_value('password'))
+
+            database_class = common.load_class(db_class, db_module)
+            database = database_class(db_host, db_name)
+            database.login(db_user, db_password, db_schema)
+            dbs[db_name] = database            
+        
+        return dbs
+
 
     def load_datasource(self, src_name, transform_config):
         src_module = __import__(self._transform_config['globals']['lookup_source_module'])
