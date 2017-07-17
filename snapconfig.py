@@ -10,6 +10,7 @@ import docopt
 from docopt import docopt as docopt_func
 from docopt import DocoptExit
 import os
+import shutil
 import re
 import yaml
 import logging
@@ -70,7 +71,7 @@ def docopt_cmd(func):
     This decorator is used to simplify the try/except block and pass the result
     of the docopt parsing to the called action.
     """
-    def fn  (self, arg):
+    def fn(self, arg):
         try:
             opt = docopt_func(fn.__doc__, arg)
 
@@ -216,7 +217,9 @@ class SnapCLI(Cmd):
         print '%s CLI exiting.' % self.name
         raise SystemExit
 
+
     do_q = do_quit
+    do_exit = do_quit
 
 
     def update_shape_field(self, shape_field):
@@ -790,48 +793,84 @@ class SnapCLI(Cmd):
         print self.yaml_config()
 
 
-    def backup_file(self, filename):
-        pass
+    def generate_backup_filename(self, directory, filename):
+        if not filename or not directory:
+            return
+
+        filename_tokens = filename.split('.')
+        if filename_tokens[-1].isdigit():
+            backup_version = int(filename_tokens[-1]) + 1
+            base_filename = '.'.join(filename_tokens[0:-1])
+        else:
+            backup_version = 1
+            base_filename = '.'.join(filename_tokens)
+
+        if filename_tokens[-2] == 'backup':
+            final_filename = '%s.%d' % (base_filename, backup_version)
+        else:
+            final_filename = '%s.backup.%d' % (base_filename, backup_version)
+
+        if os.path.exists(os.path.join(directory, final_filename)):
+            return self.generate_backup_filename(directory, final_filename)
+
+        print 'new backup filename is: %s' % final_filename
+
+        return final_filename
 
 
-    def write_file(self, filename):
-        pass
+    def write_configfile(self, filename):
+        configdata = self.yaml_config()
+        with open(filename, 'w') as output_file:
+            output_file.write(configdata)
+
+
+    def backup_configfile(self, current_filename, backup_filename):
+        shutil.copy(current_filename, backup_filename)
 
 
     @docopt_cmd
     def do_save(self, arg):
         '''Usage:
                     save [filename]
-                    save [-rb] <filename>
+                    save [-r] [-b] <filename>
 
-          Options:
-                    -r  --replace   replace an existing file
-                    -b  --backup    make a copy of the existing file
+        -r --replace     Replace file if it exists
+        -b --backup      Backup (make a copy of the existing file)
         '''
 
+        print arg
         should_backup = arg.get('--backup')
         should_overwrite = arg.get('--replace')
 
-        output_filename = arg.get('filename') or arg.get('<filename>')
-        if not output_filename:
-            output_filename = cli.InputPrompt('output filename').show()
-            if not output_filename:
+        filename = arg.get('<filename>')
+        if not filename:
+            filename = cli.InputPrompt('output filename').show()
+            if not filename:
                 return
+        
+        file_loc = os.path.dirname(filename)
+        if not file_loc:
+            file_loc = os.getcwd()
 
-        if os.path.isdir(output_filename):
-            print 'you have specified a directory, rather than a filename.'
+        output_filename = os.path.basename(filename)
+        output_file_fullpath = os.path.join(file_loc, output_filename)
+
+        if os.path.isdir(output_file_fullpath):
+            print '"%s" is a directory. Please specify a filename.' % output_file_fullpath
             return
 
-        if os.path.isfile(output_filename):
+        if os.path.isfile(output_file_fullpath):
             if should_overwrite and should_backup:
-                self.backup_file(output_filename)
+                backup_filename = self.generate_backup_filename(file_loc, output_filename)
+                self.backup_configfile(output_file_fullpath, os.path.join(file_loc, backup_filename))
+                self.write_configfile(output_file_fullpath)
             elif should_overwrite:
-                self.write_file(output_filename)
+                self.write_configfile(output_file_fullpath)
             else:
                 print 'the specified output file already exists.'
                 return
         else:
-            self.write_file(output_filename)
+            self.write_configfile(output_file_fullpath)
 
 
     def do_shell(self, s):
@@ -839,6 +878,7 @@ class SnapCLI(Cmd):
 
     def emptyline(self):
         pass
+
 
 
 def main(args):
