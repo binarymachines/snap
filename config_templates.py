@@ -37,9 +37,9 @@ data_shapes:
         {{shape.name}}:
                 fields:
                         {% for field in shape.fields %}
-			- name: {{ field.name }}
-			  type: {{ field.data_type }}
-			  required: {{ field.required }}
+                        - name: {{ field.name }}
+                          type: {{ field.data_type }}
+                          required: {{ field.required }}
                         {% endfor %}
         {% endfor %}
 
@@ -48,7 +48,7 @@ transforms:
         {{ t.name }}:
             route:              {{ t.route }}
             method:             {{ t.method }}
-	    input_shape: 	{{ t.input_shape }}
+            input_shape:        {{ t.input_shape }}
             output_mimetype:    {{ t.output_mimetype }}
         {% endfor %}
 
