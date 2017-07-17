@@ -748,6 +748,12 @@ class SnapCLI(Cmd):
         pass
 
 
+    def get_save_condition(self):
+        if not len(self.transforms):
+            return 'In order to save a configuration, you must have at least one valid transform.'
+        return 'ok'
+
+
     @docopt_cmd
     def do_save(self, arg):
         '''Usage:
@@ -758,6 +764,11 @@ class SnapCLI(Cmd):
                     -r  --replace   replace an existing file
                     -b  --backup    make a copy of the existing file
         '''
+
+        save_condition = self.get_save_condition()
+        if save_condition != 'ok':
+            print save_condition
+            return
 
         should_backup = arg.get('--backup')
         should_overwrite = arg.get('--replace')
