@@ -69,11 +69,11 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
         for name, datatype in self._required_fields.iteritems():
             if record_dict.get(name) is None:
                 error = True
-                self._error_table[record_index] = (name, 'null')
+                self._error_table[self._record_index] = (name, 'null')
                 break
             elif not self.match_format(record_dict[name]):
                 error = True
-                self._error_table[record_index] = (name, 'invalid_type')
+                self._error_table[self._record_index] = (name, 'invalid_type')
                 break
 
         if error:
@@ -91,7 +91,7 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
         'total_records': self.total_records,
         'errors_by_record': self._error_table
         }
-
+        return validity_stats
 
 
 
@@ -109,11 +109,7 @@ def get_schema_compliance_stats(source_datafile, schema_config):
                                           quotechar='"',
                                           header_fields=required_fields.keys())
     extractor.extract(source_datafile)
-    return {
-        'invalid_records': cstats_proc.invalid_records,
-        'valid_records': cstats_proc.valid_records,
-        'total_records': cstats_proc.total_records
-    }
+    return cstats_proc.get_stats()
 
 
 def main(args):
