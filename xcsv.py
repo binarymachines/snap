@@ -36,7 +36,6 @@ class Dictionary2CSVProcessor(dmap.DataProcessor):
     def __init__(self, header_fields, delimiter, data_processor, **kwargs):
         dmap.DataProcessor.__init__(self, data_processor)
         self._delimiter = delimiter
-        self._rmap = csvutils.CSVRecordMap(field_array, delimiter=self._delimiter)
         self._header_fields = header_fields
         self._record_count = 0
 
@@ -47,7 +46,10 @@ class Dictionary2CSVProcessor(dmap.DataProcessor):
         else:
             record = []
             for field in self._header_fields:
-                record.append(data_dict.get(field, ''))
+                data = data_dict.get(field)
+                if data is None:
+                    data = ''
+                record.append(str(data))
             print self._delimiter.join(record)
 
         self._record_count += 1
@@ -70,7 +72,7 @@ def transform_data(source_datafile, src_header_fields, target_header_fields, tra
     d2csv_proc = Dictionary2CSVProcessor(target_header_fields, delimiter, transform_proc)
     extractor = dmap.CSVFileDataExtractor(d2csv_proc,
                                           delimiter=delimiter,
-                                          quotechar=quote_char,
+                                          quotechar=quote_character,
                                           header_fields=src_header_fields)
 
     extractor.extract(source_datafile)
