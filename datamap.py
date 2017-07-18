@@ -183,13 +183,10 @@ class RecordTransformerBuilder(object):
 
 
     def load_datasource(self, src_name, transform_config):
-        src_module = __import__(self._transform_config['globals']['lookup_source_module'])
+        src_module_name = self._transform_config['globals']['lookup_source_module']
+        
         datasource_class_name = self._transform_config['sources'][src_name]['class']
-
-        if not hasattr(src_module, datasource_class_name):
-            raise NonexistentDatasourceException(datasource_class_name, src_module)
-
-        klass = getattr(src_module, datasource_class_name)
+        klass = common.load_class(datasource_class_name, src_module_name)        
         init_params = self._transform_config['sources'][src_name].get('init_params', {})
         return klass(self._pmgr, **init_params)
 
