@@ -147,7 +147,7 @@ class RecordTransformerBuilder(object):
             self._transform_config = yaml.load(f)
 
         self._pmgr = kwargs.get('persistence_mgr')
-        
+
 
     def load_datasource(self, src_name, transform_config):
         src_module = __import__(self._transform_config['globals']['lookup_source_module'])
@@ -202,7 +202,7 @@ class DataProcessor(object):
             data = self._processor.process(record)
         else:
             data = record
-        return self._process(record)
+        return self._process(data)
 
 
 class ConsoleProcessor(DataProcessor):
@@ -230,9 +230,12 @@ class WhitespaceCleanupProcessor(DataProcessor):
 
 class CSVFileDataExtractor(object):
     def __init__(self, processor, **kwargs):
-        self._delimiter = kwargs.get('delimiter', ',')
-        self._quote_char = kwargs.get('quotechar')
-        self._header_fields = kwargs.get('header_fields')
+        kwreader = common.KeywordArgReader('quotechar',
+                                           'header_fields')
+        kwreader.read(**kwargs)                                           
+        self._delimiter = kwreader.get_value('delimiter') or ','
+        self._quote_char = kwreader.get_value('quotechar')
+        self._header_fields = kwreader.get_value('header_fields')
         self._processor = processor
 
 
