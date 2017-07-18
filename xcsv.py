@@ -35,6 +35,8 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
         self._required_fields = required_record_fields
         self._valid_record_count = 0
         self._invalid_record_count = 0
+        self._error_table = {}
+        self._record_index = 0
 
 
     @property
@@ -52,20 +54,26 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
         return self._invalid_record_count
 
 
-    def match_datatype(self, obj, type_name):
+    def match_format(self, obj, type_name='string'):
+        # TODO: use a lookup table of regexes
+        '''
         if obj is None:
             return True
-        return obj.__class__.__name__ == type_name.lower()
+        '''
+        return True
 
 
     def _process(self, record_dict):
         error = False
+        self._record_index += 1
         for name, datatype in self._required_fields.iteritems():
             if record_dict.get(name) is None:
                 error = True
+                self._error_table[self._record_index] = (name, 'null')
                 break
-            elif not self.match_datatype(record_dict[name], datatype):
+            elif not self.match_format(record_dict[name]):
                 error = True
+                self._error_table[self._record_index] = (name, 'invalid_type')
                 break
 
         if error:
@@ -74,6 +82,16 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
             self._valid_record_count += 1
 
         return record_dict
+
+
+    def get_stats(self):
+        validity_stats = {
+        'invalid_records': self.invalid_records,
+        'valid_records': self.valid_records,
+        'total_records': self.total_records,
+        'errors_by_record': self._error_table
+        }
+        return validity_stats
 
 
 
@@ -91,11 +109,7 @@ def get_schema_compliance_stats(source_datafile, schema_config):
                                           quotechar='"',
                                           header_fields=required_fields.keys())
     extractor.extract(source_datafile)
-    return {
-        'invalid_records': cstats_proc.invalid_records,
-        'valid_records': cstats_proc.valid_records,
-        'total_records': cstats_proc.total_records
-    }
+    return cstats_proc.get_stats()
 
 
 def main(args):
