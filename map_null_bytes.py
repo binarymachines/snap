@@ -28,7 +28,7 @@ def main(args):
                 required_fields.append(field_name)
         nb_reporter = dmap.NullByteReporter()
         nb_reporter.find_null_bytes(src_file, required_fields)
-        with open(target_file, 'r+') as tfile:
+        with open(target_file, 'w') as tfile:
             for null_pair in nb_reporter.null_byte_lines_and_fields:
                 tfile.write('There was a null byte found at line number %d in field %s.' % null_pair)
 

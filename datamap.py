@@ -266,9 +266,12 @@ class NullByteReporter:
             for line_num, line in enumerate(datafile.readlines()):
                 if '\0' in line:
                     null_index = line.find('\0')
-                    field_index = line[:null_index].count('|') + 1
-                    field = required_fields[field_index]
-                    self._null_byte_lines_and_fields.append((line_num, field))
+                    field_index = line[:null_index].count('|')
+                    print line[:null_index].split('|')
+                    print line[:null_index]
+                    print 'The length of the required fields array is %d and the field index is %d' % (len(required_fields), field_index)
+                    #field = required_fields[field_index]
+                    self._null_byte_lines_and_fields.append((line_num, field_index))
 
 
     @property
