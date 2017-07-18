@@ -14,7 +14,7 @@ import docopt
 import os, sys
 import common
 import datamap as dmap
-
+import yaml
 
 
 def build_transformer(map_file_path, mapname):
@@ -55,7 +55,7 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
     def match_datatype(self, obj, type_name):
         if obj is None:
             return True
-        return obj.__class__.__name__ == type_name
+        return obj.__class__.__name__ == type_name.lower()
 
 
     def _process(self, record_dict):
@@ -116,7 +116,12 @@ def main(args):
 
     elif test_mode:
         print 'testing data in source file %s for schema compliance...' % src_datafile
-        
+        schema_config_file = args.get('--schema')
+        with open(schema_config_file) as f:
+            record_config = yaml.load(f)
+            record_type = args.get('--rtype')
+            schema_config = record_config['record_types'][record_type]
+            print get_schema_compliance_stats(src_datafile, schema_config)
 
 
     elif filter_mode:
