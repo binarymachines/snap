@@ -7,8 +7,6 @@
 
 import docopt
 import datamap as dmap
-import yaml
-import json
 from snap import common
 
 
@@ -24,8 +22,8 @@ def main(args):
         nb_reporter.find_null_bytes(src_file, fields)
         for null_pair in nb_reporter.null_byte_lines_and_fields:
             print common.jsonpretty({'line_number': null_pair[0],
-                                        'field': null_pair[1]
-                                        })
+                                     'field': null_pair[1]
+                                     })
 
 
 if __name__ == '__main__':
