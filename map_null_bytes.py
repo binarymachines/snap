@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 
 '''Usage:
-            map_null_bytes.py --schema=<schema_file> --rtype=<record_type> --target=<target_file> <datafile>
+            map_null_bytes.py <datafile>
 
 '''
 
 import docopt
 import datamap as dmap
 import yaml
+import json
+from snap import common
 
 
 def main(args):
     print args
 
-    target_file = args.get('--target')
     src_file = args.get('<datafile>')
 
     with open(src_file) as f:
@@ -21,10 +22,10 @@ def main(args):
         fields = first_line.split('|')
         nb_reporter = dmap.NullByteReporter()
         nb_reporter.find_null_bytes(src_file, fields)
-        with open(target_file, 'w') as tfile:
-            for null_pair in nb_reporter.null_byte_lines_and_fields:
-                tfile.write('There was a null byte found at line number %d in field %s.\n' % null_pair)
-
+        for null_pair in nb_reporter.null_byte_lines_and_fields:
+            print common.jsonpretty({'line_number': null_pair[0],
+                                        'field': null_pair[1]
+                                        })
 
 
 if __name__ == '__main__':
