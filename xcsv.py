@@ -197,10 +197,10 @@ def main(args):
         schema_config_file = args.get('--schema')
         record_type = args.get('--rtype')
         
-        src_headers = get_required_fields(record_type, schema_config_file)
+        src_header = get_required_fields(record_type, schema_config_file)
         target_header = get_transform_target_header(transform_config_file, transform_map)
         xformer = build_transformer(transform_config_file, transform_map)
-        transform_data(src_datafile, src_headers, target_headers, xformer)
+        transform_data(src_datafile, src_header, target_header, xformer)
 
     elif test_mode:
         print 'testing data in source file %s for schema compliance...' % src_datafile
