@@ -174,7 +174,7 @@ def get_transform_target_header(transform_config_file, map_name):
     header_fields = []
     with open(transform_config_file) as f:
         transform_config = yaml.load(f)
-        transform_map = transform_config.get(map_name)
+        transform_map = transform_config['maps'].get(map_name)
         if not transform_map:
             raise Exception('No transform map "%s" found in transform config file %s.' % (map_name, transform_config_file))
         
