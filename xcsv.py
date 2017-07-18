@@ -47,7 +47,6 @@ def transform_data(source_datafile, src_header_fields, transformer):
                                           delimiter='|',
                                           quotechar='"',
                                           header_fields=src_header_fields)
-
     extractor.extract(source_datafile)
 
 
@@ -163,14 +162,9 @@ def main(args):
         schema_config_file = args.get('--schema')
         record_type = args.get('--rtype')
         
-        source_headers = get_required_fields(record_type, schema_config_file)
-
-        print '\n'.join(source_headers)
-        '''
+        src_headers = get_required_fields(record_type, schema_config_file)
         xformer = build_transformer(transform_config_file, transform_map)
-        transform_data(src_datafile, xformer)
-        '''
-
+        transform_data(src_datafile, src_headers, xformer)
 
     elif test_mode:
         print 'testing data in source file %s for schema compliance...' % src_datafile
