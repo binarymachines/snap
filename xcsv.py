@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''Usage:
-            xcsv.py --xmap=<transform_map> --xform=<transform_file> <datafile>
+            xcsv.py --xform=<transform_file> --xmap=<transform_map> --schema=<schema_file> --rtype=<record_type> <datafile>
             xcsv.py (-t | -f) --schema=<schema_file> --rtype=<record_type> <datafile>
 
    Options:
@@ -17,6 +17,21 @@ import datamap as dmap
 import yaml
 
 
+
+class ConsoleTransformProcessor(dmap.DataProcessor):
+    def __init__(self, transformer, data_processor):
+        dmap.DataProcessor.__init__(self, data_processor)
+        self._transformer = transformer
+        self._records = []
+
+
+    def _process(self, data_dict):        
+        output = self._transformer.transform(data_dict)
+        print common.jsonpretty(output)
+        return output
+
+
+
 def build_transformer(map_file_path, mapname):
 
     transformer_builder = dmap.RecordTransformerBuilder(map_file_path,
@@ -24,9 +39,16 @@ def build_transformer(map_file_path, mapname):
     return transformer_builder.build()
 
 
-def transform_data(source_datafile, transformer):
+def transform_data(source_datafile, src_header_fields, transformer):
     print 'placeholder: transforming data in sourcefile %s' % (source_datafile)
 
+    transform_proc = ConsoleTransformProcessor(transformer, dmap.WhitespaceCleanupProcessor())
+    extractor = dmap.CSVFileDataExtractor(transform_proc,
+                                          delimiter='|',
+                                          quotechar='"',
+                                          header_fields=src_header_fields)
+
+    extractor.extract(source_datafile)
 
 
 class ComplianceStatsProcessor(dmap.DataProcessor):
@@ -69,7 +91,7 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
         for name, datatype in self._required_fields.iteritems():
             if record_dict.get(name) is None:
                 error = True
-                self._error_table[record_index] = (name, 'null')
+                self._error_table[self._record_index] = (name, 'null')
                 break
             elif not self.match_format(record_dict[name]):
                 error = True
@@ -116,6 +138,20 @@ def get_schema_compliance_stats(source_datafile, schema_config):
     }
 
 
+def get_required_fields(record_type, schema_config_file):
+    required_fields = []
+    with open(schema_config_file) as f:
+        record_config = yaml.load(f)            
+        schema_config = record_config['record_types'].get(record_type)
+        if not schema_config:
+            raise Exception('No record type "%s" found in schema config file %s.' % (record_type, schema_config_file))
+        
+        for field_name in schema_config:
+            required_fields.append(field_name)
+    return required_fields
+
+
+
 def main(args):
     print args
 
@@ -128,9 +164,17 @@ def main(args):
         transform_mode = True
         transform_config_file = args.get('--xform')
         transform_map = args.get('--xmap')
+        schema_config_file = args.get('--schema')
+        record_type = args.get('--rtype')
+        
+        source_headers = get_required_fields(record_type, schema_config_file)
 
+        print '\n'.join(source_headers)
+        '''
         xformer = build_transformer(transform_config_file, transform_map)
         transform_data(src_datafile, xformer)
+        '''
+
 
     elif test_mode:
         print 'testing data in source file %s for schema compliance...' % src_datafile
