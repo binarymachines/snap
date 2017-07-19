@@ -13,6 +13,7 @@
 import docopt
 import datamap as dmap
 from snap import common
+from xcsv import Dictionary2CSVProcessor
 
 
 def main(args):
@@ -32,7 +33,7 @@ def main(args):
                                          'field': null_pair[1]
                                          })
         elif readable_dict_mode:
-            nb_reporter.find_readable_lines(src_file)
+            nb_reporter.find_readable_lines(src_file, dmap.WhitespaceCleanupProcessor())
             for line in nb_reporter.readable_lines:
                 if line == first_line:
                     continue
@@ -44,10 +45,11 @@ def main(args):
                 print common.jsonpretty(record_dict)
 
         elif readable_line_mode:
-            nb_reporter.find_readable_lines(src_file)
+            proc = Dictionary2CSVProcessor(dmap.WhitespaceCleanupProcessor())
+            nb_reporter.find_readable_lines(src_file, proc)
             for line in nb_reporter.readable_lines:
-                if line == first_line:
-                    continue
+                # if line == first_line:
+                #     continue
                 print line
 
         else:
