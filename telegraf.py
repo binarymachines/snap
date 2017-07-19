@@ -647,6 +647,29 @@ class OLAPStarSchemaRelay(DataRelay):
         print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
 
+        insert_query_template = '''
+        INSERT INTO {fact_table} ({field_names})
+        VALUES ({data_placeholders});
+        '''
+
+        data_placeholder_segment = ', '.join([':%s' % name for name in fact_data.keys()])
+
+        print '#initial rendering of insert statement: '
+        iqtemplate_render = insert_query_template.format(fact_table=self._schema_mapping_context.fact.table_name,
+                                                         field_names=','.join(fact_data.keys()),
+                                                         data_placeholders=data_placeholder_segment)
+
+        print iqtemplate_render
+
+        insert_statement = text(iqtemplate_render)
+        insert_statement = insert_statement.bindparams(**fact_data)                                                     
+
+        
+
+        
+
+
+
 
 
 
