@@ -32,6 +32,8 @@ def main(args):
         elif readable_mode:
             nb_reporter.find_readable_lines(src_file)
             for line in nb_reporter.readable_lines:
+                if line == first_line:
+                    continue
                 record_dict = {}
                 value_array = line.split('|')
                 for r_index, field in enumerate(fields):
