@@ -16,6 +16,9 @@ from kafka import KafkaProducer, KafkaConsumer, KafkaClient
 from kafka.protocol.offset import OffsetRequest, OffsetResetStrategy
 from kafka.common import OffsetRequestPayload
 
+from sqlalchemy import Integer, String, DateTime, text, and_
+from sqlalchemy import Integer, String, DateTime, Float, text
+
 from raven import Client
 from raven.handlers.logging import SentryHandler
 
@@ -612,6 +615,7 @@ class OLAPStarSchemaRelay(DataRelay):
     def __init__(self, persistence_mgr, olap_schema_map_ctx, **kwargs):
         DataRelay.__init__(self, **kwargs)
         self._pmgr = persistence_mgr
+        self._dbconnection = self._pmgr.database.engine.connect()
         self._schema_mapping_context = olap_schema_map_ctx
 
         fact_record_type_builder = sqlx.SQLDataTypeBuilder('FactRecord', self._schema_mapping_context.fact.table_name)
@@ -647,6 +651,23 @@ class OLAPStarSchemaRelay(DataRelay):
         print '### OLAP fact data:'
         print common.jsonpretty(fact_data)
 
+        insert_query_template = '''
+        INSERT INTO {fact_table} ({field_names})
+        VALUES ({data_placeholders});
+        '''
+
+        data_placeholder_segment = ', '.join([':%s' % name for name in fact_data.keys()])
+
+        print '### initial rendering of insert statement: '
+        iqtemplate_render = insert_query_template.format(fact_table=self._schema_mapping_context.fact.table_name,
+                                                         field_names=','.join(fact_data.keys()),
+                                                         data_placeholders=data_placeholder_segment)
+        print iqtemplate_render
+
+        insert_statement = text(iqtemplate_render)
+        insert_statement = insert_statement.bindparams(**fact_data)                                                     
+        #dbconnection = self._pmgr.database.engine.connect()
+        result = self._dbconnection.execute(insert_statement)
 
 
 
