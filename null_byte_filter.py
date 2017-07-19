@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''Usage:
-            null_byte_filter.py <datafile>
+            null_byte_filter.py (-n | -r) <datafile>
 
     Options:
             -n --null         Retrieve the line numbers of the lines with null bytes ('\0') and the first field in that line containing a null byte
