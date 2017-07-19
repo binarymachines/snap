@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 '''Usage:
-            null_byte_filter.py (-n | -rd | -rl) <datafile>
+            null_byte_filter.py (-n | -d | -l) <datafile>
 
     Options:
             -n --null         Retrieve the line numbers of the lines with null bytes ('\0') and the first field in that line containing a null byte
-            -rd --readable-dict     Retrieve the lines that can be read by a csv reader (do not contain null bytes) and return lines as dictionaries
-            -rl --readable-line     Retrieve readable lines and just return line
+            -d --readable_dict     Retrieve the lines that can be read by a csv reader (do not contain null bytes) and return lines as dictionaries
+            -l --readable_line     Retrieve readable lines and just return line
 
 '''
 
@@ -18,8 +18,8 @@ from snap import common
 def main(args):
     src_file = args.get('<datafile>')
     null_mode = args.get('--null')
-    readable_dict_mode = args.get('--readable-dict')
-    readable_line_mode = args.get('--readable-line')
+    readable_dict_mode = args.get('--readable_dict')
+    readable_line_mode = args.get('--readable_line')
 
     with open(src_file) as f:
         first_line = f.readline()
