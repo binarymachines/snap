@@ -24,7 +24,7 @@ def main(args):
     with open(src_file) as f:
         first_line = f.readline()
         fields = first_line.split('|')
-        nb_reporter = dmap.NullByteReporter()
+        nb_reporter = dmap.NullByteFilter()
         if null_mode:
             nb_reporter.find_null_bytes(src_file, fields)
             for null_pair in nb_reporter.null_byte_lines_and_fields:
