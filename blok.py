@@ -33,7 +33,7 @@ def main(args):
 
     knodes = pipeline_config.cluster.node_array
     kwriter = tg.KafkaIngestRecordWriter(knodes)
-    kloader = telegraf.KafkaLoader(target_topic,
+    kloader = tg.KafkaLoader(target_topic,
                                    kwriter,
                                    record_type=rectype,
                                    stream_id=streamid,
