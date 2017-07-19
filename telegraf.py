@@ -16,6 +16,9 @@ from kafka import KafkaProducer, KafkaConsumer, KafkaClient
 from kafka.protocol.offset import OffsetRequest, OffsetResetStrategy
 from kafka.common import OffsetRequestPayload
 
+from sqlalchemy import Integer, String, DateTime, text, and_
+from sqlalchemy import Integer, String, DateTime, Float, text
+
 from raven import Client
 from raven.handlers.logging import SentryHandler
 
