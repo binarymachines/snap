@@ -2,8 +2,7 @@
 #
 #
 '''Usage:
-        klap.py --rtype=<record_type> --pconfig=<pipeline_config_file> --topic=<topic> --pgsql_host=<host>
-        --pgsql_user=<user> --pgsql_password=<password>
+        klap.py --rtype=<record_type> --pconfig=<pipeline_config_file> --topic=<topic> --pgsql_host=<host> --pgsql_user=<user> --pgsql_password=<password>
 '''
 
 #
@@ -191,3 +190,8 @@ def main(args):
 
     if rectype == 'direct_sales':
         sst_to_direct_olap(pipeline_config, host, user, passw, log)
+
+
+if __name__ == '__main__':
+    args = docopt.docopt(__doc__)
+    main(args)
