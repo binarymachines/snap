@@ -54,9 +54,8 @@ def main(args):
                 value_array = line.split('|')
                 for r_index, field in enumerate(fields):
                     record_dict[field] = value_array[r_index]
-                record = proc.process(record_dict)
+                proc.process(record_dict)
 
-                print record
 
 
         else:
