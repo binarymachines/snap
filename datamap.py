@@ -258,28 +258,29 @@ class WhitespaceCleanupProcessor(DataProcessor):
 
 
 class NullByteFilter:
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._null_byte_lines_and_fields = []
         self._readable_lines = []
+        kwreader = common.KeywordArgReader('delimiter', 'field_names')
+        kwreader.read(**kwargs)
+        self._delimiter = kwreader.get_value('delimiter')
+        self._field_names = kwreader.get_value('field_names')
 
-    def find_null_bytes(self, src_file_path, field_names):
+    def find_null_bytes(self, src_file_path):
         with open(src_file_path, 'r') as datafile:
             for line_num, line in enumerate(datafile.readlines()):
                 if '\0' in line:
                     null_index = line.find('\0')
-                    field_index = line[:null_index].count('|')
-                    field = field_names[field_index]
+                    field_index = line[:null_index].count(self._delimiter)
+                    field = self._field_names[field_index]
                     self._null_byte_lines_and_fields.append((line_num, field))
 
 
-    def find_readable_lines(self, src_file_path, processor):
+    def find_readable_lines(self, src_file_path):
         with open(src_file_path, 'r') as datafile:
-            for line in datafile.readlines():
-                if '\0' not in line:
-                    data = line
-                    if processor:
-                        data = processor.process(line)
-                    self._readable_lines.append(data)
+            for record in datafile.readlines():
+                if '\0' not in record:
+                    self._readable_lines.append(record)
 
     @property
     def null_byte_lines_and_fields(self):

@@ -33,7 +33,7 @@ def main(args):
                                          'field': null_pair[1]
                                          })
         elif readable_dict_mode:
-            nb_reporter.find_readable_lines(src_file, dmap.WhitespaceCleanupProcessor())
+            nb_reporter.find_readable_lines(src_file)
             for line in nb_reporter.readable_lines:
                 if line == first_line:
                     continue
@@ -46,11 +46,18 @@ def main(args):
 
         elif readable_line_mode:
             proc = Dictionary2CSVProcessor(fields, "|", dmap.WhitespaceCleanupProcessor())
-            nb_reporter.find_readable_lines(src_file, proc)
+            nb_reporter.find_readable_lines(src_file)
             for line in nb_reporter.readable_lines:
-                # if line == first_line:
-                #     continue
-                print line
+                if line == first_line:
+                    continue
+                record_dict = {}
+                value_array = line.split('|')
+                for r_index, field in enumerate(fields):
+                    record_dict[field] = value_array[r_index]
+                record = proc.process(record_dict)
+
+                print record
+
 
         else:
             print "Choose an option flag for record info output"
