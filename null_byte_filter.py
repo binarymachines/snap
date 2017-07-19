@@ -25,9 +25,9 @@ def main(args):
     with open(src_file) as f:
         first_line = f.readline()
         fields = first_line.split('|')
-        nb_reporter = dmap.NullByteFilter()
+        nb_reporter = dmap.NullByteFilter(delimiter='|', field_names=fields)
         if null_mode:
-            nb_reporter.find_null_bytes(src_file, fields)
+            nb_reporter.find_null_bytes(src_file)
             for null_pair in nb_reporter.null_byte_lines_and_fields:
                 print common.jsonpretty({'line_number': null_pair[0],
                                          'field': null_pair[1]
