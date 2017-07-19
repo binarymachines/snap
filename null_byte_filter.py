@@ -45,7 +45,7 @@ def main(args):
                 print common.jsonpretty(record_dict)
 
         elif readable_line_mode:
-            proc = Dictionary2CSVProcessor(dmap.WhitespaceCleanupProcessor())
+            proc = Dictionary2CSVProcessor(fields, "|", dmap.WhitespaceCleanupProcessor())
             nb_reporter.find_readable_lines(src_file, proc)
             for line in nb_reporter.readable_lines:
                 # if line == first_line:
