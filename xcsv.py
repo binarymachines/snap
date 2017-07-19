@@ -53,6 +53,7 @@ class Dictionary2CSVProcessor(dmap.DataProcessor):
             print self._delimiter.join(record)
 
         self._record_count += 1
+        return data_dict
         
 
 
