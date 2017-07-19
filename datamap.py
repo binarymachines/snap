@@ -257,9 +257,10 @@ class WhitespaceCleanupProcessor(DataProcessor):
         return data
 
 
-class NullByteReporter:
+class NullByteFilter:
     def __init__(self):
         self._null_byte_lines_and_fields = []
+        self._readable_lines = []
 
     def find_null_bytes(self, src_file_path, field_names):
         with open(src_file_path, 'r') as datafile:
@@ -271,9 +272,19 @@ class NullByteReporter:
                     self._null_byte_lines_and_fields.append((line_num, field))
 
 
+    def find_readable_lines(self, src_file_path):
+        with open(src_file_path, 'r') as datafile:
+            for line in datafile.readlines():
+                if '\0' not in line:
+                    self._readable_lines.append(line)
+
     @property
     def null_byte_lines_and_fields(self):
         return self._null_byte_lines_and_fields
+
+    @property
+    def readable_lines(self):
+        return self._readable_lines
 
 
 class CSVFileDataExtractor(object):
