@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 '''Usage:
-            null_byte_filter.py (-n | -r) <datafile>
+            null_byte_filter.py (-n | -rd | -rl) <datafile>
 
     Options:
             -n --null         Retrieve the line numbers of the lines with null bytes ('\0') and the first field in that line containing a null byte
-            -r --readable     Retrieve the lines that can be read by a csv reader (do not contain null bytes)
+            -rd --readable-dict     Retrieve the lines that can be read by a csv reader (do not contain null bytes) and return lines as dictionaries
+            -rl --readable-line     Retrieve readable lines and just return line
 
 '''
 
@@ -17,7 +18,8 @@ from snap import common
 def main(args):
     src_file = args.get('<datafile>')
     null_mode = args.get('--null')
-    readable_mode = args.get('--readable')
+    readable_dict_mode = args.get('--readable-dict')
+    readable_line_mode = args.get('--readable-line')
 
     with open(src_file) as f:
         first_line = f.readline()
@@ -29,7 +31,7 @@ def main(args):
                 print common.jsonpretty({'line_number': null_pair[0],
                                          'field': null_pair[1]
                                          })
-        elif readable_mode:
+        elif readable_dict_mode:
             nb_reporter.find_readable_lines(src_file)
             for line in nb_reporter.readable_lines:
                 if line == first_line:
@@ -40,6 +42,16 @@ def main(args):
                     record_dict[field] = value_array[r_index]
 
                 print common.jsonpretty(record_dict)
+
+        elif readable_line_mode:
+            nb_reporter.find_readable_lines(src_file)
+            for line in nb_reporter.readable_lines:
+                if line == first_line:
+                    continue
+                print line
+
+        else:
+            print "Choose an option flag for record info output"
 
 
 if __name__ == '__main__':
