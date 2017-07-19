@@ -259,36 +259,30 @@ class WhitespaceCleanupProcessor(DataProcessor):
 
 class NullByteFilter:
     def __init__(self, **kwargs):
-        self._null_byte_lines_and_fields = []
-        self._readable_lines = []
         kwreader = common.KeywordArgReader('delimiter', 'field_names')
         kwreader.read(**kwargs)
         self._delimiter = kwreader.get_value('delimiter')
         self._field_names = kwreader.get_value('field_names')
 
-    def find_null_bytes(self, src_file_path):
+    def filter_with_null_output(self, src_file_path):
+        null_byte_lines_and_fields = []
         with open(src_file_path, 'r') as datafile:
             for line_num, line in enumerate(datafile.readlines()):
                 if '\0' in line:
                     null_index = line.find('\0')
                     field_index = line[:null_index].count(self._delimiter)
                     field = self._field_names[field_index]
-                    self._null_byte_lines_and_fields.append((line_num, field))
+                    null_byte_lines_and_fields.append((line_num, field))
+        return null_byte_lines_and_fields
 
 
-    def find_readable_lines(self, src_file_path):
+    def filter_with_readable_output(self, src_file_path):
+        readable_lines = []
         with open(src_file_path, 'r') as datafile:
             for record in datafile.readlines():
                 if '\0' not in record:
-                    self._readable_lines.append(record)
-
-    @property
-    def null_byte_lines_and_fields(self):
-        return self._null_byte_lines_and_fields
-
-    @property
-    def readable_lines(self):
-        return self._readable_lines
+                    readable_lines.append(record)
+        return readable_lines
 
 
 class CSVFileDataExtractor(object):

@@ -27,14 +27,14 @@ def main(args):
         fields = first_line.split('|')
         nb_reporter = dmap.NullByteFilter(delimiter='|', field_names=fields)
         if null_mode:
-            nb_reporter.find_null_bytes(src_file)
-            for null_pair in nb_reporter.null_byte_lines_and_fields:
+            null_pairs = nb_reporter.filter_with_null_output(src_file)
+            for null_pair in null_pairs:
                 print common.jsonpretty({'line_number': null_pair[0],
                                          'field': null_pair[1]
                                          })
         elif readable_dict_mode:
-            nb_reporter.find_readable_lines(src_file)
-            for line in nb_reporter.readable_lines:
+            readable_lines = nb_reporter.filter_with_readable_output(src_file)
+            for line in readable_lines:
                 if line == first_line:
                     continue
                 record_dict = {}
@@ -46,8 +46,8 @@ def main(args):
 
         elif readable_line_mode:
             proc = Dictionary2CSVProcessor(fields, "|", dmap.WhitespaceCleanupProcessor())
-            nb_reporter.find_readable_lines(src_file)
-            for line in nb_reporter.readable_lines:
+            readable_lines = nb_reporter.filter_with_readable_output(src_file)
+            for line in readable_lines:
                 if line == first_line:
                     continue
                 record_dict = {}
