@@ -186,7 +186,6 @@ def get_transform_target_header(transform_config_file, map_name):
 
 
 def main(args):
-    print args
 
     test_mode = args.get('--test')
     filter_mode = args.get('--filter')
@@ -206,7 +205,7 @@ def main(args):
         transform_data(src_datafile, src_header, target_header, xformer)
 
     elif test_mode:
-        print 'testing data in source file %s for schema compliance...' % src_datafile
+        #print 'testing data in source file %s for schema compliance...' % src_datafile
         schema_config_file = args.get('--schema')
         with open(schema_config_file) as f:
             record_config = yaml.load(f)
