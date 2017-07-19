@@ -293,14 +293,11 @@ class NullByteFilter:
 
 class CSVFileDataExtractor(object):
     def __init__(self, processor, **kwargs):
-        kwreader = common.KeywordArgReader('quotechar',
-                                           'header_fields')
+        kwreader = common.KeywordArgReader('quotechar')
         kwreader.read(**kwargs)                                           
         self._delimiter = kwreader.get_value('delimiter') or ','
-        self._quote_char = kwreader.get_value('quotechar')
-        self._header_fields = kwreader.get_value('header_fields')
+        self._quote_char = kwreader.get_value('quotechar')        
         self._processor = processor
-
 
 
     def extract(self, filename, **kwargs):
