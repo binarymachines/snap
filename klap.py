@@ -89,8 +89,8 @@ def get_optional_dimension_id_func(value, dim_table_name, key_field_name, value_
         return record[0]
 
 
-def sst_to_direct_olap(pipeline_config, pgsql_host, pgsql_username, pgsql_password, log):
-    fact = tg.OLAPSchemaFact('f_transactions',
+def sst_to_direct_olap(pipeline_config, pgsql_host, pgsql_username, pgsql_password, log, source_topic):
+    fact = tg.OLAPSchemaFact('olap.f_transactions',
                                    'id',
                                    UNIQUEIDENTIFIER())
 
@@ -113,21 +113,21 @@ def sst_to_direct_olap(pipeline_config, pgsql_host, pgsql_username, pgsql_passwo
                                                       key_field_name='id',
                                                       value_field_name='value',
                                                       primary_key_type=Integer(),
-                                                      id_lookup_function=get_required_dimension_id_func())
+                                                      id_lookup_function=get_required_dimension_id_func)
 
     dim_location = tg.OLAPSchemaDimension(fact_table_field_name='location_id',
                                                 dim_table_name='d_location',
                                                 key_field_name='id',
                                                 value_field_name='value',
                                                 primary_key_type=Integer(),
-                                                id_lookup_function=get_required_dimension_id_func())
+                                                id_lookup_function=get_required_dimension_id_func)
 
     dim_order_type = tg.OLAPSchemaDimension(fact_table_field_name='order_type_id',
                                                   dim_table_name='d_order_type',
                                                   key_field_name='id',
                                                   value_field_name='value',
                                                   primary_key_type=Integer(),
-                                                  id_lookup_function=get_required_dimension_id_func())
+                                                  id_lookup_function=get_required_dimension_id_func)
 
     mapping_context = tg.OLAPSchemaMappingContext(fact)
     mapping_context.map_src_record_field_to_dimension('order_type', dim_order_type)
@@ -148,7 +148,7 @@ def sst_to_direct_olap(pipeline_config, pgsql_host, pgsql_username, pgsql_passwo
     oss_relay = tg.OLAPStarSchemaRelay(pmgr, mapping_context)
 
     group = pipeline_config.get_user_defined_consumer_group('scratch_group_2')
-    topic = pipeline_config.staging_topic
+    topic = source_topic
     kreader = tg.KafkaIngestRecordReader(topic, pipeline_config.cluster.node_array, group)
 
     # show how many partitions this topic spans
@@ -170,7 +170,7 @@ def main(args):
     print args
 
     pipeline_config_file = args['--pconfig']
-    target_topic = args['--topic']
+    src_topic = args['--topic']
     rectype = args['--rtype']
     host = args['--pgsql_host']
     user = args['--pgsql_user']
@@ -189,7 +189,7 @@ def main(args):
     log.addHandler(ch)
 
     if rectype == 'direct_sales':
-        sst_to_direct_olap(pipeline_config, host, user, passw, log)
+        sst_to_direct_olap(pipeline_config, host, user, passw, log, src_topic)
 
 
 if __name__ == '__main__':
