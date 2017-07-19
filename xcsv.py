@@ -58,14 +58,12 @@ class Dictionary2CSVProcessor(dmap.DataProcessor):
 
 
 def build_transformer(map_file_path, mapname):
-
     transformer_builder = dmap.RecordTransformerBuilder(map_file_path,
                                                         map_name=mapname)
     return transformer_builder.build()
 
 
-def transform_data(source_datafile, src_header_fields, target_header_fields, transformer):
-    print 'placeholder: transforming data in sourcefile %s' % (source_datafile)
+def transform_data(source_datafile, src_header_fields, target_header_fields, transformer):    
     delimiter = '|'
     quote_character = '"'
 
@@ -215,6 +213,7 @@ def main(args):
 
 
     elif filter_mode:
+        # Filter source records for schema compliance
         print 'filtering data from source file %s...' % src_datafile
 
 
