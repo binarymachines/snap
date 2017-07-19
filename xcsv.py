@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 '''Usage:
-            xcsv.py --xmap=<transform_map> --xform=<transform_file> <datafile>
+            xcsv.py --xform=<transform_file> --xmap=<transform_map> --schema=<schema_file> --rtype=<record_type> <datafile>
             xcsv.py (-t | -f) --schema=<schema_file> --rtype=<record_type> <datafile>
 
    Options:
@@ -17,6 +17,45 @@ import datamap as dmap
 import yaml
 
 
+
+class TransformProcessor(dmap.DataProcessor):
+    def __init__(self, transformer, data_processor):
+        dmap.DataProcessor.__init__(self, data_processor)
+        self._transformer = transformer
+        self._records = []
+
+
+    def _process(self, data_dict):        
+        output = self._transformer.transform(data_dict)
+        #print common.jsonpretty(output)
+        return output
+
+
+
+class Dictionary2CSVProcessor(dmap.DataProcessor):
+    def __init__(self, header_fields, delimiter, data_processor, **kwargs):
+        dmap.DataProcessor.__init__(self, data_processor)
+        self._delimiter = delimiter
+        self._header_fields = header_fields
+        self._record_count = 0
+
+
+    def _process(self, data_dict):
+        if self._record_count == 0:
+            print self._delimiter.join(self._header_fields)
+        else:
+            record = []
+            for field in self._header_fields:
+                data = data_dict.get(field)
+                if data is None:
+                    data = ''
+                record.append(str(data))
+            print self._delimiter.join(record)
+
+        self._record_count += 1
+        
+
+
 def build_transformer(map_file_path, mapname):
 
     transformer_builder = dmap.RecordTransformerBuilder(map_file_path,
@@ -24,9 +63,19 @@ def build_transformer(map_file_path, mapname):
     return transformer_builder.build()
 
 
-def transform_data(source_datafile, transformer):
+def transform_data(source_datafile, src_header_fields, target_header_fields, transformer):
     print 'placeholder: transforming data in sourcefile %s' % (source_datafile)
+    delimiter = '|'
+    quote_character = '"'
 
+    transform_proc = TransformProcessor(transformer, dmap.WhitespaceCleanupProcessor())
+    d2csv_proc = Dictionary2CSVProcessor(target_header_fields, delimiter, transform_proc)
+    extractor = dmap.CSVFileDataExtractor(d2csv_proc,
+                                          delimiter=delimiter,
+                                          quotechar=quote_character,
+                                          header_fields=src_header_fields)
+
+    extractor.extract(source_datafile)
 
 
 class ComplianceStatsProcessor(dmap.DataProcessor):
@@ -94,7 +143,6 @@ class ComplianceStatsProcessor(dmap.DataProcessor):
         return validity_stats
 
 
-
 def get_schema_compliance_stats(source_datafile, schema_config):
 
     required_fields = {}
@@ -112,6 +160,30 @@ def get_schema_compliance_stats(source_datafile, schema_config):
     return cstats_proc.get_stats()
 
 
+def get_required_fields(record_type, schema_config_file):
+    required_fields = []
+    with open(schema_config_file) as f:
+        record_config = yaml.load(f)            
+        schema_config = record_config['record_types'].get(record_type)
+        if not schema_config:
+            raise Exception('No record type "%s" found in schema config file %s.' % (record_type, schema_config_file))
+        
+        for field_name in schema_config:
+            required_fields.append(field_name)
+    return required_fields
+
+def get_transform_target_header(transform_config_file, map_name):
+    header_fields = []
+    with open(transform_config_file) as f:
+        transform_config = yaml.load(f)
+        transform_map = transform_config['maps'].get(map_name)
+        if not transform_map:
+            raise Exception('No transform map "%s" found in transform config file %s.' % (map_name, transform_config_file))
+        
+        header_fields = [field_name for field_name in transform_map['fields']]
+    return header_fields
+
+
 def main(args):
     print args
 
@@ -124,9 +196,13 @@ def main(args):
         transform_mode = True
         transform_config_file = args.get('--xform')
         transform_map = args.get('--xmap')
-
+        schema_config_file = args.get('--schema')
+        record_type = args.get('--rtype')
+        
+        src_header = get_required_fields(record_type, schema_config_file)
+        target_header = get_transform_target_header(transform_config_file, transform_map)
         xformer = build_transformer(transform_config_file, transform_map)
-        transform_data(src_datafile, xformer)
+        transform_data(src_datafile, src_header, target_header, xformer)
 
     elif test_mode:
         print 'testing data in source file %s for schema compliance...' % src_datafile
