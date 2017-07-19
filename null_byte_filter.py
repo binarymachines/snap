@@ -15,8 +15,6 @@ from snap import common
 
 
 def main(args):
-    print args
-
     src_file = args.get('<datafile>')
     null_mode = args.get('--null')
     readable_mode = args.get('--readable')
