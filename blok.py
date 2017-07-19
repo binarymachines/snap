@@ -9,6 +9,7 @@
 
 import docopt
 import telegraf as tg
+import datamap as dmap
 import os, sys
 import yaml
 import datetime
