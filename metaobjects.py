@@ -145,7 +145,6 @@ class DataShapeMeta(object):
                 'fields': [f.data() for f in self._fields]}
 
 
-
 class ServiceObjectMeta(object):
     def __init__(self, name, class_name, **kwargs):
         self._name = name

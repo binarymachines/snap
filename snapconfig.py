@@ -115,14 +115,17 @@ class SnapConfigWriter(object):
 
 
 class SnapCLI(Cmd):
-    def __init__(self, app_name):
-        self.name = 'snapconfig'
+    def __init__(self, app_name, **kwargs):
+        kwreader = common.KeywordArgReader(*[])
+        kwreader.read(**kwargs)
+        self.name = app_name
         Cmd.__init__(self)
         self.prompt = '[%s] ' % self.name
-        self.transforms = []
-        self.data_shapes = []
-        self.service_objects = []
-        self.global_settings = GlobalSettingsMeta(app_name)
+        self.transforms = kwreader.get_value('transforms') or []
+        self.data_shapes = kwreader.get_value('shapes') or []
+        self.service_objects = kwreader.get_value('service_objects') or []
+
+        self.global_settings = GlobalSettingsMeta(app_name, **kwreader.get_value('globals'))
         #self.replay_stack = Stack()
 
     @property
@@ -893,11 +896,86 @@ class SnapCLI(Cmd):
         pass
 
 
+def load_transforms_from_yaml_config(yaml_cfg):
+    transforms = []
+    for transform_name in yaml_cfg['transforms']:
+        route = yaml_cfg['transforms'][transform_name]['route']
+        method = yaml_cfg['transforms'][transform_name]['method']
+        shape_name = yaml_cfg['transforms'][transform_name].get('input_shape')
+        mime_type = yaml_cfg['transforms'][transform_name]['output_mimetype']
+
+        transforms.append(TransformMeta(transform_name, route, method, mime_type, input_shape_name=shape_name))
+    return transforms
+
+
+def load_shape_fields_from_yaml_config(shape_name, yaml_cfg):
+    fields = []
+    for field in yaml_cfg['data_shapes'][shape_name].get('fields') or []:
+        fields.append(DataShapeFieldMeta(field['name'], field['type'], field['required']))
+
+    return fields
+
+
+def load_shapes_from_yaml_config(yaml_cfg):
+    shapes = []
+    for shape_name in yaml_cfg['data_shapes']:
+        fields = load_shape_fields_from_yaml_config(shape_name, yaml_cfg)
+        shapes.append(DataShapeMeta(shape_name, fields))
+    return shapes
+
+def load_service_object_params_from_yaml_config(so_name, yaml_cfg):
+    params = {}
+    for param in yaml_cfg['service_objects'][so_name].get('init_params') or []:
+        params[param['name']] = param['value']
+    return params
+
+
+def load_service_objects_from_yaml_config(yaml_cfg):
+    service_objects = []
+    for service_object_name in yaml_cfg['service_objects']:
+        so_class = yaml_cfg['service_objects'][service_object_name]['class']
+        
+        so_params = load_service_object_params_from_yaml_config(service_object_name, yaml_cfg)
+        som = ServiceObjectMeta(service_object_name, so_class, **so_params)
+        service_objects.append(som)
+    return service_objects
+
+
+def load_global_settings_from_yaml_config(yaml_cfg):    
+    return yaml_cfg['globals']
+
 
 def main(args):
-    
-    app_name = args['<app_name>']
-    snap_cli = SnapCLI(app_name)
+    print args
+    mode = None
+    if args.get('-i') == True:
+        mode = 'update'
+    else:
+        mode = 'create'
+
+    if mode == 'create':
+        app_name = args.get('app_name')
+        if not app_name:
+            app_name = cli.InputPrompt('New SNAP application name').show()
+            if not app_name:
+                return 
+        snap_cli = SnapCLI(app_name)
+    elif mode == 'update':
+        configfile_name = args.get('<initfile>')
+        yaml_cfg = None
+        with open(configfile_name, 'r') as f:
+            yaml_cfg = yaml.load(f)
+
+        app_name = yaml_cfg['app_name']
+        datashapes = load_shapes_from_yaml_config(yaml_cfg)
+        transforms = load_transforms_from_yaml_config(yaml_cfg)
+        service_objects = load_service_objects_from_yaml_config(yaml_cfg)
+        settings = load_global_settings_from_yaml_config(yaml_cfg)
+
+        snap_cli = SnapCLI(app_name, shapes=datashapes,
+                                     transforms=transforms,
+                                     service_objects=service_objects,
+                                     globals=settings)
     snap_cli.cmdloop()
 
 
