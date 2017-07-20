@@ -253,7 +253,7 @@ http {
 }
 """
 
-TRANSFORM_FUNCS = """
+TRANSFORM_BLOCK = """
 {% for f in transform_functions %}
 
 def {{ f }}(input_data, service_objects, log, **kwargs):

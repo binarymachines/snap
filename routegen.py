@@ -17,6 +17,7 @@ import docopt
 import yaml
 import jinja2
 import common
+import config_templates
 import re
 
 
@@ -234,10 +235,9 @@ def main(argv):
 
         route_gen = RouteGenerator(yaml_config)
 
-        j2env = jinja2.Environment(loader = jinja2.FileSystemLoader('templates'))
-        template_mgr = common.JinjaTemplateManager(j2env)
-
-        transform_module_template = template_mgr.get_template('transforms.py.j2')
+        j2env = jinja2.Environment()
+        template_mgr = common.JinjaTemplateManager(j2env)        
+        transform_module_template = j2env.from_string(config_templates.TRANSFORMS)
         transform_module_name = yaml_config['globals']['transform_function_module']
         transform_module_filename = '%s.py' % transform_module_name
 
@@ -259,14 +259,14 @@ def main(argv):
                 if not hasattr(tmodule, tname):
                     new_transforms.append(tname)
 
-            transform_block_template = template_mgr.get_template('transform_funcs.py.j2')
+            transform_block_template = j2env.from_string(config_templates.TRANSFORM_BLOCK)
             transform_code = transform_block_template.render(transform_functions=new_transforms)
             with open(transform_module_filename, 'a') as transform_file:
                 transform_file.write('\n\n')
                 transform_file.write(transform_code)
 
 
-        routing_module_template = template_mgr.get_template('routes.py.j2')
+        routing_module_template = j2env.from_string(config_templates.ROUTES)
 
         listener_port = yaml_config['globals']['port']
         bind_host_addr = yaml_config['globals'].get('bind_host', '127.0.0.1')

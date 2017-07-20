@@ -103,6 +103,7 @@ class SnapConfigWriter(object):
     def __init__(self):
         pass
 
+
     def write(self, **kwargs):
         kwreader = common.KeywordArgReader('settings', 'transforms', 'shapes')
         kwreader.read(**kwargs)
