@@ -124,8 +124,8 @@ class SnapCLI(Cmd):
         self.transforms = kwreader.get_value('transforms') or []
         self.data_shapes = kwreader.get_value('shapes') or []
         self.service_objects = kwreader.get_value('service_objects') or []
-
-        self.global_settings = GlobalSettingsMeta(app_name, **kwreader.get_value('globals'))
+        app_globals = kwreader.get_value('globals') or {}
+        self.global_settings = GlobalSettingsMeta(app_name, **app_globals)
         #self.replay_stack = Stack()
 
     @property
@@ -794,7 +794,11 @@ class SnapCLI(Cmd):
     def do_preview(self, arg):
         '''display current configuration in YAML format'''
 
-        print self.yaml_config()
+        message = self.get_save_condition()
+        if message == 'ok':
+            print self.yaml_config()
+        else:
+            print message
 
 
     def generate_backup_filename(self, directory, filename):
@@ -834,9 +838,9 @@ class SnapCLI(Cmd):
 
     def get_save_condition(self):
         if not len(self.transforms):
-            return 'In order to save a configuration, you must have at least one valid transform.'
+            return 'In order to save or preview a configuration, you must have at least one valid transform.'
         if not len(self.data_shapes):
-            return 'In order to save a configuration, you must have at least one valid datashape.'
+            return 'In order to save or preview a configuration, you must have at least one valid datashape.'
         return 'ok'
 
 
