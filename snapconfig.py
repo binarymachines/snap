@@ -937,7 +937,9 @@ def load_service_object_params_from_yaml_config(so_name, yaml_cfg):
 
 
 def load_service_objects_from_yaml_config(yaml_cfg):
-    service_objects = []
+    service_objects = yaml_cfg.get('service_objects')
+    if service_objects is None:
+        service_objects = []
     for service_object_name in yaml_cfg['service_objects']:
         so_class = yaml_cfg['service_objects'][service_object_name]['class']
         
