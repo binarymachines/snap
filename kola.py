@@ -2,7 +2,7 @@
 #
 #
 '''Usage:
-        klap.py --rtype=<record_type> --pconfig=<pipeline_config_file> --topic=<topic> --pgsql_host=<host> --pgsql_user=<user> --pgsql_password=<password>
+        klap.py --rtype=<record_type> --pconfig=<pipeline_config_file> --topic=<topic> --pgsql_host=<host> --pgsql_user=<user> --pgsql_password=<password> [<logfile>]
 '''
 
 #
@@ -89,7 +89,7 @@ def get_optional_dimension_id_func(value, dim_table_name, key_field_name, value_
         return record[0]
 
 
-def sst_to_direct_olap(pipeline_config, pgsql_host, pgsql_username, pgsql_password, log, source_topic):
+def sst_to_direct_olap(pipeline_config, pgsql_host, pgsql_username, pgsql_password, log_name, source_topic):
     fact = tg.OLAPSchemaFact('olap.f_transactions',
                                    'id',
                                    UNIQUEIDENTIFIER())
@@ -162,7 +162,7 @@ def sst_to_direct_olap(pipeline_config, pgsql_host, pgsql_username, pgsql_passwo
     topic_partition = TopicPartition(topic, list(metadata)[0])
 
     kreader.consumer.seek(topic_partition, offset)
-
+    log = logging.getLogger(log_name)
     kreader.read(oss_relay, log)
 
 
@@ -175,21 +175,25 @@ def main(args):
     host = args['--pgsql_host']
     user = args['--pgsql_user']
     passw = args['--pgsql_password']
+    log_file = args.get('<logfile>', 'kola-log.txt')
     pipeline_config = None
 
     with open(pipeline_config_file) as f:
         yaml_config = yaml.load(f)
         pipeline_config = tg.KafkaPipelineConfig(yaml_config)
 
-    log = logging.getLogger(__name__)
-    ch = logging.StreamHandler()
-    formatter = logging.Formatter('%(levelname)s:%(message)s')
-    ch.setFormatter(formatter)
-    log.setLevel(logging.DEBUG)
-    log.addHandler(ch)
+    log_name = log_file + "." + rectype + "." + src_topic
+    # log = logging.getLogger(log_name)
+    # ch = logging.StreamHandler()
+    # formatter = logging.Formatter('%(levelname)s:%(message)s')
+    # ch.setFormatter(formatter)
+    # log.setLevel(logging.DEBUG)
+    # log.addHandler(ch)
+
+    logging.basicConfig(filename=log_file, level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 
     if rectype == 'direct_sales':
-        sst_to_direct_olap(pipeline_config, host, user, passw, log, src_topic)
+        sst_to_direct_olap(pipeline_config, host, user, passw, log_name, src_topic)
 
 
 if __name__ == '__main__':
