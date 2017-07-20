@@ -67,6 +67,10 @@ FIELD_TYPE_OPTIONS = [{'value': 'string', 'label': 'String'},
 DEFAULT_MIMETYPE = 'application/json'
 
 
+def array_to_menu(value_array):
+    return [{'value': v, 'label': str(v)} for v in value_array]
+
+
 def docopt_cmd(func):
     """
     This decorator is used to simplify the try/except block and pass the result
@@ -228,10 +232,10 @@ class SnapCLI(Cmd):
     do_exit = do_quit
 
 
-    def update_shape_field(self, shape_field):
+    def update_shape_field(self, shape_field_name):
         missing_params = 3
         while True:
-            field_name = cli.InputPrompt('field name', shape_field.name).show()
+            field_name = cli.InputPrompt('field name', shape_field_name).show()
             if not field_name:
                 break
             missing_params -= 1
@@ -348,11 +352,11 @@ class SnapCLI(Cmd):
                     shape = shape.add_field(new_field.name, new_field.data_type, new_field.required)
                 break
             if operation == 'change_field':
-                field_prompt = cli.MenuPrompt('Select field', shape.fields)
-                field = field_prompt.show()
-                updated_field = self.update_shape_field(field)
+                field_prompt = cli.MenuPrompt('Select field', array_to_menu(shape.field_names))
+                field_name = field_prompt.show()
+                updated_field = self.update_shape_field(field_name)
                 if updated_field:
-                    shape = shape.replace_field(field.name, updated_field)
+                    shape = shape.replace_field(field_name, updated_field)
                 break
         self.data_shapes[shape_index] = shape
 
@@ -494,7 +498,8 @@ class SnapCLI(Cmd):
 
     def select_service_object(self):
         options = [{'value': name, 'label': name} for name in self.service_object_names]
-        svc_object_name = cli.MenuPrompt('select service object', options).show()
+        return cli.MenuPrompt('select service object', options).show()
+        
 
 
     def make_transform(self, name=None):
