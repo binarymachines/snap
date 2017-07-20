@@ -93,10 +93,10 @@ def initialize_logging(yaml_config_obj, app):
     logging.getLogger('wekzeug').addHandler(handler)
 
 
-    
+
 def initialize_services(yaml_config_obj, logger):
     service_objects = {}
-    for service_object_name in yaml_config_obj['service_objects']:
+    for service_object_name in yaml_config_obj.get('service_objects', []):
         config_segment = yaml_config_obj['service_objects'][service_object_name]
         service_object_classname = config_segment['class']
         service_module_name = yaml_config_obj['globals']['service_module']
