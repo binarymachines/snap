@@ -785,7 +785,8 @@ class SnapCLI(Cmd):
 
     def yaml_config(self):
         cwriter = SnapConfigWriter()
-        config = cwriter.write(settings=self.global_settings,
+        config = cwriter.write(app_name=self.name,
+                               settings=self.global_settings,
                                shapes=self.data_shapes,
                                transforms=self.transforms,
                                services=self.service_objects)
@@ -971,7 +972,13 @@ def main(args):
         with open(configfile_name, 'r') as f:
             yaml_cfg = yaml.load(f)
 
-        app_name = yaml_cfg['app_name']
+        app_name = yaml_cfg.get('app_name')
+        if not app_name:
+            print '>>> The config file you are loading has no application name. Please enter one now.'
+            app_name = cli.InputPrompt('SNAP application name').show()
+            if not app_name:
+                return
+
         datashapes = load_shapes_from_yaml_config(yaml_cfg)
         transforms = load_transforms_from_yaml_config(yaml_cfg)
         service_objects = load_service_objects_from_yaml_config(yaml_cfg)
