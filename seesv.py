@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 '''Usage:
-            xcsv.py --xform=<transform_file> --xmap=<transform_map> --schema=<schema_file> --rtype=<record_type> <datafile>
-            xcsv.py (-t | -f) --schema=<schema_file> --rtype=<record_type> <datafile>
+            seesv.py --xform=<transform_file> --xmap=<transform_map> --schema=<schema_file> --rtype=<record_type> <datafile>
+            seesv.py (-t | -f) --schema=<schema_file> --rtype=<record_type> <datafile>
 
    Options:
             -t --test          Test the records in the target file for schema compliance

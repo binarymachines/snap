@@ -276,7 +276,6 @@ class KafkaIngestRecordReader(object):
                  **kwargs):
 
         self._topic = topic
-        self._num_commits = 0
         # commit on every received message by default
         self._commit_interval = kwargs.get('commit_interval', 1)
         self._consumer = KafkaConsumer(group_id=group,
@@ -303,25 +302,39 @@ class KafkaIngestRecordReader(object):
             checkpoint_timer.start()
 
         message_counter = 0
-        for message in self._consumer:
-            data_relay.send(message, logger)
-            message_counter += 1
-            if message_counter % self._commit_interval == 0:
-                self._consumer.commit()
-                self._num_commits += 1
-            if checkpoint_mode and message_counter % checkpoint_frequency == 0:
-                data_relay.checkpoint(logger, **kwargs)
-                checkpoint_timer.reset()
+        num_commits = 0
+        error_count = 0
 
+        for message in self._consumer:
+            try:
+                data_relay.send(message, logger)                
+                if message_counter % self._commit_interval == 0:
+                    self._consumer.commit()
+                    num_commits += 1
+                if checkpoint_mode and message_counter % checkpoint_frequency == 0:
+                    data_relay.checkpoint(logger, **kwargs)
+                    checkpoint_timer.reset()
+            except Exception, err:
+                logger.error('Kafka message reader threw an exception from its DataRelay while processing message %d: %s' % (message_counter, str(err)))
+                logger.error('Offending message: %s' % str(message))
+                error_count += 1
+            finally:
+                message_counter += 1
+
+        logger.info('%d committed reads from topic %s, %d messages processed, %d errors.' % (num_commits, self._topic, message_counter, error_count))
+        
         # issue a last checkpoint on our way out the door
         # TODO: find out if what's really needed here is a Kafka consumer
         # timeout exception handler
-        #
-        #logger.debug('###~ reader done consuming records, exiting...')
-        
+
         if checkpoint_mode:
-            data_relay.checkpoint(logger, **kwargs)
-            checkpoint_timer.stop()
+            try:
+                logger.info('Kafka message reader issuing final checkpoint command at %s...' % datetime.datetime.now().isoformat())
+                data_relay.checkpoint(logger, **kwargs)
+            except Exception, err:
+                logger.error('Final checkpoint command threw an exception: %s' % str(err))
+            finally:    
+                checkpoint_timer.stop()
         
 
 
