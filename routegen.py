@@ -9,7 +9,7 @@
 -p --preview   preview code generation
 
 '''
-
+import context
 import core
 import os, sys
 import argparse
