@@ -109,10 +109,10 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
 
 
 if __name__ == '__main__':
-    '''If we are loading from command line,
-    run the Flask app explicitly
-    '''
-
+    #
+    # If we are loading from command line,
+    # run the Flask app explicitly
+    #
     app.run(host='{{bind_host}}', port={{port}})
 
 

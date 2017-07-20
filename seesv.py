@@ -10,6 +10,10 @@
 
 '''
 
+#
+# seesv: command line utility for examining CSV files and evaluating them against a schema of required fields
+#
+
 import docopt
 import os, sys
 import common
