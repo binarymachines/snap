@@ -770,7 +770,7 @@ class SnapCLI(Cmd):
                     print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
                     return
 
-                attr_name = 'set_%s' % name
+                attr_name = 'set_%s' % setting_name
                 setter_func = getattr(self.global_settings, attr_name)
                 self.global_settings = setter_func(value)
 
