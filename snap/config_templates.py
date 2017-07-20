@@ -19,7 +19,7 @@ globals:
         preprocessor_module:         {{ global_settings.data()['preprocessor_module'] }}
 
 
-app_name: {{app_name}}
+app_name: {{name}}
 
 service_objects:
         {% for so in service_objects %}

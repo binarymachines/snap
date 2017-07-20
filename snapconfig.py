@@ -105,11 +105,11 @@ class SnapConfigWriter(object):
 
 
     def write(self, **kwargs):
-        kwreader = common.KeywordArgReader('settings', 'transforms', 'shapes')
+        kwreader = common.KeywordArgReader('app_name', 'settings', 'transforms', 'shapes')
         kwreader.read(**kwargs)
         j2env = jinja2.Environment()
         template = j2env.from_string(config_templates.INIT_FILE)
-        return template.render(app_name=kwreader.get_value('app_name'),
+        return template.render(name=kwreader.get_value('app_name'),
                                global_settings=kwreader.get_value('settings'),
                                transforms=kwreader.get_value('transforms') or [],
                                data_shapes=kwreader.get_value('shapes') or [],
