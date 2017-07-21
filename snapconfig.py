@@ -470,7 +470,7 @@ class SnapCLI(Cmd):
 
         if operation == 'remove_params':
             while True:
-                param_menu = [{'label': p.name, 'value': p.name} for p in current_so.init_params]
+                param_menu = [{'label': p['name'], 'value': p['name']} for p in current_so.init_params]
                 param_name = cli.MenuPrompt('select param to remove', param_menu).show()
                 self.service_objects[so_index] = current_so.remove_param(param_name)
                 current_so = self.service_objects[so_index]
