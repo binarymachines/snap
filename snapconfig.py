@@ -465,7 +465,7 @@ class SnapCLI(Cmd):
         operation = cli.MenuPrompt('select service object operation', CHSO_OPTIONS).show()
         if operation == 'add_params':
             new_params = self.create_service_object_params()
-            self.service_objects[so_index] = current_so.add_params(new_params)
+            self.service_objects[so_index] = current_so.add_params(**new_params)
             current_so = self.service_objects[so_index]
 
         if operation == 'remove_params':
@@ -499,7 +499,7 @@ class SnapCLI(Cmd):
     def select_service_object(self):
         options = [{'value': name, 'label': name} for name in self.service_object_names]
         return cli.MenuPrompt('select service object', options).show()
-        
+
 
 
     def make_transform(self, name=None):
