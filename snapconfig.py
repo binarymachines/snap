@@ -4,7 +4,7 @@
              snapconfig.py -i <initfile>
 
 '''
-import context
+
 from cmd import Cmd
 import copy
 import docopt
