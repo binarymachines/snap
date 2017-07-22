@@ -10,14 +10,14 @@
 
 '''
 
-import core
+from snap import core
+from snap import common
+from snap import config_templates
 import os, sys
 import argparse
 import docopt
 import yaml
 import jinja2
-import common
-import config_templates
 import re
 
 

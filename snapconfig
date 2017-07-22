@@ -16,10 +16,11 @@ import re
 import yaml
 import logging
 import jinja2
-import common
-from metaobjects import *
-import config_templates
-import cli_tools as cli
+from snap import common
+from snap import metaobjects
+from snap.metaobjects import *
+from snap import config_templates
+from snap import cli_tools as cli
 
 #pylint: disable=C0301
 #pylint: disable=W0613
