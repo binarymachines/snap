@@ -21,6 +21,7 @@ setup(
     author='Dexter Taylor',
     author_email='binarymachineshop@gmail.com',
     platforms=['any'],
+    scripts=['bin/routegen', 'bin/uwsgen', 'bin/snapconfig'],
     packages=find_packages(),
     install_requires=[r.strip() for r in open('requirements.txt').readlines()],
     test_suite='tests',
