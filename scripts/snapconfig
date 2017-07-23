@@ -961,7 +961,6 @@ def load_global_settings_from_yaml_config(yaml_cfg):
 
 
 def main(args):
-    print args
     mode = None
     if args.get('-i') == True:
         mode = 'update'

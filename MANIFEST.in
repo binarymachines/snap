@@ -1,0 +1,5 @@
+recursive-include snap *.py
+recursive-include snap *.pickle
+include README.txt
+include LICENSE
+include requirements.txt

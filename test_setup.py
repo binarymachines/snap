@@ -8,19 +8,14 @@ from setuptools import setup, find_packages
 from pip.req import parse_requirements
 from pip.download import PipSession
 
-
 NAME = 'snap'
-VERSION = '0.9.4'
 PACKAGES = find_packages(where='src')
-DEPENDENCIES=['docopt',
-              'Flask',
-              'itsdangerous',
-              'Jinja2',
-              'MarkupSafe',
-              'PyYAML',
-              'SQLAlchemy',
-              'Werkzeug',
-              'requests']
+
+install_reqs = parse_requirements('requirements.txt', session=PipSession())
+reqs = [str(ir.req) for ir in install_reqs]
+snap_version = os.getenv('SNAP_VERSION')
+if not snap_version:
+    raise Exception('The environment variable SNAP_VERSION has not been set.')
 
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -28,13 +23,13 @@ def read(fname):
 
 setup(
     name='snap-micro',
-    version=VERSION,
+    version='%s' % snap_version,
     author='Dexter Taylor',
     author_email='binarymachineshop@gmail.com',
     platforms=['any'],
     scripts=['scripts/routegen', 'scripts/uwsgen', 'scripts/snapconfig'],
     packages=find_packages(),
-    install_requires=DEPENDENCIES,
+    install_requires=reqs,                    
     test_suite='tests',
     description=('Small Network Applications in Python: a microservices toolkit'),
     license='MIT',
