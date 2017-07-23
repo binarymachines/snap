@@ -4,3 +4,6 @@
 *~
 .*
 main.py
+dist/*
+build/*
+snap_micro.egg-info/*
