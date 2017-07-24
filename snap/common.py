@@ -71,9 +71,17 @@ def load_config_var(value):
     return var
 
 
-def load_class(class_name, module_name):
-    module = __import__(module_name)
-    return getattr(module, class_name)
+def load_class(class_name, module_path):
+    module_path_tokens = module_path.split('.')
+    if len(module_path_tokens) == 1:
+        module = __import__(module_path_tokens[0])
+        return getattr(module, class_name)
+    else:
+        module = __import__(module_path)
+        for index in range(1, len(module_path_tokens)):            
+            module = getattr(module, module_path_tokens[index])
+            
+        return getattr(module, class_name)
 
 
 def jsonpretty(data_dict):
