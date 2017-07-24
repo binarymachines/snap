@@ -17,7 +17,6 @@ test:
 
 build-dist:
 	python setup.py sdist bdist_wheel
-	mv *.whl dist/
 
 build-testdist:
 	python test_setup.py sdist bdist_wheel
