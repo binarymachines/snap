@@ -19,6 +19,8 @@ globals:
         preprocessor_module:         {{ global_settings.data()['preprocessor_module'] }}
 
 
+app_name: {{name}}
+
 service_objects:
         {% for so in service_objects %}
         {{ so.name }}:
@@ -253,7 +255,7 @@ http {
 }
 """
 
-TRANSFORM_FUNCS = """
+TRANSFORM_BLOCK = """
 {% for f in transform_functions %}
 
 def {{ f }}(input_data, service_objects, log, **kwargs):

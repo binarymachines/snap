@@ -16,10 +16,11 @@ import re
 import yaml
 import logging
 import jinja2
-import common
-from metaobjects import *
-import config_templates
-import cli_tools as cli
+from snap import common
+from snap import metaobjects
+from snap.metaobjects import *
+from snap import config_templates
+from snap import cli_tools as cli
 
 #pylint: disable=C0301
 #pylint: disable=W0613
@@ -67,6 +68,10 @@ FIELD_TYPE_OPTIONS = [{'value': 'string', 'label': 'String'},
 DEFAULT_MIMETYPE = 'application/json'
 
 
+def array_to_menu(value_array):
+    return [{'value': v, 'label': str(v)} for v in value_array]
+
+
 def docopt_cmd(func):
     """
     This decorator is used to simplify the try/except block and pass the result
@@ -103,12 +108,14 @@ class SnapConfigWriter(object):
     def __init__(self):
         pass
 
+
     def write(self, **kwargs):
-        kwreader = common.KeywordArgReader('settings', 'transforms', 'shapes')
+        kwreader = common.KeywordArgReader('app_name', 'settings', 'transforms', 'shapes')
         kwreader.read(**kwargs)
         j2env = jinja2.Environment()
         template = j2env.from_string(config_templates.INIT_FILE)
-        return template.render(global_settings=kwreader.get_value('settings'),
+        return template.render(name=kwreader.get_value('app_name'),
+                               global_settings=kwreader.get_value('settings'),
                                transforms=kwreader.get_value('transforms') or [],
                                data_shapes=kwreader.get_value('shapes') or [],
                                service_objects=kwreader.get_value('services') or [])
@@ -124,8 +131,8 @@ class SnapCLI(Cmd):
         self.transforms = kwreader.get_value('transforms') or []
         self.data_shapes = kwreader.get_value('shapes') or []
         self.service_objects = kwreader.get_value('service_objects') or []
-
-        self.global_settings = GlobalSettingsMeta(app_name, **kwreader.get_value('globals'))
+        app_globals = kwreader.get_value('globals') or {}
+        self.global_settings = GlobalSettingsMeta(app_name, **app_globals)
         #self.replay_stack = Stack()
 
     @property
@@ -226,10 +233,10 @@ class SnapCLI(Cmd):
     do_exit = do_quit
 
 
-    def update_shape_field(self, shape_field):
+    def update_shape_field(self, shape_field_name):
         missing_params = 3
         while True:
-            field_name = cli.InputPrompt('field name', shape_field.name).show()
+            field_name = cli.InputPrompt('field name', shape_field_name).show()
             if not field_name:
                 break
             missing_params -= 1
@@ -346,11 +353,11 @@ class SnapCLI(Cmd):
                     shape = shape.add_field(new_field.name, new_field.data_type, new_field.required)
                 break
             if operation == 'change_field':
-                field_prompt = cli.MenuPrompt('Select field', shape.fields)
-                field = field_prompt.show()
-                updated_field = self.update_shape_field(field)
+                field_prompt = cli.MenuPrompt('Select field', array_to_menu(shape.field_names))
+                field_name = field_prompt.show()
+                updated_field = self.update_shape_field(field_name)
                 if updated_field:
-                    shape = shape.replace_field(field.name, updated_field)
+                    shape = shape.replace_field(field_name, updated_field)
                 break
         self.data_shapes[shape_index] = shape
 
@@ -459,12 +466,12 @@ class SnapCLI(Cmd):
         operation = cli.MenuPrompt('select service object operation', CHSO_OPTIONS).show()
         if operation == 'add_params':
             new_params = self.create_service_object_params()
-            self.service_objects[so_index] = current_so.add_params(new_params)
+            self.service_objects[so_index] = current_so.add_params(**new_params)
             current_so = self.service_objects[so_index]
 
         if operation == 'remove_params':
             while True:
-                param_menu = [{'label': p.name, 'value': p.name} for p in current_so.init_params]
+                param_menu = [{'label': p['name'], 'value': p['name']} for p in current_so.init_params]
                 param_name = cli.MenuPrompt('select param to remove', param_menu).show()
                 self.service_objects[so_index] = current_so.remove_param(param_name)
                 current_so = self.service_objects[so_index]
@@ -492,7 +499,8 @@ class SnapCLI(Cmd):
 
     def select_service_object(self):
         options = [{'value': name, 'label': name} for name in self.service_object_names]
-        svc_object_name = cli.MenuPrompt('select service object', options).show()
+        return cli.MenuPrompt('select service object', options).show()
+
 
 
     def make_transform(self, name=None):
@@ -769,7 +777,7 @@ class SnapCLI(Cmd):
                     print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
                     return
 
-                attr_name = 'set_%s' % name
+                attr_name = 'set_%s' % setting_name
                 setter_func = getattr(self.global_settings, attr_name)
                 self.global_settings = setter_func(value)
 
@@ -784,7 +792,8 @@ class SnapCLI(Cmd):
 
     def yaml_config(self):
         cwriter = SnapConfigWriter()
-        config = cwriter.write(settings=self.global_settings,
+        config = cwriter.write(app_name=self.name,
+                               settings=self.global_settings,
                                shapes=self.data_shapes,
                                transforms=self.transforms,
                                services=self.service_objects)
@@ -794,7 +803,11 @@ class SnapCLI(Cmd):
     def do_preview(self, arg):
         '''display current configuration in YAML format'''
 
-        print self.yaml_config()
+        message = self.get_save_condition()
+        if message == 'ok':
+            print self.yaml_config()
+        else:
+            print message
 
 
     def generate_backup_filename(self, directory, filename):
@@ -834,9 +847,9 @@ class SnapCLI(Cmd):
 
     def get_save_condition(self):
         if not len(self.transforms):
-            return 'In order to save a configuration, you must have at least one valid transform.'
+            return 'In order to save or preview a configuration, you must have at least one valid transform.'
         if not len(self.data_shapes):
-            return 'In order to save a configuration, you must have at least one valid datashape.'
+            return 'In order to save or preview a configuration, you must have at least one valid datashape.'
         return 'ok'
 
 
@@ -931,8 +944,10 @@ def load_service_object_params_from_yaml_config(so_name, yaml_cfg):
 
 
 def load_service_objects_from_yaml_config(yaml_cfg):
-    service_objects = []
-    for service_object_name in yaml_cfg['service_objects']:
+    service_objects = yaml_cfg.get('service_objects')
+    if service_objects is None:
+        service_objects = []
+    for service_object_name in service_objects:
         so_class = yaml_cfg['service_objects'][service_object_name]['class']
         
         so_params = load_service_object_params_from_yaml_config(service_object_name, yaml_cfg)
@@ -946,7 +961,6 @@ def load_global_settings_from_yaml_config(yaml_cfg):
 
 
 def main(args):
-    print args
     mode = None
     if args.get('-i') == True:
         mode = 'update'
@@ -966,7 +980,13 @@ def main(args):
         with open(configfile_name, 'r') as f:
             yaml_cfg = yaml.load(f)
 
-        app_name = yaml_cfg['app_name']
+        app_name = yaml_cfg.get('app_name')
+        if not app_name:
+            print '>>> The config file you are loading has no application name. Please enter one now.'
+            app_name = cli.InputPrompt('SNAP application name').show()
+            if not app_name:
+                return
+
         datashapes = load_shapes_from_yaml_config(yaml_cfg)
         transforms = load_transforms_from_yaml_config(yaml_cfg)
         service_objects = load_service_objects_from_yaml_config(yaml_cfg)

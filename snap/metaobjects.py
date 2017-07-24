@@ -121,6 +121,11 @@ class DataShapeMeta(object):
         return self._fields
 
 
+    @property
+    def field_names(self):
+        return [f.name for f in self._fields]
+
+
     def set_name(self, name):
         fields = copy.deepcopy(self.fields)
         return DataShapeMeta(name, fields)
