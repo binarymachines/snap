@@ -2,11 +2,28 @@
 
 
 import copy
+import re
 
+valid_function_name_rx = re.compile(r'^(?![0-9])((?!-).)*$')
+
+
+class InvalidTransformNameException(Exception):
+    def __init__(self, func_name):
+        Exception.__init__(self, 'The transform name "%s" is not valid. Transform names must be valid Python function names.')
 
 
 class TransformMeta(object):
-    def __init__(self, name, route, method, output_mimetype, input_shape=None, **kwargs):
+    def __init__(self,
+                 name,
+                 route,
+                 method,
+                 output_mimetype,
+                 input_shape=None,
+                 **kwargs):
+
+        if not valid_func_rx.match(name):
+            raise InvalidTransformNameException(name)
+
         self._name = name
         self._route = route
         self._method = method

@@ -65,7 +65,14 @@ class RouteVariable(object):
 
 
 class Transform(object):
-    def __init__(self, name, input_shape, route, method_string, output_type, transform_function_module=None):
+    def __init__(self,
+                 name,
+                 input_shape,
+                 route,
+                 method_string,
+                 output_type,
+                 transform_function_module=None):
+
         self.name = name
         self.input_shape = input_shape
         self.route = route

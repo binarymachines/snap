@@ -507,6 +507,11 @@ class SnapCLI(Cmd):
         transform_name = name or cli.InputPrompt('transform name').show()
         if not transform_name:
             return
+
+        if not valid_function_name_rx.match(transform_name):
+            print 'Transform names must be valid Python function names.'
+            return 
+
         route = cli.InputPrompt('transform route', '/%s' % transform_name).show()
 
         while True:
