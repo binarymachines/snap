@@ -24,6 +24,7 @@ class TransformMeta(object):
         if not valid_function_name_rx.match(name):
             raise InvalidTransformNameException(name)
 
+        self._name = name
         self._route = route
         self._method = method
         self._mime_type = output_mimetype
