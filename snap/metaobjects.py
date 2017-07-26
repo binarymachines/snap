@@ -21,10 +21,9 @@ class TransformMeta(object):
                  input_shape=None,
                  **kwargs):
 
-        if not valid_func_rx.match(name):
+        if not valid_function_name_rx.match(name):
             raise InvalidTransformNameException(name)
 
-        self._name = name
         self._route = route
         self._method = method
         self._mime_type = output_mimetype
@@ -330,5 +329,3 @@ class GlobalSettingsMeta(object):
 
     def data(self):
         return self.current_values
-
-
