@@ -16,6 +16,8 @@ HTTP_NOT_IMPLEMENTED = 500
 MIMETYPE_JSON = 'application/json'
 CONFIG_FILE_ENV_VAR = 'BUTTONIZE_CFG'
 
+ROUTE_VARIABLE_REGEX = re.compile(r'<([a-zA-Z_-]+):([a-zA-Z_-]+)>')
+
 
 class MissingDataStatus():
     def __init__(self, field_name):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-
+import routegen as rg
 import copy
 import re
 
@@ -26,12 +26,21 @@ class TransformMeta(object):
 
         self._name = name
         self._route = route
+        self._routevars = []
         self._method = method
         self._mime_type = output_mimetype
-        if input_shape:
+        if input_shape: 
             self._input_shape_ref = input_shape.name
         else:
             self._input_shape_ref = kwargs.get('input_shape_name')
+
+        route_var_names = [match.group().lstrip('<').rstrip('>') for match in re.finditer(rg.ROUTE_VARIABLE_REGEX, self._route)]
+
+        for name in route_var_names:
+            tokens = name.split(':')
+            if not len(tokens) == 2:
+                raise rg.BadRouteVariableFormatException(name)
+            self._routevars.append(tokens[1])
 
 
     @property

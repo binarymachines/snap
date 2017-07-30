@@ -1,8 +1,18 @@
 import unittest
 from context import snap
+import yaml
+
 
 
 class ConfigfileLoadTest(unittest.TestCase):
+
+    def setUp(self):
+        with open('data/good_sample_config.yaml') as f:
+            self.good_yaml_config = yaml.load(f)
+
+        with open('data/bad_sample_config.yaml') as f:
+            self.bad_yaml_config = yaml.load(f)
+
 
     def test_globals_should_contain_required_fields(self):
         self.fail()
