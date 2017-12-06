@@ -69,7 +69,7 @@ def load_snap_config(mode, app):
     elif mode == 'server':
         config_file_path=os.getenv('SNAP_CONFIG')
         filename = os.path.join(app.instance_path, 'application.cfg')
-        print 'generated config path is %s' % filename
+        print('generated config path is %s' % filename)
 
     else:
         print('valid setup modes are "standalone" and "server".')
