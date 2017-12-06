@@ -10,7 +10,7 @@ from pip.download import PipSession
 
 
 NAME = 'snap'
-VERSION = '0.9.46'
+VERSION = '0.9.48'
 PACKAGES = find_packages(where='src')
 DEPENDENCIES=['docopt',
               'Flask',

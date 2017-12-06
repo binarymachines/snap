@@ -260,7 +260,7 @@ class Transformer():
 
         try:
             return action.execute(input_data, self.services, logger, **kwargs)
-        except Exception, err:
+        except Exception as err:
             error_type = err.__class__.__name__              
             if self.error_table.get(error_type):
                 return TransformStatus(None, 

@@ -165,7 +165,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         return Response(json.dumps(transform_status.user_data), 
                         status=transform_status.get_error_code() or snap.HTTP_DEFAULT_ERRORCODE, 
                         mimetype=output_mimetype) 
-    except Exception, err:
+    except Exception as err:
         logger.error("Exception thrown: ", exc_info=1)        
         raise err
 
