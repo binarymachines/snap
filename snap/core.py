@@ -1,6 +1,6 @@
 #!/user/bin/env python
 
-import common
+from snap import common
 import argparse
 import logging
 import json

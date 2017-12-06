@@ -11,8 +11,8 @@ from flask import Flask
 import argparse
 import sys, os
 import yaml
-import core
-import common
+from snap import core
+from snap import common
 
 
 HTTP_OK = 200
