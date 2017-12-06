@@ -4,6 +4,7 @@ import common
 import argparse
 import logging
 import json
+import re
 from logging.handlers import RotatingFileHandler
 
 
