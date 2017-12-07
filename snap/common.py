@@ -7,6 +7,12 @@ import jinja2
 from os.path import expanduser
 import json
 
+# cross-compatible string type checking for python 2 and 3
+try:
+  basestring
+except NameError:
+  basestring = str
+
 
 class UnregisteredServiceObjectException(Exception):
     def __init__(self, alias):
