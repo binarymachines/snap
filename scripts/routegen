@@ -199,8 +199,8 @@ class RouteGenerator():
             output_mime_type = current_transform['output_mimetype']
 
             '''
-            print 'creating new Transform with input shape name: %s' % shape_name
-            print 'datashape internal name is: %s' % data_shapes[shape_name].name
+            print('creating new Transform with input shape name: %s' % shape_name)
+            print('datashape internal name is: %s' % data_shapes[shape_name].name)
             '''
             if not data_shapes.get(shape_name):
                 raise Exception('Error creating transform: no datashape registered under the name "%s"' % shape_name)
@@ -284,15 +284,15 @@ def main(argv):
             raise common.MissingEnvironmentVarException(project_directory_var[1:])
 
 
-        print routing_module_template.render(project_dir=project_directory,
+        print(routing_module_template.render(project_dir=project_directory,
                                              transforms=route_gen.load_transforms(yaml_config),
                                              transform_module=route_gen.transform_function_module,
                                              port=listener_port,
-                                             bind_host=bind_host_addr)
+                                             bind_host=bind_host_addr))
 
 
     except docopt.DocoptExit as e:
-        print e.message
+        print(e.message)
 
 
 if __name__ == '__main__':
