@@ -292,7 +292,7 @@ def main(argv):
 
 
     except docopt.DocoptExit as e:
-        print(e.message)
+        raise e
 
 
 if __name__ == '__main__':
