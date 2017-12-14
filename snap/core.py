@@ -265,7 +265,7 @@ class Transformer():
             if self.error_table.get(error_type):
                 return TransformStatus(None, 
                                        False, 
-                                       error_message=err.message,  
+                                       error_message=str(err),  
                                        error_code=self.error_table[error_type])
             # if we don't know what code to return for a given downstream exception, 
             # re-raise it and assume that someone will handle it upstream
