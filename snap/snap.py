@@ -24,6 +24,8 @@ HTTP_NOT_IMPLEMENTED = 500
 MIMETYPE_JSON = 'application/json'
 CONFIG_FILE_ENV_VAR = 'BUTTONIZE_CFG'
 
+log = logging.getLogger(__name__)
+
 
 class MissingDataStatus():
     def __init__(self, field_name):
@@ -86,15 +88,14 @@ def load_snap_config(mode, app):
 def initialize_logging(yaml_config_obj, app):
     app.debug =  yaml_config_obj['globals']['debug']
     logfile_name = yaml_config_obj['globals']['logfile']
-
     handler = RotatingFileHandler(logfile_name, maxBytes=10000, backupCount=1)
-    app.logger.addHandler(handler)
-    app.logger.setLevel(logging.INFO)
-    logging.getLogger('wekzeug').addHandler(handler)
+    log.addHandler(handler)
+    log.setLevel(logging.INFO)
+    logging.getLogger('werkzeug').addHandler(handler)
 
 
 
-def initialize_services(yaml_config_obj, logger):
+def initialize_services(yaml_config_obj):
     service_objects = {}
     configured_services = yaml_config_obj.get('service_objects')
     if configured_services is None:
@@ -114,7 +115,7 @@ def initialize_services(yaml_config_obj, logger):
             param_tbl[param_name] = param_value
 
         klass = common.load_class(service_object_classname, service_module_name)
-        service_object = klass(logger, **param_tbl)
+        service_object = klass(**param_tbl)
         service_objects[service_object_name] = service_object
         
     return service_objects
@@ -127,7 +128,7 @@ def setup(app):
     mode = app.config.get('startup_mode')
     yaml_config = load_snap_config(mode, app)
     initialize_logging(yaml_config, app)
-    service_object_tbl = initialize_services(yaml_config, app.logger)
+    service_object_tbl = initialize_services(yaml_config)
     #
     # load the service objects into the app
     #
