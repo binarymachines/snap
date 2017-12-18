@@ -43,10 +43,10 @@ class MenuPrompt(object):
 
 
     def display_menu(self):
-        print '%s:' % self.prompt
+        print('%s:' % self.prompt)
         opt_id = 1
         for opt in self.menu_options:
-            print '  [%d]...%s' % (opt_id, opt['label'])
+            print('  [%d]...%s' % (opt_id, opt['label']))
             opt_id += 1
 
 
@@ -60,7 +60,7 @@ class MenuPrompt(object):
             if self.is_valid_selection(selection_index):
                 result = self.menu_options[int(selection_index) - 1]['value']
                 break
-            print 'Invalid selection. Please select one of the displayed options.'
+            print('Invalid selection. Please select one of the displayed options.')
             self.display_menu()
 
         return result
@@ -97,4 +97,4 @@ class Notifier():
         self.info = info_string
 
     def show(self):
-        print '[%s]: %s' % (self.prompt, self.info)
+        print('[%s]: %s' % (self.prompt, self.info))
