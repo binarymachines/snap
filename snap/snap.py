@@ -24,7 +24,6 @@ HTTP_NOT_IMPLEMENTED = 500
 MIMETYPE_JSON = 'application/json'
 CONFIG_FILE_ENV_VAR = 'BUTTONIZE_CFG'
 
-log = logging.getLogger(__name__)
 
 
 class MissingDataStatus():
@@ -89,10 +88,12 @@ def initialize_logging(yaml_config_obj, app):
     app.debug =  yaml_config_obj['globals']['debug']
     logfile_name = yaml_config_obj['globals']['logfile']
     handler = RotatingFileHandler(logfile_name, maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.INFO)
+    log = logging.getLogger(yaml_config_obj.get('app_name', 'anonymous_snap_svc'))
     log.addHandler(handler)
     log.setLevel(logging.INFO)
     logging.getLogger('werkzeug').addHandler(handler)
-
+    return log
 
 
 def initialize_services(yaml_config_obj):
@@ -127,7 +128,7 @@ def setup(app):
         
     mode = app.config.get('startup_mode')
     yaml_config = load_snap_config(mode, app)
-    initialize_logging(yaml_config, app)
+    app.log = initialize_logging(yaml_config, app)
     service_object_tbl = initialize_services(yaml_config)
     #
     # load the service objects into the app
