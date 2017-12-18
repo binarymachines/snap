@@ -258,7 +258,7 @@ http {
 TRANSFORM_BLOCK = """
 {% for f in transform_functions %}
 
-def {{ f }}(input_data, service_objects, log, **kwargs):
+def {{ f }}(input_data, service_objects, **kwargs):
     raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
 
@@ -272,10 +272,13 @@ TRANSFORMS = """
 from snap import snap
 from snap import core
 import json
+import logging
+
+log = logging.getLogger(__name__)
 
 
 {% for f in transform_functions %}
-def {{ f }}(input_data, service_objects, log, **kwargs):
+def {{ f }}(input_data, service_objects, **kwargs):
     raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
 
