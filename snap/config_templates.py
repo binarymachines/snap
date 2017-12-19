@@ -78,6 +78,7 @@ import logging
 import json
 import argparse
 import sys
+from snap.loggers import request_logger as log
 
 sys.path.append('{{ project_dir }}')
 
@@ -96,7 +97,6 @@ else:
     f_runtime.config['startup_mode'] = 'server'
 
 app = snap.setup(f_runtime)
-log = logging.getLogger(__name__)
 xformer = core.Transformer(app.config.get('services'))
 
 
@@ -272,9 +272,7 @@ TRANSFORMS = """
 from snap import snap
 from snap import core
 import json
-import logging
-
-log = logging.getLogger(__name__)
+from snap.loggers import transform_logger as log
 
 
 {% for f in transform_functions %}
