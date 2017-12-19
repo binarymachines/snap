@@ -5,8 +5,6 @@
 #
 # 
 
-import logging
-from logging.handlers import RotatingFileHandler
 from flask import Flask
 import argparse
 import sys, os
@@ -82,19 +80,6 @@ def load_snap_config(mode, app):
         
     return common.read_config_file(config_file_path)
 
-    
-'''
-def initialize_logging(yaml_config_obj, app):
-    app.debug =  yaml_config_obj['globals']['debug']
-    logfile_name = yaml_config_obj['globals']['logfile']
-    handler = RotatingFileHandler(logfile_name, maxBytes=10000, backupCount=1)
-    handler.setLevel(logging.INFO)
-    log = logging.getLogger(yaml_config_obj.get('app_name', 'anonymous_snap_svc'))
-    log.addHandler(handler)
-    log.setLevel(logging.INFO)
-    logging.getLogger('werkzeug').addHandler(handler)
-    return log
-'''
 
 def initialize_services(yaml_config_obj):
     service_objects = {}
