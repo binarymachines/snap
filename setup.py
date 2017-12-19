@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import codecs
 import os
@@ -35,6 +35,7 @@ setup(
     scripts=['scripts/routegen', 'scripts/uwsgen', 'scripts/snapconfig'],
     packages=find_packages(),
     install_requires=DEPENDENCIES,
+    include_package_data=True,
     test_suite='tests',
     description=('Small Network Applications in Python: a microservices toolkit'),
     license='MIT',

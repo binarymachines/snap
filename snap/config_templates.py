@@ -74,9 +74,11 @@ ROUTES = """
 from flask import Flask, request, Response
 from snap import snap
 from snap import core
+import logging
 import json
 import argparse
 import sys
+from snap.loggers import request_logger as log
 
 sys.path.append('{{ project_dir }}')
 
@@ -95,7 +97,6 @@ else:
     f_runtime.config['startup_mode'] = 'server'
 
 app = snap.setup(f_runtime)
-logger = app.logger
 xformer = core.Transformer(app.config.get('services'))
 
 
@@ -136,8 +137,8 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
         if app.debug:
             # dump request headers for easier debugging
-            app.logger.info('### HTTP request headers:')
-            app.logger.info(request.headers)
+            log.info('### HTTP request headers:')
+            log.info(request.headers)
 
         input_data = {}
         {%- for route_variable in t.route_variables %}
@@ -148,13 +149,12 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         request.get_data()
         input_data.update(core.map_content(request))
         
-        transform_status = xformer.transform('{{ t.name }}', input_data, app.logger, headers=request.headers)
+        transform_status = xformer.transform('{{ t.name }}', input_data, headers=request.headers)
         {%- elif t.methods == "'GET'" or t.methods == "'DELETE'" %}                
         input_data.update(request.args)
         
         transform_status = xformer.transform('{{ t.name }}',
                                              core.convert_multidict(input_data),
-                                             app.logger,
                                              headers=request.headers)
         {%- else %}
         {%- endif %}        
@@ -166,7 +166,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
                         status=transform_status.get_error_code() or snap.HTTP_DEFAULT_ERRORCODE, 
                         mimetype=output_mimetype) 
     except Exception as err:
-        logger.error("Exception thrown: ", exc_info=1)        
+        log.error("Exception thrown: ", exc_info=1)        
         raise err
 
 {% endfor %}
@@ -258,7 +258,7 @@ http {
 TRANSFORM_BLOCK = """
 {% for f in transform_functions %}
 
-def {{ f }}(input_data, service_objects, log, **kwargs):
+def {{ f }}(input_data, service_objects, **kwargs):
     raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
 
@@ -272,10 +272,11 @@ TRANSFORMS = """
 from snap import snap
 from snap import core
 import json
+from snap.loggers import transform_logger as log
 
 
 {% for f in transform_functions %}
-def {{ f }}(input_data, service_objects, log, **kwargs):
+def {{ f }}(input_data, service_objects, **kwargs):
     raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
 
