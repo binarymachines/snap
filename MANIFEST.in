@@ -1,4 +1,5 @@
 include README.txt
 include LICENSE
 include requirements.txt
-include snap/logging_config.ini
+include snap/logging_config.yaml
+
