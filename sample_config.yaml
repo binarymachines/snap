@@ -32,7 +32,7 @@ transforms:
         test:
             route:              /test
             method:             GET
-	    input_shape: 	default
+            input_shape:        default
             output_mimetype:    application/json
         
 
