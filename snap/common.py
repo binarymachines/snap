@@ -6,13 +6,13 @@ import os
 import jinja2
 from os.path import expanduser
 import json
-
+'''
 # cross-compatible string type checking for python 2 and 3
 try:
   basestring
 except NameError:
   basestring = str
-
+'''
 
 class UnregisteredServiceObjectException(Exception):
     def __init__(self, alias):
@@ -61,7 +61,7 @@ def load_config_var(value):
         pass
     elif value.__class__.__name__ == 'list':
         var = value
-    elif isinstance(value, basestring):
+    elif isinstance(value, str):
         if value.startswith('$'):
             var = os.environ.get(value[1:])
             if not var:

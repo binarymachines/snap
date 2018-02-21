@@ -1,0 +1,30 @@
+version: "2.1"
+services:
+        ngnix:
+                image: bamx/mysql-5.7
+                build: ./conf/mysql-5.7
+                environment:
+                    - MYSQL_ROOT_PASSWORD=root
+                networks:
+                    - default
+
+        snap:
+                image: binarymachines/snap
+                depends_on:
+
+                networks:
+                        - default
+
+                volumes:
+                        - ./src:/opt/binary/src
+                        - ./conf:/opt/bamx/conf
+                command:
+                        python src/extract.py --config src/staging_transform.yaml --limit 10 --offset 10
+
+                environment:
+                        - SNAP_HOME=/opt/bamx/src
+                        - BAMX_ENV=local
+
+
+
+
