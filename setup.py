@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import codecs
 import os
@@ -9,11 +9,11 @@ try: # for pip >= 10
     from pip._internal.req import parse_requirements
 except ImportError: # for pip <= 9.0.3
     from pip.req import parse_requirements
-from pip.download import PipSession
+
 
 NAME = 'snap'
-VERSION = '0.9.55'
-PACKAGES = find_packages(where='src')
+VERSION = '0.9.57'
+PACKAGES = find_packages(where='.', exclude='tests')
 DEPENDENCIES=['docopt',
               'Flask',
               'itsdangerous',
