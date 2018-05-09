@@ -1,0 +1,94 @@
+IMAGE_VERSION = latest
+ORG = binary
+PROJECT = snap
+COMPOSE = docker-compose -p "${PROJECT}"
+HOST_UID = `id -u`
+HOST_GID = `id -g`
+HOST=127.0.0.1
+TEST_PATH=./tests
+RECIPEPREFIX= # prefix char is a space, on purpose; do not delete
+PHONY=clean
+
+# ----- Builds and Deployments -----
+
+docker-build: FORCE
+	docker build -t ${ORG}/${PROJECT}:${IMAGE_VERSION} -f config/Dockerfile \
+		--build-arg "BINARY_BUILD_VERSION=${IMAGE_VERSION}" .
+
+docker-build-clean: FORCE
+	docker build --no-cache -t ${ORG}/${PROJECT}:${IMAGE_VERSION} -f config/Dockerfile \
+                --build-arg "BINARY_BUILD_VERSION=${IMAGE_VERSION}" .
+
+docker-pull: FORCE
+	docker pull ${ORG}/${PROJECT}:${IMAGE_VERSION}
+
+docker-pull-all: docker-pull FORCE
+	docker pull nginx
+
+docker-push: FORCE
+	docker push ${ORG}/${PROJECT}:${IMAGE_VERSION}
+
+docker-tag-latest: FORCE
+	docker tag ${ORG}/${PROJECT}:${IMAGE_VERSION} ${PROJECT}:latest
+
+docker-test: FORCE
+	./docker-test.sh
+
+
+# ----- Local Development -----
+
+up: FORCE
+	${COMPOSE} up -d --no-build snapcon
+
+down: FORCE
+	${COMPOSE} down --remove-orphans -v
+
+rm: FORCE
+	docker-compose rm -f
+
+bounce: down rm up
+
+sh: FORCE
+	${COMPOSE} run --rm snapcon /bin/sh
+
+test: FORCE
+	python -m unittest discover tests
+
+pip-compile: FORCE
+	# NOTE: Fix file ownership at the end, instead of running the whole
+	# container as the host user/group. Due to an upstream limitation,
+	# `pip-compile` needs write access to `/root` for pip caching.
+	# https://github.com/jazzband/pip-tools/issues/395
+	${COMPOSE} run --rm lisnr /bin/sh -c \
+		"pip-compile --rebuild --generate-hashes --output-file conf/deps/requirements.txt conf/deps/requirements-unpinned.txt && \
+		chown ${HOST_UID}:${HOST_GID} conf/deps/requirements.txt"
+
+
+FORCE:  # https://www.gnu.org/software/make/manual/html_node/Force-Targets.html#Force-Targets
+
+
+clean: 
+	find . -name '*.pyc' -exec rm -f {} +
+	find . -name '*.pyo' -exec rm -f {} +
+	find . -name '*~' -exec rm -f {} +
+
+install-deps:
+	pip install -r requirements.txt
+
+test:	
+	PYTHONPATH=./tests python -m unittest discover -t . ./tests -v
+
+build-dist:
+	python setup.py sdist bdist_wheel
+
+build-testdist:
+	python test_setup.py sdist bdist_wheel
+	mv *.whl dist/
+
+clean-dist:
+	rm -rf dist/*
+	rm -rf build/*
+
+pypi-upload:
+	twine upload -r dist/*
+
