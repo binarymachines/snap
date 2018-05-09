@@ -27,5 +27,5 @@ clean-dist:
 	rm -rf build/*
 
 pypi-upload:
-	twine upload -r dist/*
+	twine upload -r dist/* --repository pypi
 
