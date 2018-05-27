@@ -1,0 +1,35 @@
+[[source]]
+verify_ssl = true
+name = "pypi"
+url = "https://pypi.org/simple"
+
+[packages]
+"asn1crypto" = "==0.22.0"
+cffi = "==1.10.0"
+cryptography = "==2.0"
+docopt = "==0.6.2"
+"enum34" = "==1.1.6"
+idna = "==2.5"
+ipaddress = "==1.0.18"
+itsdangerous = "==0.24"
+ndg-httpsclient = "==0.4.2"
+pkginfo = "==1.4.1"
+"pyasn1" = "==0.2.3"
+pycparser = "==2.18"
+requests = "==2.9.2"
+requests-toolbelt = "==0.8.0"
+six = "==1.10.0"
+tqdm = "==4.15.0"
+Flask = "==0.10.1"
+"Jinja2" = "==2.8"
+MarkupSafe = "==0.23"
+pyOpenSSL = "==17.2.0"
+PyYAML = "==3.11"
+SQLAlchemy = "==1.0.14"
+Werkzeug = "==0.11.9"
+"e1839a8" = {path = ".", editable = true}
+
+[dev-packages]
+
+[requires]
+python_version = "3.5"

@@ -4,6 +4,7 @@ RECIPEPREFIX= # prefix char is a space, on purpose; do not delete
 PHONY=clean
 
 
+
 clean: 
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
@@ -12,9 +13,18 @@ clean:
 install-deps:
 	pip install -r requirements.txt
 
-test:	
+test-generate:
+	pipenv install -e .
+	export TEST_HOME=`pwd`; pipenv run routegen -g data/routegen_test_config.yaml > test_app.py
+	unset TEST_HOME
+
+
+test:	test_generate
 	#PYTHONPATH=./tests
-	PROJECT_HOME=`pwd` python -m unittest discover -s snap ./tests -v
+	export TEST_HOME=`pwd`
+	python -m unittest discover -s snap ./tests -v
+	unset TEST_HOME
+
 
 build-dist:
 	python setup.py sdist bdist_wheel

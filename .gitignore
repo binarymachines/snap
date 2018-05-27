@@ -7,3 +7,5 @@ main.py
 dist/*
 build/*
 snap_micro.egg-info/*
+test_app.py
+test_transforms.py

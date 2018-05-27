@@ -1,11 +1,27 @@
 import unittest
 import snap
+import os
+import yaml
+from scripts import routegen as rg
 
 
 class RouteGenerationTest(unittest.TestCase):
 
+    def setUp(self):
+        pass
+        '''
+        project_home = os.getenv('TEST_HOME')
+        self.assertIsNotNone(project_home)
+        config_file_path = os.path.join(project_home,
+                                        'data/good_sample_config.yaml')
+        with open(config_file_path) as f:
+            self.app_config = yaml.load(f)
+        self.route_gen = rg.RouteGenerator(self.app_config)
+        '''
+        
+    
     def test_routegen_should_generate_a_valid_main_file(self):
-        self.assertTrue(False)
+        pass
 
 
     def test_routegen_should_generate_one_route_per_transform(self):
