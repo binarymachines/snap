@@ -11,7 +11,6 @@ Jinja2==2.8
 MarkupSafe==0.23
 ndg-httpsclient==0.4.2
 pkginfo==1.4.1
-poster==0.8.1
 pyasn1==0.2.3
 pycparser==2.18
 pyOpenSSL==17.2.0

@@ -13,7 +13,8 @@ install-deps:
 	pip install -r requirements.txt
 
 test:	
-	PYTHONPATH=./tests python -m unittest discover -t . ./tests -v
+	#PYTHONPATH=./tests
+	PROJECT_HOME=`pwd` python -m unittest discover -s snap ./tests -v
 
 build-dist:
 	python setup.py sdist bdist_wheel

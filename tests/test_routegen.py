@@ -1,5 +1,5 @@
 import unittest
-from context import snap
+import snap
 
 
 class RouteGenerationTest(unittest.TestCase):

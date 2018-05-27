@@ -1,9 +1,10 @@
 
 #!/usr/bin/env python
 
- 
+#from context import snap
+#import context
+#import snap
 from snap import snap
-from snap import core
 import json
 from snap.loggers import transform_logger as log
 
