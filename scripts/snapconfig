@@ -19,22 +19,12 @@ import jinja2
 from snap import common
 from snap import metaobjects
 from snap.metaobjects import *
+from snap.constants import *
 from snap import config_templates
 from snap import cli_tools as cli
 
 #pylint: disable=C0301
 #pylint: disable=W0613
-
-
-BAD_ROUTE_VAR_PROMPT = '''
-It looks like you are attempting to specify a variable in this route.\n
-To specify a route variable, use the form <datatype:routevar>.\n
-If "datatype" is not one of [int, string, float, path],\n 
-you must register a custom converter for your datatype,\n
-otherwise Snap will fail to process the URL correctly at runtime.\n'''
-
-
-BASIC_ROUTE_VAR_REGEX = re.compile(r'<\S+>')
 
 
 CHSHAPE_OPTIONS = [{'value': 'add_field', 'label': 'Add field'},
@@ -65,7 +55,6 @@ FIELD_TYPE_OPTIONS = [{'value': 'string', 'label': 'String'},
                       {'value': 'bool', 'label': 'Boolean'},
                       {'value': 'char', 'label': 'Character'}]
 
-DEFAULT_MIMETYPE = 'application/json'
 
 
 def array_to_menu(value_array):
@@ -913,7 +902,7 @@ class SnapCLI(Cmd):
     def emptyline(self):
         pass
 
-
+'''
 def load_transforms_from_yaml_config(yaml_cfg):
     transforms = []
     for transform_name in yaml_cfg['transforms']:
@@ -963,6 +952,7 @@ def load_service_objects_from_yaml_config(yaml_cfg):
 
 def load_global_settings_from_yaml_config(yaml_cfg):    
     return yaml_cfg['globals']
+'''
 
 
 def main(args):

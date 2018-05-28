@@ -12,19 +12,15 @@
 
 from snap import core
 from snap import common
+from snap import metaobjects as m
 from snap import config_templates
+from snap.constants import *
 import os, sys
 import argparse
 import docopt
 import yaml
 import jinja2
 import re
-
-
-DEFAULT_CONFIG_FILENAME = 'snap.conf'
-RESERVED_ROUTES = ['smp', 'api']
-ROUTE_VARIABLE_REGEX = re.compile(r'<([a-zA-Z_-]+):([a-zA-Z_-]+)>')
-
 
 
 class MissingHandlerFunctionException(Exception):
@@ -40,11 +36,6 @@ class NoSuchHandlerException(Exception):
 class ReservedRouteException(Exception):
     def __init__(self, path):
         Exception.__init__(self, 'The URL route "%s" is reserved for internal use; please select a different path.' % path)
-
-
-class BadRouteVariableFormatException(Exception):
-    def __init__(self, name):
-        Exception.__init__(self, 'Bad route variable "%s". Route vars must be specified in the format "<type:variable>".' % name)
 
 
 class RouteVariable(object):
@@ -269,7 +260,7 @@ def main(argv):
             transform_block_template = j2env.from_string(config_templates.TRANSFORM_BLOCK)
             transform_code = transform_block_template.render(transform_functions=new_transforms)
             with open(transform_module_filename, 'a') as transform_file:
-                transform_file.write('\n\n')
+                #transform_file.write('\n')
                 transform_file.write(transform_code)
 
 

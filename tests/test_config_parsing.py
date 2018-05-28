@@ -82,9 +82,9 @@ class ConfigfileLoadTest(unittest.TestCase):
     def test_error_handler_config_should_contain_required_fields(self):
         required_fields = ['error', 'tx_status_code']
         error_handler_config = self.good_yaml_config['error_handlers']
-        for handler_name in error_handler_config:
+        for handler in error_handler_config:
             for field in required_fields:
-                self.assertIn(field, error_handler_config[handler_name])
+                self.assertIn(field, handler)
             
 
 

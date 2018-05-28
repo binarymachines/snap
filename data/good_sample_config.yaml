@@ -11,9 +11,9 @@ globals:
         debug:                       True
         logfile:                     test.log
         project_directory:           $TEST_HOME
-        transform_function_module:   test_transforms
-        service_module:              test_services 
-        preprocessor_module:         test_decode
+        transform_function_module:   testbed_transforms
+        service_module:              testbed_services 
+        preprocessor_module:         testbed_decode
 
 
 service_objects:
@@ -21,7 +21,7 @@ service_objects:
                 class: TestServiceObject
                 init_params:
                         - name: host
-                          value: $REDSHIFT_HOST
+                          value: localhost
 
 data_shapes:
         default:
@@ -29,17 +29,22 @@ data_shapes:
 
         test_shape:
                 fields:
-                        - name: test_field
+                        - name: placeholder
                           datatype: string
                           required: True
 
 transforms:
-        test:
-            route:              /test
+        ping:
+            route:              /ping
             method:             GET
             input_shape:        default
             output_mimetype:    application/json
-        
+            
+        test:
+            route:              /test
+            method:             GET
+            input_shape:        test_shape
+            output_mimetype:    application/json
 
 error_handlers:
         - error:                NoSuchObjectException

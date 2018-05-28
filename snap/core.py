@@ -42,11 +42,11 @@ class NullTransformInputDataException(Exception):
         Exception.__init__(self, 'A null data table was passed in to the object transform service for type "%s". Please check your HTTP request body or query string.' 
                            % transform_name)
 
-
+'''
 class TransformNotImplementedException(Exception):
     def __init__(self, transform_name):
         Exception.__init__(self, 'transform function %s exists but performs no action. Time to add some code.' % transform_name)
-
+'''
 
 class ContentDecodingException(Exception):
     def __init__(self, mime_type):

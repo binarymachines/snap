@@ -257,11 +257,9 @@ http {
 
 TRANSFORM_BLOCK = """
 {% for f in transform_functions %}
-
 def {{ f }}(input_data, service_objects, **kwargs):
     raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
-
 """
 
 

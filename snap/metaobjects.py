@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-import routegen as rg
 import copy
 import re
 
-valid_function_name_rx = re.compile(r'^(?![0-9])((?!-).)*$')
+from snap.constants import *
+
+
+class BadRouteVariableFormatException(Exception):
+    def __init__(self, name):
+        Exception.__init__(self, 'Bad route variable "%s". Route vars must be specified in the format "<type:variable>".' % name)
 
 
 class InvalidTransformNameException(Exception):
@@ -21,7 +25,7 @@ class TransformMeta(object):
                  input_shape=None,
                  **kwargs):
 
-        if not valid_function_name_rx.match(name):
+        if not VALID_FUNCTION_NAME_RX.match(name):
             raise InvalidTransformNameException(name)
 
         self._name = name
@@ -34,12 +38,12 @@ class TransformMeta(object):
         else:
             self._input_shape_ref = kwargs.get('input_shape_name')
 
-        route_var_names = [match.group().lstrip('<').rstrip('>') for match in re.finditer(rg.ROUTE_VARIABLE_REGEX, self._route)]
+        route_var_names = [match.group().lstrip('<').rstrip('>') for match in re.finditer(ROUTE_VARIABLE_REGEX, self._route)]
 
         for name in route_var_names:
             tokens = name.split(':')
             if not len(tokens) == 2:
-                raise rg.BadRouteVariableFormatException(name)
+                raise BadRouteVariableFormatException(name)
             self._routevars.append(tokens[1])
 
 
@@ -260,7 +264,6 @@ class ServiceObjectMeta(object):
         return result
 
 
-
 class GlobalSettingsMeta(object):
     def __init__(self, app_name, **kwargs):
         self._app_name = app_name
@@ -339,3 +342,55 @@ class GlobalSettingsMeta(object):
 
     def data(self):
         return self.current_values
+
+
+def load_transforms_from_yaml_config(yaml_cfg):
+    transforms = []
+    for transform_name in yaml_cfg['transforms']:
+        route = yaml_cfg['transforms'][transform_name]['route']
+        method = yaml_cfg['transforms'][transform_name]['method']
+        shape_name = yaml_cfg['transforms'][transform_name].get('input_shape')
+        mime_type = yaml_cfg['transforms'][transform_name]['output_mimetype']
+
+        transforms.append(TransformMeta(transform_name, route, method, mime_type, input_shape_name=shape_name))
+    return transforms
+
+
+def load_shape_fields_from_yaml_config(shape_name, yaml_cfg):
+    fields = []
+    for field in yaml_cfg['data_shapes'][shape_name].get('fields') or []:
+        fields.append(DataShapeFieldMeta(field['name'], field['type'], field['required']))
+
+    return fields
+
+
+def load_shapes_from_yaml_config(yaml_cfg):
+    shapes = []
+    for shape_name in yaml_cfg['data_shapes']:
+        fields = load_shape_fields_from_yaml_config(shape_name, yaml_cfg)
+        shapes.append(DataShapeMeta(shape_name, fields))
+    return shapes
+
+def load_service_object_params_from_yaml_config(so_name, yaml_cfg):
+    params = {}
+    for param in yaml_cfg['service_objects'][so_name].get('init_params') or []:
+        params[param['name']] = param['value']
+    return params
+
+
+def load_service_objects_from_yaml_config(yaml_cfg):
+    service_objects = yaml_cfg.get('service_objects')
+    if service_objects is None:
+        service_objects = []
+    for service_object_name in service_objects:
+        so_class = yaml_cfg['service_objects'][service_object_name]['class']
+        
+        so_params = load_service_object_params_from_yaml_config(service_object_name, yaml_cfg)
+        som = ServiceObjectMeta(service_object_name, so_class, **so_params)
+        service_objects.append(som)
+    return service_objects
+
+
+def load_global_settings_from_yaml_config(yaml_cfg):    
+    return yaml_cfg['globals']
+
