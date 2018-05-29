@@ -27,9 +27,15 @@ pyOpenSSL = "==17.2.0"
 PyYAML = "==3.11"
 SQLAlchemy = "==1.0.14"
 Werkzeug = "==0.11.9"
-"e1839a8" = {editable = true, path = "."}
+"e1839a8" = {path = ".", editable = true}
+sh = "*"
 
 [dev-packages]
+PyYAML = "==3.11"
+"e1839a8" = {path = ".", editable = true}
 
 [requires]
 python_version = "3.5"
+
+[scripts]
+routegen = "scripts/routegen"

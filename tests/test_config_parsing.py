@@ -10,21 +10,15 @@ class ConfigfileLoadTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        project_home = os.getenv('PROJECT_HOME')
+        project_home = os.getenv('SNAP_TEST_HOME')
         if not project_home:
-            raise Exception('the environment variable PROJECT_HOME has not been set.')
+            raise Exception('the environment variable SNAP_TEST_HOME has not been set.')
 
         good_config_file_path = os.path.join(project_home,
                                              'data/good_sample_config.yaml')
-
-        bad_config_file_path = os.path.join(project_home,
-                                            'data/bad_sample_config.yaml')
         
         with open(good_config_file_path) as f:
             cls.good_yaml_config = yaml.load(f)
-
-        with open(bad_config_file_path) as f:
-            cls.bad_yaml_config = yaml.load(f)
 
 
     def test_globals_should_contain_required_fields(self):

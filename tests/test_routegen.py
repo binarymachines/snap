@@ -12,8 +12,10 @@ GENERATED_APP_FILE = 'test_app.py'
 class RouteGenerationTest(unittest.TestCase):
 
     def setUp(self):
-        project_home = os.getenv('TEST_HOME')
-        self.assertIsNotNone(project_home)
+        project_home = os.getenv('SNAP_TEST_HOME')
+        if not project_home:
+            raise Exception('the environment variable SNAP_TEST_HOME has not been set.')
+            
         config_file_path = os.path.join(project_home,
                                         'data/good_sample_config.yaml')
         with open(config_file_path) as f:
