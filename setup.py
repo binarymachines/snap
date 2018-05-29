@@ -12,7 +12,7 @@ except ImportError: # for pip <= 9.0.3
 
 
 NAME = 'snap'
-VERSION = '0.9.57'
+VERSION = '0.9.58'
 PACKAGES = find_packages(where='.', exclude='tests')
 DEPENDENCIES=['docopt',
               'Flask',
