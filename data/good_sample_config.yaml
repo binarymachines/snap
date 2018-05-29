@@ -10,7 +10,7 @@ globals:
         port:                        5000
         debug:                       True
         logfile:                     test.log
-        project_directory:           $TEST_HOME
+        project_directory:           $SNAP_TEST_HOME
         transform_function_module:   testbed_transforms
         service_module:              testbed_services 
         preprocessor_module:         testbed_decode

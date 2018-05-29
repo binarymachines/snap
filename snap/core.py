@@ -69,12 +69,11 @@ def convert_multidict(md):
     return result
 
 
-
 class ContentProtocol(object):
     def __init__(self):
         self.decoding_map = {}        
 
-        
+
     def update(self, content_type, decode_function):
         self.decoding_map[content_type] = decode_function
         return self
@@ -87,7 +86,6 @@ class ContentProtocol(object):
             raise ContentDecodingException(ctype)        
         return func(http_request)
 
-    
 
 def decode_json(http_request):
     return http_request.json
@@ -108,6 +106,7 @@ default_content_protocol.update('application/json', decode_json)
 default_content_protocol.update('text/plain', decode_text_plain)
 default_content_protocol.update('application/x-www-form-urlencoded', decode_form_urlenc)
 default_content_protocol.update('text/plain; charset=UTF-8', decode_text_plain)
+
 
 def map_content(http_request):
     return default_content_protocol.decode(http_request)

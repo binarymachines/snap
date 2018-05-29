@@ -40,10 +40,6 @@ class RouteGenerationTest(unittest.TestCase):
         self.assertTrue(hasattr(transform_module, funcname))
 
 
-    def test_routegen_should_not_add_whitespace_to_transform_file(self):
-        self.assertTrue(False)
-
-
     def test_default_function_should_raise_transform_not_implemented(self):
         module_name = self.app_config['globals']['transform_function_module']
         transform_module = pc.importlib.import_module(module_name)

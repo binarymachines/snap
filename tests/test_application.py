@@ -5,6 +5,7 @@ import sh
 import requests
 import yaml
 #from context import snap
+from snap import core
 from snap import metaobjects as m
 
 
@@ -29,9 +30,10 @@ class HTTPServiceTest(unittest.TestCase):
         
         
     def setUp(self):
-        project_home = os.getenv('TEST_HOME')
-        self.assertIsNotNone(project_home)
-        config_file_path = os.path.join(project_home,
+        self.project_home = os.getenv('SNAP_TEST_HOME')
+        if not self.project_home:
+            raise Exception('the environment var SNAP_TEST_HOME has not been set.')
+        config_file_path = os.path.join(self.project_home,
                                         'data/good_sample_config.yaml')
         with open(config_file_path) as f:
             self.app_config = yaml.load(f)
@@ -61,16 +63,29 @@ class HTTPServiceTest(unittest.TestCase):
     '''
 
     def test_should_log_to_target_specified_in_config(self):
-        self.assertTrue(False)
+        logfile_name = self.app_config['globals']['logfile']
+        logfile_path = os.path.join(self.project_home, logfile_name)
+        statinfo = os.stat(logfile_path)
+        initial_logfile_size = statinfo.st_size
+        port = self.app_config['globals']['port']
+        r = requests.get('http://localhost:%s/ping' % port)
+        self.assertEqual(r.status_code, 200)
+
+        statinfo = os.stat(logfile_path)
+        final_logfile_size = statinfo.st_size
+        self.assertGreater(final_logfile_size, initial_logfile_size)
 
 
+    '''
     def test_default_content_protocol_can_decode_standard_content_types(self):
+        protocol = core.default_content_protocol
         self.assertTrue(False)
 
 
     def test_custom_content_protocol_is_triggered_by_specified_content_type(self):
         self.assertTrue(False)
-
+    '''
+    
 
 def main():
     unittest.main()

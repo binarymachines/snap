@@ -8,9 +8,12 @@ TEST_SVC_NAME = 'test_service'
 
 class ConfigfileLoadTest(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         project_home = os.getenv('PROJECT_HOME')
-        self.assertIsNotNone(project_home)
+        if not project_home:
+            raise Exception('the environment variable PROJECT_HOME has not been set.')
+
         good_config_file_path = os.path.join(project_home,
                                              'data/good_sample_config.yaml')
 
@@ -18,10 +21,10 @@ class ConfigfileLoadTest(unittest.TestCase):
                                             'data/bad_sample_config.yaml')
         
         with open(good_config_file_path) as f:
-            self.good_yaml_config = yaml.load(f)
+            cls.good_yaml_config = yaml.load(f)
 
         with open(bad_config_file_path) as f:
-            self.bad_yaml_config = yaml.load(f)
+            cls.bad_yaml_config = yaml.load(f)
 
 
     def test_globals_should_contain_required_fields(self):

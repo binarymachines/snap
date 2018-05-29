@@ -8,9 +8,13 @@
 from flask import Flask
 import argparse
 import sys, os
+import logging.config
 import yaml
+import jinja2
+
 from snap import core
 from snap import common
+from snap import config_templates
 
 
 HTTP_OK = 200
@@ -23,6 +27,7 @@ MIMETYPE_JSON = 'application/json'
 CONFIG_FILE_ENV_VAR = 'BUTTONIZE_CFG'
 
 
+logging_config = None
 
 class MissingDataStatus():
     def __init__(self, field_name):
@@ -107,6 +112,28 @@ def initialize_services(yaml_config_obj):
     return service_objects
     
 
+def configure_logging(yaml_config):
+
+    global logging_config
+    if not logging_config:
+        project_dir = common.load_config_var(yaml_config['globals']['project_directory'])
+        logfile_full_path = os.path.join(project_dir,
+                                         yaml_config['globals']['logfile'])
+        j2env = jinja2.Environment()
+        template_mgr = common.JinjaTemplateManager(j2env)
+        log_config_template = j2env.from_string(config_templates.LOGGING_CONFIG)
+    
+        log_config_file = os.path.join(project_dir,
+                                      'logging_config.yaml')
+        with open(log_config_file, 'w') as f:
+            f.write(log_config_template.render(log_filename=logfile_full_path))
+        
+        with open(log_config_file, 'rt') as f:
+            logging_config = yaml.safe_load(f.read())
+        logging.config.dictConfig(logging_config)
+
+
+
 def setup(app):
     if app.config.get('initialized'):
         return app
@@ -114,6 +141,8 @@ def setup(app):
     mode = app.config.get('startup_mode')
     yaml_config = load_snap_config(mode, app)
     app.debug = yaml_config['globals']['debug']
+    configure_logging(yaml_config)
+
     service_object_tbl = initialize_services(yaml_config)
     #
     # load the service objects into the app

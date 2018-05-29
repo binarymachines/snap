@@ -10,6 +10,7 @@
 
 '''
 
+from snap import snap
 from snap import core
 from snap import common
 from snap import metaobjects as m
@@ -224,7 +225,7 @@ def main(argv):
         preview = args.get('--preview') or False
         config_filename = args.get('<initfile>') or DEFAULT_CONFIG_FILENAME
         yaml_config = common.read_config_file(config_filename)
-
+        snap.configure_logging(yaml_config)
 
         if args.get('--extend'):
             mode = ProgramMode.EXTEND
