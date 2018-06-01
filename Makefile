@@ -21,7 +21,7 @@ test-generate:
 	export SNAP_TEST_HOME=`pwd`; pipenv run routegen -e data/good_sample_config.yaml > test_app.py
 
 spinup:
-	pipenv run python test_app.py --configfile data/good_sample_config.yaml
+	export SNAP_TEST_HOME=`pwd`; pipenv run python test_app.py --configfile data/good_sample_config.yaml
 
 test:	clean test-generate
 	export SNAP_TEST_HOME=`pwd`; pipenv run python -m unittest discover -s snap ./tests -v
