@@ -4,9 +4,10 @@
           routegen.py -p <initfile>
           routegen.py -e <initfile>
 
--g --generate  generate all code 
--e --extend    extend existing code
--p --preview   preview code generation
+   Options:
+   -g --generate  generate all code 
+   -e --extend    extend existing code
+   -p --preview   preview code generation
 
 '''
 
@@ -214,23 +215,24 @@ class RouteGenerator():
         return ['%s_func' % f for f in transforms_segment]
 
 
-ProgramMode = common.Enum(['GENERATE', 'EXTEND'])
+ProgramMode = common.Enum(['GENERATE', 'EXTEND', 'PREVIEW'])
 
 
 
 def main(argv):
     try:
         args = docopt.docopt(__doc__)
-
         preview = args.get('--preview') or False
         config_filename = args.get('<initfile>') or DEFAULT_CONFIG_FILENAME
         yaml_config = common.read_config_file(config_filename)
         snap.configure_logging(yaml_config)
 
-        if args.get('--extend'):
+        if args['--extend']:
             mode = ProgramMode.EXTEND
-        elif args.get('--generate'):
+        elif args['--generate']:
             mode = ProgramMode.GENERATE
+        else:
+            mode = ProgramMode.PREVIEW
 
         route_gen = RouteGenerator(yaml_config)
 
@@ -247,7 +249,7 @@ def main(argv):
             with open(transform_module_filename, 'w') as transform_file:
                 transform_file.write(transform_code)
 
-        else: # mode is ProgramMode.EXTEND
+        elif mode == ProgramMode.EXTEND:
             # load existing transforms module
             tmodule = __import__(transform_module_name)
 
@@ -261,9 +263,10 @@ def main(argv):
             transform_block_template = j2env.from_string(config_templates.TRANSFORM_BLOCK)
             transform_code = transform_block_template.render(transform_functions=new_transforms)
             with open(transform_module_filename, 'a') as transform_file:
-                #transform_file.write('\n')
                 transform_file.write(transform_code)
-
+        else: # otherwise we are in preview mode
+            print('PREVIEW mode not yet operational. Watch this space!')
+            
 
         routing_module_template = j2env.from_string(config_templates.ROUTES)
 
