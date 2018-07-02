@@ -88,7 +88,9 @@ class ContentProtocol(object):
 
 
 def decode_json(http_request):
-    return http_request.json
+    result =  http_request.get_json(silent=True)
+    if not result:
+        return {}
 
 
 def decode_text_plain(http_request):
