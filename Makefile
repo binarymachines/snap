@@ -23,9 +23,8 @@ test-generate:
 spinup:
 	export SNAP_TEST_HOME=`pwd`; pipenv run python test_app.py --configfile data/good_sample_config.yaml
 
-test:
+test: clean test-generate
 	export SNAP_TEST_HOME=`pwd`; pipenv run python -m unittest discover -s snap ./tests -v
-
 
 build-dist:
 	python setup.py sdist bdist_wheel
