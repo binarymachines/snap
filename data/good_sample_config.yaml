@@ -46,9 +46,20 @@ transforms:
             input_shape:        test_shape
             output_mimetype:    application/json
 
+        post_target:
+            route:              /posttest
+            method:             POST
+            input_shape:        test_shape
+            output_mimetype:    application/json
+
 error_handlers:
         - error:                NoSuchObjectException
           tx_status_code:       HTTP_NOT_FOUND 
                 
         - error:                DuplicateIDException
           tx_status_code:       HTTP_BAD_REQUEST
+
+
+decoders:
+        
+        

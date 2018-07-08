@@ -33,9 +33,10 @@ sh = "*"
 [dev-packages]
 PyYAML = "==3.11"
 "e1839a8" = {path = ".", editable = true}
+pylint = "*"
 
 [requires]
-python_version = "3.5"
+python_version = "3.6"
 
 [scripts]
 routegen = "scripts/routegen"

@@ -58,6 +58,12 @@ class TransformNotImplementedException(Exception):
         Exception.__init__(self, 'transform function %s exists but performs no action. Time to add some code.' % transform_name)
 
 
+class NoSuchMimeTypeDecoder(Exception):
+    def __init__(self, mime_type, function_name, decoder_module_name):
+        Exception.__init__(self, 'No content decoder function "%s" has been defined in module %s.py to decode the mime type %s.' % (function_name, decoder_module_name, mime_type))
+
+
+
 def load_snap_config(mode, app):
     config_file_path = None
     if mode == 'standalone':
@@ -133,6 +139,19 @@ def configure_logging(yaml_config):
         logging.config.dictConfig(logging_config)
 
 
+def load_user_content_decoders(yaml_config):
+    decoder_module_name = yaml_config['globals']['preprocessor_module']
+    decoder_module = __import__(decoder_module_name)
+    if not yaml_config.get('decoders'):
+        return
+
+    decoder_config = yaml_config['decoders']
+    for mime_type, function_name in decoder_config.items():
+        if not hasattr(decoder_module, function_name):
+            raise NoSuchMimeTypeDecoder(mime_type, function_name, decoder_module_name)
+        decode_function = getattr(decoder_module, function_name)
+        core.default_content_protocol.update(mime_type, decode_function)
+
 
 def setup(app):
     if app.config.get('initialized'):
@@ -142,6 +161,7 @@ def setup(app):
     yaml_config = load_snap_config(mode, app)
     app.debug = yaml_config['globals']['debug']
     configure_logging(yaml_config)
+    load_user_content_decoders(yaml_config)
 
     service_object_tbl = initialize_services(yaml_config)
     #
