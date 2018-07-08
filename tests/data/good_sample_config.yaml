@@ -1,0 +1,44 @@
+
+# 
+# YAML init file for SNAP microservice framework
+#
+#
+
+
+globals:
+        bind_host:                   127.0.0.1
+        port:                        5000
+        debug:                       True
+        logfile:                     test.log
+        project_directory:           $TEST_HOME
+        transform_function_module:   test_transforms
+        service_module:              test_services 
+        preprocessor_module:         test_decode
+
+
+service_objects:
+        
+
+
+data_shapes:
+        
+        default:
+                fields:
+                        
+        
+
+transforms:
+        
+        test:
+            route:              /test
+            method:             GET
+            input_shape:        default
+            output_mimetype:    application/json
+        
+
+error_handlers:
+        - error:                NoSuchObjectException
+          tx_status_code:       HTTP_NOT_FOUND 
+                
+        - error:                DuplicateIDException
+          tx_status_code:       HTTP_BAD_REQUEST

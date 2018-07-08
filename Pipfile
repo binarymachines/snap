@@ -6,7 +6,6 @@ url = "https://pypi.org/simple"
 [packages]
 "asn1crypto" = "==0.22.0"
 cffi = "==1.10.0"
-cryptography = "==2.0"
 docopt = "==0.6.2"
 "enum34" = "==1.1.6"
 idna = "==2.5"
@@ -27,7 +26,7 @@ pyOpenSSL = "==17.2.0"
 PyYAML = "==3.11"
 SQLAlchemy = "==1.0.14"
 Werkzeug = "==0.11.9"
-"e1839a8" = {path = ".", editable = true}
+"e1839a8" = {editable = true, path = "."}
 sh = "*"
 
 [dev-packages]
@@ -36,7 +35,7 @@ PyYAML = "==3.11"
 pylint = "*"
 
 [requires]
-python_version = "3.6"
+python_version = ">=3.5.0"
 
 [scripts]
 routegen = "scripts/routegen"

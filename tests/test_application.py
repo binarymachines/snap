@@ -1,7 +1,9 @@
 import unittest
 import os
+import datetime
 import time
 import sh
+import json
 import requests
 import yaml
 #from context import snap
@@ -80,11 +82,22 @@ class HTTPServiceTest(unittest.TestCase):
     def test_default_content_protocol_can_decode_standard_content_types(self):
         protocol = core.default_content_protocol
         self.assertTrue(False)
-
-
-    def test_custom_content_protocol_is_triggered_by_specified_content_type(self):
-        self.assertTrue(False)
     '''
+    
+    def test_custom_content_protocol_is_triggered_by_specified_content_type(self):
+        port = self.app_config['globals']['port']
+        headers = {'Content-Type': 'application/json'}
+        payload = {'timestamp': datetime.datetime.now().isoformat()}
+        r = requests.post('http://localhost:%s/posttest' % port,
+                          data=json.dumps(payload),
+                          headers=headers)
+        
+        self.assertEqual(r.status_code, 200)
+        response = r.json()
+        self.assertIn('test_decoder_called', response)
+
+
+    
     
 
 def main():
