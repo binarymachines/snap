@@ -20,7 +20,7 @@ class InputPrompt():
         self.default = default_value
 
     def show(self):
-        result = raw_input(self.prompt).strip()
+        result = input(self.prompt).strip()
         if not result:
             result = self.default
         return result
@@ -54,7 +54,7 @@ class MenuPrompt(object):
         result = None
         self.display_menu()
         while True:
-            selection_index = raw_input('> enter selection: ').strip()
+            selection_index = input('> enter selection: ').strip()
             if not selection_index:
                 break
             if self.is_valid_selection(selection_index):
@@ -82,7 +82,7 @@ class OptionPrompt(object):
                 display_options.append(o)
 
         prompt_text = '%s %s  : ' % (self.prompt_string, ','.join(display_options))
-        result = raw_input(prompt_text).strip()
+        result = input(prompt_text).strip()
 
         if not result: # user did not choose a value
             result = self.default_value
