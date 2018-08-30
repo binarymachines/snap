@@ -140,7 +140,10 @@ def configure_logging(yaml_config):
 
 
 def load_user_content_decoders(yaml_config):
-    decoder_module_name = yaml_config['globals']['preprocessor_module']
+    decoder_module_name = yaml_config['globals'].get('preprocessor_module')
+    if not decoder_module_name:        
+        return
+
     decoder_module = __import__(decoder_module_name)
     if not yaml_config.get('decoders'):
         return
