@@ -1,14 +1,57 @@
 #!/usr/bin/env python
 
 
+class mandatory_input_format(ContextDecorator):
+    def __init__(self, cli_prompt, regex, **kwargs):
+        kwreader = common.KeywordArgReader('warning_mesage', 'failure_message')
+        kwreader.read(**kwargs)
+        
+        warning_message = kwreader.get_value('warning_message')
+        failure_message = kwreader.get_value('failure_message')
+        
+        max_retries = 1
+        num_retries = 0
+        while num_retries < max_retries and not regex.match(self.data):
+            print('\n%s\n' % warning_message)
+            self.data = cli_prompt.show()
+            num_retries += 1
+        
+        if not self.data:
+            raise Exception(failure_message)
 
+
+class mandatory_input(ContextDecorator):
+    def __init__(self, cli_prompt, **kwargs):
+        kwreader = common.KeywordArgReader('warning_message', 'failure_message')
+        kwreader.read(**kwargs)
+
+        warning_message = kwreader.get_value('warning_message')
+        failure_message = kwreader.get_value('failure_message')
+
+        max_retries = 1
+        num_retries = 0
+        self.data = cli_prompt.show()
+        while num_retries < max_retries and not self.data:            
+            print('\n%s\n' % warning_message)
+            self.data = cli_prompt.show()
+            num_retries += 1
+        
+        if not self.data:
+            raise Exception(failure_message)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    
 class UserEntry():
     def __init__(self, data):
         self.result = data.strip()
         self.is_empty = False
         if not self.result:
             self.is_empty = True
-
 
 
 class InputPrompt():
