@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from docopt import DocoptExit
+from docopt import DocoptExit, SystemExit
 
 
 def docopt_cmd(func):
