@@ -18,6 +18,12 @@ class mandatory_input_format(ContextDecorator):
         
         if not self.data:
             raise Exception(failure_message)
+            
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *exc):
+        return False
 
 
 class mandatory_input(ContextDecorator):
