@@ -1,8 +1,33 @@
 #!/usr/bin/env python
 
 
-class mandatory_input_format(ContextDecorator):
-    def __init__(self, cli_prompt, regex, **kwargs):
+class constrained_input_value(ContextDecorator):
+    def __init__(self, value_predicate_func, cli_prompt, **kwargs):
+        kwreader = common.KeywordArgReader('warning_mesage', 'failure_message')
+        kwreader.read(**kwargs)
+        
+        warning_message = kwreader.get_value('warning_message')
+        failure_message = kwreader.get_value('failure_message')
+        
+        max_retries = 1
+        num_retries = 0
+        while num_retries < max_retries and not value_predicate_func(data):
+            print('\n%s\n' % warning_message)
+            self.data = cli_prompt.show()
+            num_retries += 1
+        
+        if not self.data:
+            raise Exception(failure_message)
+            
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *exc):
+        return False
+
+
+class required_input_format(ContextDecorator):
+    def __init__(self, regex, cli_prompt, **kwargs):
         kwreader = common.KeywordArgReader('warning_mesage', 'failure_message')
         kwreader.read(**kwargs)
         
