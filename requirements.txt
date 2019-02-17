@@ -1,5 +1,4 @@
 -i https://pypi.org/simple
--e .
 asn1crypto==0.22.0
 certifi==2018.11.29
 cffi==1.10.0
@@ -18,7 +17,7 @@ ndg-httpsclient==0.4.2
 pkginfo==1.4.1
 pyasn1==0.2.3
 pycparser==2.18
-pyopenssl==17.2.0
+pyopenssl==19.0.0
 pyyaml==4.2b1
 requests-toolbelt==0.8.0
 requests==2.20.0
