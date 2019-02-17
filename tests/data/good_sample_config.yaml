@@ -11,9 +11,9 @@ globals:
         debug:                       True
         logfile:                     test.log
         project_directory:           $TEST_HOME
-        transform_function_module:   test_transforms
-        service_module:              test_services 
-        preprocessor_module:         test_decode
+        transform_function_module:   testbed_transforms
+        service_module:              testbed_services 
+        decoder_module:              testbed_decode
 
 
 service_objects:
