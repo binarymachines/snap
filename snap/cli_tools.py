@@ -1,14 +1,120 @@
 #!/usr/bin/env python
 
+from docopt import DocoptExit
 
 
+def docopt_cmd(func):
+    """
+    This decorator is used to simplify the try/except block and pass the result
+    of the docopt parsing to the called action.
+    """
+    def fn(self, arg):
+        try:
+            opt = docopt_func(fn.__doc__, arg)
+
+        except DocoptExit as e:
+            # The DocoptExit is thrown when the args do not match.
+            # We print a message to the user and the usage block.
+
+            print('\nPlease specify one or more valid command parameters.')
+            print(e)
+            return
+
+        except SystemExit:
+            # The SystemExit exception prints the usage for --help
+            # We do not need to do the print here.
+
+            return
+
+        return func(self, opt)
+
+    fn.__name__ = func.__name__
+    fn.__doc__ = func.__doc__
+    fn.__dict__.update(func.__dict__)
+    return fn
+
+class constrained_input_value(ContextDecorator):
+    def __init__(self, value_predicate_func, cli_prompt, **kwargs):
+        kwreader = common.KeywordArgReader('warning_mesage', 'failure_message')
+        kwreader.read(**kwargs)
+        
+        warning_message = kwreader.get_value('warning_message')
+        failure_message = kwreader.get_value('failure_message')
+        
+        max_retries = 1
+        num_retries = 0
+        while num_retries < max_retries and not value_predicate_func(data):
+            print('\n%s\n' % warning_message)
+            self.data = cli_prompt.show()
+            num_retries += 1
+        
+        if not self.data:
+            raise Exception(failure_message)
+            
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *exc):
+        return False
+
+
+class required_input_format(ContextDecorator):
+    def __init__(self, regex, cli_prompt, **kwargs):
+        kwreader = common.KeywordArgReader('warning_mesage', 'failure_message')
+        kwreader.read(**kwargs)
+        
+        warning_message = kwreader.get_value('warning_message')
+        failure_message = kwreader.get_value('failure_message')
+        
+        max_retries = 1
+        num_retries = 0
+        while num_retries < max_retries and not regex.match(self.data):
+            print('\n%s\n' % warning_message)
+            self.data = cli_prompt.show()
+            num_retries += 1
+        
+        if not self.data:
+            raise Exception(failure_message)
+            
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, *exc):
+        return False
+
+
+class mandatory_input(ContextDecorator):
+    def __init__(self, cli_prompt, **kwargs):
+        kwreader = common.KeywordArgReader('warning_message', 'failure_message')
+        kwreader.read(**kwargs)
+
+        warning_message = kwreader.get_value('warning_message')
+        failure_message = kwreader.get_value('failure_message')
+
+        max_retries = 1
+        num_retries = 0
+        self.data = cli_prompt.show()
+        while num_retries < max_retries and not self.data:            
+            print('\n%s\n' % warning_message)
+            self.data = cli_prompt.show()
+            num_retries += 1
+        
+        if not self.data:
+            raise Exception(failure_message)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    
 class UserEntry():
     def __init__(self, data):
         self.result = data.strip()
         self.is_empty = False
         if not self.result:
             self.is_empty = True
-
 
 
 class InputPrompt():
