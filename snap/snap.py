@@ -14,6 +14,7 @@ import jinja2
 
 from snap import core
 from snap import common
+from snap import decoders
 from snap import config_templates
 
 
@@ -119,7 +120,6 @@ def initialize_services(yaml_config_obj):
     
 
 def configure_logging(yaml_config):
-
     global logging_config
     if not logging_config:
         project_dir = common.load_config_var(yaml_config['globals']['project_directory'])
@@ -139,8 +139,17 @@ def configure_logging(yaml_config):
         logging.config.dictConfig(logging_config)
 
 
+def load_default_content_decoders():    
+    core.default_content_protocol.update('text/plain', decoders.decode_text_plain)
+    core.default_content_protocol.update('text/plain; charset=UTF-8', decoders.decode_text_plain_utf8)
+    core.default_content_protocol.update('application/x-www-form-urlencoded', decoders.decode_form_urlencoded)
+    core.default_content_protocol.update('application/json', decoders.decode_application_json)
+
+
 def load_user_content_decoders(yaml_config):
-    decoder_module_name = yaml_config['globals']['preprocessor_module']
+    decoder_module_name = yaml_config['globals'].get('decoder_module')
+    if not decoder_module_name: 
+        return
     decoder_module = __import__(decoder_module_name)
     if not yaml_config.get('decoders'):
         return
@@ -156,24 +165,16 @@ def load_user_content_decoders(yaml_config):
 def setup(app):
     if app.config.get('initialized'):
         return app
-        
+
     mode = app.config.get('startup_mode')
     yaml_config = load_snap_config(mode, app)
     app.debug = yaml_config['globals']['debug']
     configure_logging(yaml_config)
+
+    load_default_content_decoders()
     load_user_content_decoders(yaml_config)
 
     service_object_tbl = initialize_services(yaml_config)
-    #
-    # load the service objects into the app
-    #
-    app.config['services'] = common.ServiceObjectRegistry(service_object_tbl) 
+    app.config['services'] = common.ServiceObjectRegistry(service_object_tbl)
     app.config['initialized'] = True
     return app
-    
-
-
-
-
-
-
