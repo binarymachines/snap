@@ -43,7 +43,7 @@ def read_config_file(filename):
     '''
     config = None
     with open(filename, 'r') as filehandle:
-        config = yaml.load(filehandle)
+        config = yaml.safe_load(filehandle)
     return config
 
 
@@ -52,7 +52,6 @@ def full_path(filename):
     if filename.startswith(os.sep):
         return filename
     return os.path.join(os.getcwd(), filename)
-
 
 
 def load_config_var(value):

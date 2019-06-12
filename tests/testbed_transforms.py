@@ -12,6 +12,3 @@ def ping_func(input_data, service_objects, **kwargs):
 
 def post_target_func(input_data, service_objects, **kwargs):
     return core.TransformStatus(json.dumps(input_data))
-
-def test_func(input_data, service_objects, **kwargs):
-    raise snap.TransformNotImplementedException('test_func')
