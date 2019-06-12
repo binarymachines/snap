@@ -23,7 +23,7 @@ Flask = "==0.12.3"
 "Jinja2" = "==2.8"
 MarkupSafe = "==0.23"
 pyOpenSSL = ">=17.5.0"
-PyYAML = "==4.2b1"
+PyYAML = ">=5.1.1"
 SQLAlchemy = "==1.0.14"
 Werkzeug = "==0.11.9"
 cryptography = ">=2.3"
@@ -31,7 +31,7 @@ sh = "*"
 setuptools = "*"
 
 [dev-packages]
-PyYAML = "==3.11"
+PyYAML = ">=5.1.1"
 "e1839a8" = {path = ".", editable = true}
 pylint = "*"
 
