@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from contextlib import ContextDecorator
 from docopt import DocoptExit
 
 

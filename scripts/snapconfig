@@ -5,17 +5,17 @@
 
 '''
 
-from cmd import Cmd
-import copy
-import docopt
-from docopt import docopt as docopt_func
-from docopt import DocoptExit
 import os
 import shutil
 import re
 import yaml
 import logging
+from cmd import Cmd
+import copy
 import jinja2
+import docopt
+from docopt import docopt as docopt_func
+from docopt import DocoptExit
 from snap import common
 from snap import metaobjects
 from snap.metaobjects import *
@@ -74,8 +74,8 @@ def docopt_cmd(func):
             # The DocoptExit is thrown when the args do not match.
             # We print a message to the user and the usage block.
 
-            print '\nPlease specify one or more valid command parameters.'
-            print e
+            print('\nPlease specify one or more valid command parameters.')
+            print(e)
             return
 
         except SystemExit:
@@ -214,7 +214,7 @@ class SnapCLI(Cmd):
 
 
     def do_quit(self, *cmd_args):
-        print '%s CLI exiting.' % self.name
+        print('%s CLI exiting.' % self.name)
         raise SystemExit
 
 
@@ -280,7 +280,7 @@ class SnapCLI(Cmd):
         shape_name = name or cli.InputPrompt('Enter a name for this datashape').show()
         if shape_name:
             empty_shape = False
-            print 'Add 1 or more fields to this datashape. (Enter "-" to create an empty shape.)'
+            print('Add 1 or more fields to this datashape. (Enter "-" to create an empty shape.)')
             fields = []
             while True:
                 missing_params = 3
@@ -303,7 +303,7 @@ class SnapCLI(Cmd):
                 missing_params -= 1
                 is_required = bool(required)
 
-                print '> Added new field "%s" to datashape %s.' % (field_name, shape_name)
+                print('> Added new field "%s" to datashape %s.' % (field_name, shape_name))
 
                 fields.append(DataShapeFieldMeta(field_name, field_type, is_required))
                 should_continue = cli.InputPrompt('Add another field (Y/n)?', 'y').show()
@@ -321,11 +321,11 @@ class SnapCLI(Cmd):
 
 
     def edit_shape(self, shape_name):
-        print '+++ Updating datashape "%s"' % shape_name
+        print('+++ Updating datashape "%s"' % shape_name)
         shape = self.find_shape(shape_name)
 
         if not shape:
-            print 'No such datashape has been registered.'
+            print('No such datashape has been registered.')
             return
 
         shape_index = self.get_shape_index(shape_name)
@@ -352,11 +352,11 @@ class SnapCLI(Cmd):
 
 
     def edit_transform(self, transform_name):
-        print '+++ Updating transform "%s"' % transform_name
+        print('+++ Updating transform "%s"' % transform_name)
         transform = self.find_transform(transform_name)
 
         if not transform:
-            print 'No such transform has been registered.'
+            print('No such transform has been registered.')
             return
 
         transform_index = self.get_transform_index(transform_name)
@@ -390,7 +390,7 @@ class SnapCLI(Cmd):
                                         'y').show().lower()
                     if should_create_shape == 'n':
                         break
-                    print 'Creating the input datashape for transform "%s"...' % transform_name
+                    print('Creating the input datashape for transform "%s"...' % transform_name)
                     shape_name = self.make_shape()
                     transform = transform.set_input_shape(self.find_shape(shape_name))
                     self.transforms[transform_index] = transform
@@ -429,7 +429,7 @@ class SnapCLI(Cmd):
 
 
     def make_svcobject(self, name=None):
-        print '+++ Register new service object'
+        print('+++ Register new service object')
         so_name = name or cli.InputPrompt('service object name').show()
         so_classname = cli.InputPrompt('service object class').show()
         so_params = self.create_service_object_params()
@@ -437,10 +437,10 @@ class SnapCLI(Cmd):
 
 
     def edit_svcobject(self, so_name):
-        print '+++ Updating service object'
+        print('+++ Updating service object')
         so_index = self.get_service_object_index(so_name)
         if so_index < 0:
-            print 'No service object registered under the name %s.' % so_name
+            print('No service object registered under the name %s.' % so_name)
             return
 
         current_so = self.service_objects[so_index]
@@ -473,17 +473,17 @@ class SnapCLI(Cmd):
     def show_svcobject(self, name):
         index = self.get_service_object_index(name)
         if index < 0:
-            print '> No service object registered under the name %s.' % name
+            print('> No service object registered under the name %s.' % name)
             return
-        print common.jsonpretty(self.service_objects[index].data())
+        print(common.jsonpretty(self.service_objects[index].data()))
 
 
     def list_svcobjects(self):
         if not len(self.service_objects):
-            print '[]'
+            print('[]')
             return
         for so in self.service_objects:
-            print so.name
+            print(so.name)
 
 
     def select_service_object(self):
@@ -498,7 +498,7 @@ class SnapCLI(Cmd):
             return
 
         if not valid_function_name_rx.match(transform_name):
-            print 'Transform names must be valid Python function names.'
+            print('Transform names must be valid Python function names.')
             return 
 
         route = cli.InputPrompt('transform route', '/%s' % transform_name).show()
@@ -521,26 +521,26 @@ class SnapCLI(Cmd):
 
         self.transforms.append(TransformMeta(transform_name, route, method, mimetype))
 
-        print '> Creating new transform: %s' % transform_name
+        print('> Creating new transform: %s' % transform_name)
         self.edit_transform(transform_name)
         return
 
 
     def validate_route(self, route_string):
         if not route_string.startswith('/'):
-            print 'the route string must start with "/".'
+            print('the route string must start with "/".')
             return False
 
         if BASIC_ROUTE_VAR_REGEX.search(route_string) and route_string.find(':') == -1:
-            print BAD_ROUTE_VAR_PROMPT
+            print(BAD_ROUTE_VAR_PROMPT)
             return False
 
         if route_string.count(':') > 1:
-            print BAD_ROUTE_VAR_PROMPT
+            print(BAD_ROUTE_VAR_PROMPT)
             return False
 
         if not BASIC_ROUTE_VAR_REGEX.search(route_string) and route_string.find(':') > 0:
-            print BAD_ROUTE_VAR_PROMPT
+            print(BAD_ROUTE_VAR_PROMPT)
             return False
 
         return True
@@ -550,19 +550,19 @@ class SnapCLI(Cmd):
     def show_transform(self, transform_name):
         transform = self.find_transform(transform_name)
         if not transform:
-            print '> No such transform found.'
+            print('> No such transform found.')
             return
 
         config = self.get_config_data()
-        print common.jsonpretty(transform.data(config))
+        print(common.jsonpretty(transform.data(config)))
 
 
     def list_transforms(self):
         if not len(self.transforms):
-            print '[]'
+            print('[]')
             return
         for t in self.transforms:
-            print t.name
+            print(t.name)
 
 
     def select_transform(self):
@@ -575,17 +575,17 @@ class SnapCLI(Cmd):
     def show_shape(self, shape_name):
         shape = self.find_shape(shape_name)
         if not shape:
-            print '> No such datashape found.'
+            print('> No such datashape found.')
             return
-        print common.jsonpretty(shape.data())
+        print(common.jsonpretty(shape.data()))
 
 
     def list_shapes(self):
         if not len(self.data_shapes):
-            print '[]'
+            print('[]')
             return
         for shape in self.data_shapes:
-            print shape.name
+            print(shape.name)
 
 
     def select_shape(self):
@@ -595,7 +595,7 @@ class SnapCLI(Cmd):
 
 
     def edit_global_settings(self):
-        print '> updating application settings...'
+        print('> updating application settings...')
         settings_menu = []
         defaults = self.global_settings.current_values
         for key, value in defaults.iteritems():
@@ -618,8 +618,8 @@ class SnapCLI(Cmd):
 
     def edit_global_setting(self, setting_name):
         if not setting_name in self.global_settings.current_values.keys():
-            print "> No such global setting. Available global settings are: "
-            print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
+            print("> No such global setting. Available global settings are: ")
+            print('\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()]))
             return
 
         defaults = self.global_settings.current_values
@@ -630,9 +630,7 @@ class SnapCLI(Cmd):
 
 
     def show_global_settings(self):
-        print common.jsonpretty(self.global_settings.data())
-
-
+        print(common.jsonpretty(self.global_settings.data()))
 
     @docopt_cmd
     def do_make(self, cmd_args):
@@ -673,19 +671,19 @@ class SnapCLI(Cmd):
             if object_name:
                 self.show_shape(object_name)
             else:
-                print 'Available DataShapes:'
+                print('Available DataShapes:')
                 self.list_shapes()
         elif cmd_args['svcobj']:
             if object_name:
                 self.show_svcobject(object_name)
             else:
-                print 'Available ServiceObjects:'
+                print('Available ServiceObjects:')
                 self.list_svcobjects()
         elif cmd_args['transform']:
             if object_name:
                 self.show_transform(object_name)
             else:
-                print 'Available Transforms:'
+                print('Available Transforms:')
                 self.list_transforms()
 
 
@@ -706,21 +704,21 @@ class SnapCLI(Cmd):
 
         if arg['shape']:
             if not len(self.data_shapes):
-                print 'You have not created any DataShapes yet.'
+                print('You have not created any DataShapes yet.')
                 return
             shape_name = object_name or self.select_shape()
             if shape_name:
                 self.edit_shape(shape_name)
         elif arg['svcobj']:
             if not len(self.service_objects):
-                print 'You have not created any ServiceObjects yet.'
+                print('You have not created any ServiceObjects yet.')
                 return
             svcobj_name = object_name or self.select_service_object()
             if svcobj_name:
                 self.edit_svcobject(svcobj_name)
         elif arg['transform']:
             if not len(self.transforms):
-                print 'You have not created any Transforms yet.'
+                print('You have not created any Transforms yet.')
                 return
             transform_name = object_name or self.select_transform()
             if transform_name:
@@ -767,8 +765,8 @@ class SnapCLI(Cmd):
                 self.edit_global_setting(setting_name)
             else:
                 if not setting_name in self.global_settings.data().keys():
-                    print "Available global settings are: "
-                    print '\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()])
+                    print("Available global settings are: ")
+                    print('\n'.join(['- %s' % (k) for k in self.global_settings.data().keys()]))
                     return
 
                 attr_name = 'set_%s' % setting_name
@@ -799,9 +797,9 @@ class SnapCLI(Cmd):
 
         message = self.get_save_condition()
         if message == 'ok':
-            print self.yaml_config()
+            print(self.yaml_config())
         else:
-            print message
+            print(message)
 
 
     def generate_backup_filename(self, directory, filename):
@@ -824,7 +822,7 @@ class SnapCLI(Cmd):
         if os.path.exists(os.path.join(directory, final_filename)):
             return self.generate_backup_filename(directory, final_filename)
 
-        print 'new backup filename is: %s' % final_filename
+        print('new backup filename is: %s' % final_filename)
 
         return final_filename
 
@@ -859,7 +857,7 @@ class SnapCLI(Cmd):
 
         save_condition = self.get_save_condition()
         if save_condition != 'ok':
-            print save_condition
+            print(save_condition)
             return
 
         should_backup = arg.get('--backup')
@@ -879,7 +877,7 @@ class SnapCLI(Cmd):
         output_file_fullpath = os.path.join(file_loc, output_filename)
 
         if os.path.isdir(output_file_fullpath):
-            print '"%s" is a directory. Please specify a filename.' % output_file_fullpath
+            print('"%s" is a directory. Please specify a filename.' % output_file_fullpath)
             return
 
         if os.path.isfile(output_file_fullpath):
@@ -890,7 +888,7 @@ class SnapCLI(Cmd):
             elif should_overwrite:
                 self.write_configfile(output_file_fullpath)
             else:
-                print 'the specified output file already exists.'
+                print('the specified output file already exists.')
                 return
         else:
             self.write_configfile(output_file_fullpath)
@@ -977,7 +975,7 @@ def main(args):
 
         app_name = yaml_cfg.get('app_name')
         if not app_name:
-            print '>>> The config file you are loading has no application name. Please enter one now.'
+            print('>>> The config file you are loading has no application name. Please enter one now.')
             app_name = cli.InputPrompt('SNAP application name').show()
             if not app_name:
                 return
