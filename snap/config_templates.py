@@ -72,6 +72,7 @@ ROUTES = """
 
 
 from flask import Flask, request, Response
+from flask_cors import CORS, cross_origin
 from snap import snap
 from snap import core
 import logging
@@ -106,33 +107,27 @@ xformer.register_error_code(snap.NullTransformInputDataException, snap.HTTP_BAD_
 xformer.register_error_code(snap.MissingInputFieldException, snap.HTTP_BAD_REQUEST)
 xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT_IMPLEMENTED)
 
-#------------------------------
-
-
-
 #-- snap data shapes ----------
 
 {% for transform in transforms.values() %}
 {{ transform.input_shape.name }} = core.InputShape("{{transform.input_shape.name}}")
-{%- for field in transform.input_shape.fields %}
+{% for field in transform.input_shape.fields %}
 {{ transform.input_shape.name }}.add_field('{{ field.name }}', {{ field.is_required }})
-{%- endfor %}
 {% endfor %}
-
-#------------------------------
-
+{% endfor %}
 
 #-- snap transform loading ----
 
-{%- for transform in transforms.values() %}
+{% for transform in transforms.values() %}
 xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }}, {{ transform.function_name }}, '{{ transform.output_type }}')
-{%- endfor %}
+{% endfor %}
 
-#------------------------------
-
+#-- endpoints -----------------
 
 {% for t in transforms.values() %}
 @app.route('{{ t.route }}', methods=[{{ t.methods }}])
+{% if t.cors_enabled %}@cross_origin({{ t.cors_spec }})
+{% endif %}
 def {{t.name}}({{ ','.join(t.route_variables) }}):
     try:
         if app.debug:

@@ -23,9 +23,11 @@ service_objects:
 data_shapes:
         
         default:
-                fields:
+            fields:
                         
-        
+        shape1:
+            fields:
+
 
 transforms:
         
@@ -34,6 +36,22 @@ transforms:
             method:             GET
             input_shape:        default
             output_mimetype:    application/json
+
+        post_test:
+            route:              /posttest
+            method:             POST
+            input_shape:        shape1
+            output_mimetype:    application/json
+
+        cors_test:
+            route:              /cors_test
+            method:             POST
+            input_shape:        default
+            output_mimetype:    application/json
+            cors_enabled:       True
+            cors_settings:
+                origins: http://127.0.0.1:8000
+                allow_headers: Content-Type
         
 
 error_handlers:

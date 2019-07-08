@@ -64,7 +64,8 @@ class Transform(object):
                  route,
                  method_string,
                  output_type,
-                 transform_function_module=None):
+                 transform_function_module=None,
+                 **kwargs):
 
         self.name = name
         self.input_shape = input_shape
@@ -73,6 +74,13 @@ class Transform(object):
         self.output_type = output_type
         self.function_module_name = transform_function_module
         self._routevars = []
+
+        if kwargs.get('cors_enabled') == True:
+            self.cors_enabled = True
+            self.cors_settings = kwargs.get('cors_settings') or {}
+        else:
+            self.cors_enabled = False
+            self.cors_settings = None
 
         route_var_names = [match.group().lstrip('<').rstrip('>') for match in re.finditer(ROUTE_VARIABLE_REGEX, self.route)]
 
@@ -106,6 +114,28 @@ class Transform(object):
         # http://exploreflask.com/en/latest/views.html#url-converters
         #
 
+    @property
+    def cors_spec(self):
+        if not self.cors_enabled:
+            return ''
+        
+        settings = {
+            'methods': [],
+            'origins': [],
+            'allow_headers': [],
+            'expose_headers': []
+        }
+        
+        for key, value in self.cors_settings.items():
+            if key in settings.keys():
+                settings[key].append(value)
+        
+        live_settings = []
+        for key, value in settings.items():
+            if len(value):            
+                live_settings.append("%s=%s" % (key, value))
+
+        return ', '.join(live_settings)
 
 
     def get_methods(self):
@@ -191,18 +221,25 @@ class RouteGenerator():
             methods = current_transform['method'].upper()
             output_mime_type = current_transform['output_mimetype']
 
-            '''
-            print('creating new Transform with input shape name: %s' % shape_name)
-            print('datashape internal name is: %s' % data_shapes[shape_name].name)
-            '''
             if not data_shapes.get(shape_name):
                 raise Exception('Error creating transform: no datashape registered under the name "%s"' % shape_name)
+
+            cors_is_enabled = False
+            if current_transform.get('cors_enabled') == True:
+                cors_is_enabled = True
+
+            cors_settings = {}
+            if current_transform.get('cors_settings') is not None:
+                cors_settings = current_transform['cors_settings']
+
             new_transform = Transform(transform_name,
                                       data_shapes[shape_name],
                                       route,
                                       methods,
                                       output_mime_type,
-                                      self.transform_function_module)
+                                      self.transform_function_module,
+                                      cors_enabled=cors_is_enabled,
+                                      cors_settings=cors_settings)
 
             transforms[transform_name] = new_transform
 
@@ -236,7 +273,7 @@ def main(argv):
 
         route_gen = RouteGenerator(yaml_config)
 
-        j2env = jinja2.Environment()
+        j2env = jinja2.Environment(trim_blocks=True)
         template_mgr = common.JinjaTemplateManager(j2env)        
         transform_module_template = j2env.from_string(config_templates.TRANSFORMS)
         transform_module_name = yaml_config['globals']['transform_function_module']
@@ -264,6 +301,7 @@ def main(argv):
             transform_code = transform_block_template.render(transform_functions=new_transforms)
             with open(transform_module_filename, 'a') as transform_file:
                 transform_file.write(transform_code)
+                
         else: # otherwise we are in preview mode
             print('PREVIEW mode not yet operational. Watch this space!')
             
