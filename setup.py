@@ -12,15 +12,15 @@ except ImportError: # for pip <= 9.0.3
 
 
 NAME = 'snap'
-VERSION = '0.9.95'
+VERSION = '0.9.96'
 PACKAGES = find_packages(where='.', exclude='tests')
 DEPENDENCIES=['docopt',
               'Flask',
+              'flask-cors',
               'itsdangerous',
               'Jinja2',
               'MarkupSafe',
               'PyYAML',
-              'SQLAlchemy',
               'Werkzeug',
               'requests']
 
