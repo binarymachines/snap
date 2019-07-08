@@ -139,19 +139,19 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         {% for route_variable in t.route_variables %}
         input_data['{{ route_variable }}'] = {{ route_variable }}
         {% endfor %}
-
         {% if t.methods == "'POST'" %}
+
         request.get_data()
         input_data.update(core.map_content(request))
         
         transform_status = xformer.transform('{{ t.name }}', input_data, headers=request.headers)
+
         {% elif t.methods == "'GET'" or t.methods == "'DELETE'" %}                
         input_data.update(request.args)
         
         transform_status = xformer.transform('{{ t.name }}',
                                              core.convert_multidict(input_data),
                                              headers=request.headers)
-        {% else %}
         {% endif %}        
         output_mimetype = xformer.target_mimetype_for_transform('{{ t.name }}')
 
