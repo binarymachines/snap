@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
 def main():        
     git_hash = git.describe('--always').lstrip().rstrip()
-    version = '%s[%s]' % (VERSION_NUM, git_hash)
+    version = '%s [%s]' % (VERSION_NUM, git_hash)
     print(VERSION_MODULE_TEMPLATE.format(version_string=version))
 
 if __name__ == '__main__':
