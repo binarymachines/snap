@@ -150,7 +150,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         input_data.update(request.args)
         
         transform_status = xformer.transform('{{ t.name }}',
-                                             core.convert_multidict(input_data),
+                                             input_data,
                                              headers=request.headers)
         {% endif %}        
         output_mimetype = xformer.target_mimetype_for_transform('{{ t.name }}')
