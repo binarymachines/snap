@@ -3,6 +3,7 @@
 import codecs
 import os
 import re
+from mark_version import VERSION_NUM
 
 from setuptools import setup, find_packages
 try: # for pip >= 10
@@ -12,7 +13,7 @@ except ImportError: # for pip <= 9.0.3
 
 
 NAME = 'snap'
-VERSION = '0.9.98'
+VERSION = VERSION_NUM
 PACKAGES = find_packages(where='.', exclude='tests')
 DEPENDENCIES=['docopt',
               'Flask',
