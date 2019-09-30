@@ -18,13 +18,13 @@ install-deps:
 
 test-generate:	
 	cp tests/testbed_transforms.py.tpl testbed_transforms.py
-	export TEST_HOME=`pwd`/tests; export PYTHONPATH=`pwd`/tests; scripts/routegen -e data/good_sample_config.yaml > test_app.py
+	export SNAP_TEST_HOME=`pwd`/tests; export PYTHONPATH=`pwd`/tests; scripts/routegen -e data/good_sample_config.yaml > test_app.py
 
 spinup:
-	export TEST_HOME=`pwd`/tests; pipenv run python test_app.py --configfile data/good_sample_config.yaml
+	export SNAP_TEST_HOME=`pwd`/tests; pipenv run python test_app.py --configfile data/good_sample_config.yaml
 
 test: clean test-generate
-	python -m unittest discover -s tests ./tests -v
+	export SNAP_TEST_HOME=`pwd`/tests; python -m unittest discover -s tests ./tests -v
 
 version:
 	python mark_version.py > version.py && cp version.py scripts/snap-version && chmod u+x scripts/snap-version

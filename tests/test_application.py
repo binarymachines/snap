@@ -1,5 +1,5 @@
 import unittest
-import os
+import os, sys
 import datetime
 import time
 import sh
@@ -49,8 +49,10 @@ class HTTPServiceTest(unittest.TestCase):
 
     def test_should_reject_transform_requests_not_compliant_with_datashape(self):
         port = self.app_config['globals']['port']
-        r = requests.get('http://localhost:%s/test' % port)
+        payload = {'foo': 'bar'}
+        r = requests.post('http://localhost:%s/posttest' % port, data=payload)
         self.assertEqual(r.status_code, 400)
+        print(r.json, file=sys.stderr)
 
 
     '''
@@ -78,6 +80,16 @@ class HTTPServiceTest(unittest.TestCase):
         self.assertGreater(final_logfile_size, initial_logfile_size)
 
 
+    def test_endpoint_should_not_validate_missing_optional_fields(self):
+        port = self.app_config['globals']['port']
+        headers = {'Content-Type': 'application/json'}
+        payload = {'placeholder': 'testing'}
+        r = requests.post('http://localhost:%s/postvalidator' % port,
+                          data=json.dumps(payload),
+                          headers=headers)
+        
+        self.assertEqual(r.status_code, 200)
+        
     '''
     def test_default_content_protocol_can_decode_standard_content_types(self):
         protocol = core.default_content_protocol
@@ -87,7 +99,7 @@ class HTTPServiceTest(unittest.TestCase):
     def test_custom_content_protocol_is_triggered_by_specified_content_type(self):
         port = self.app_config['globals']['port']
         headers = {'Content-Type': 'application/json'}
-        payload = {'timestamp': datetime.datetime.now().isoformat()}
+        payload = {'placeholder': datetime.datetime.now().isoformat()}
         r = requests.post('http://localhost:%s/posttest' % port,
                           data=json.dumps(payload),
                           headers=headers)
@@ -96,9 +108,6 @@ class HTTPServiceTest(unittest.TestCase):
         response = r.json()
         self.assertIn('test_decoder_called', response)
 
-
-    
-    
 
 def main():
     unittest.main()

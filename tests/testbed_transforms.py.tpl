@@ -12,3 +12,6 @@ def ping_func(input_data, service_objects, **kwargs):
 
 def post_target_func(input_data, service_objects, **kwargs):
     return core.TransformStatus(json.dumps(input_data))
+
+def post_validator_func(input_data, service_objects, **kwargs):
+    return core.TransformStatus(json.dumps({'message': 'called test validator function'}))

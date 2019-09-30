@@ -6,59 +6,75 @@
 
 
 globals:
-        bind_host:                   0.0.0.0
-        port:                        5000
-        debug:                       True
-        logfile:                     test.log
-        project_directory:           $SNAP_TEST_HOME
-        transform_function_module:   testbed_transforms
-        service_module:              testbed_services 
-        decoder_module:              testbed_decode
+    bind_host:                   0.0.0.0
+    port:                        5000
+    debug:                       True
+    logfile:                     test.log
+    project_directory:           $SNAP_TEST_HOME
+    transform_function_module:   testbed_transforms
+    service_module:              testbed_services 
+    decoder_module:              testbed_decode
 
 
 service_objects:
-        test_service:
-                class: TestServiceObject
-                init_params:
-                        - name: host
-                          value: localhost
+    test_service:
+        class: TestServiceObject
+        init_params:
+            - name: host
+              value: localhost
 
 data_shapes:
-        default:
-                fields:
+    default:
+        fields:
 
-        test_shape:
-                fields:
-                        - name: placeholder
-                          datatype: string
-                          required: True
+    test_shape:
+        fields:
+            - name: placeholder
+              datatype: string
+              required: True                       
+
+    test_shape_2:
+        fields:
+            - name: placeholder
+              datatype: string
+              required: True
+
+            - name: counter
+              datatype: int
+              required: False
 
 transforms:
-        ping:
-            route:              /ping
-            method:             GET
-            input_shape:        default
-            output_mimetype:    application/json
-            
-        test:
-            route:              /test
-            method:             GET
-            input_shape:        test_shape
-            output_mimetype:    application/json
+    ping:
+        route:              /ping
+        method:             GET
+        input_shape:        default
+        output_mimetype:    application/json
+        
+    test:
+        route:              /test
+        method:             GET
+        input_shape:        default
+        output_mimetype:    application/json
 
-        post_target:
-            route:              /posttest
-            method:             POST
-            input_shape:        default
-            output_mimetype:    application/json
+    post_target:
+        route:              /posttest
+        method:             POST
+        input_shape:        test_shape
+        output_mimetype:    application/json
+
+    post_validator:
+        route:              /postvalidator
+        method:             POST
+        input_shape:        test_shape_2
+        output_mimetype:    application/json
 
 error_handlers:
-        - error:                NoSuchObjectException
-          tx_status_code:       HTTP_NOT_FOUND 
-                
-        - error:                DuplicateIDException
-          tx_status_code:       HTTP_BAD_REQUEST
+    - error:                NoSuchObjectException
+      tx_status_code:       HTTP_NOT_FOUND 
+            
+    - error:                DuplicateIDException
+      tx_status_code:       HTTP_BAD_REQUEST
 
 
 decoders:
-        application/json:       decode_application_json
+    application/json:       decode_application_json

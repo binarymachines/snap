@@ -206,8 +206,10 @@ class InputShape():
             # for required fields; this is just defense-in-depth
             value = input_data.get(field_name)
             if value is None and data_field.is_required:
-                raise Exception('Required field "%s" specified in DataShape "%s" not found in input data.' % (field_name, self.name))            
-            data_field.validate(value)
+                raise Exception('Required field "%s" specified in DataShape "%s" not found in input data.' % (field_name, self.name))
+
+            if value is not None:
+                data_field.validate(value)
             
 
     def scan(self, input_data):
