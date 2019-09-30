@@ -26,6 +26,9 @@ spinup:
 test: clean test-generate
 	python -m unittest discover -s tests ./tests -v
 
+version:
+	python mark_version.py > version.py && cp version.py scripts/snap-version && chmod u+x scripts/snap-version
+
 build-dist:
 	python setup.py sdist bdist_wheel
 

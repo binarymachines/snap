@@ -18,7 +18,7 @@ class ConfigfileLoadTest(unittest.TestCase):
                                              'data/good_sample_config.yaml')
         
         with open(good_config_file_path) as f:
-            cls.good_yaml_config = yaml.load(f)
+            cls.good_yaml_config = yaml.safe_load(f)
 
 
     def test_globals_should_contain_required_fields(self):

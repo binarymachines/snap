@@ -20,7 +20,7 @@ class RouteGenerationTest(unittest.TestCase):
         config_file_path = os.path.join(project_home,
                                         'data/good_sample_config.yaml')
         with open(config_file_path) as f:
-            self.app_config = yaml.load(f)
+            self.app_config = yaml.safe_load(f)
         
 
     @contextmanager

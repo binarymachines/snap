@@ -34,7 +34,7 @@ setup(
     author='Dexter Taylor',
     author_email='binarymachineshop@gmail.com',
     platforms=['any'],
-    scripts=['scripts/routegen', 'scripts/uwsgen', 'scripts/snapconfig'],
+    scripts=['scripts/routegen', 'scripts/uwsgen', 'scripts/snapconfig', 'scripts/snap-version'],
     packages=find_packages(),
     install_requires=DEPENDENCIES,
     include_package_data=True,
