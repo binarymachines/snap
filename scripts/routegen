@@ -193,7 +193,7 @@ class RouteGenerator():
             input_field_tables = shapes_segment[shape_name]['fields']
             if input_field_tables:
                 for tbl in input_field_tables:
-                    input_shape.add_field(tbl['name'], bool(tbl.get('required')))
+                    input_shape.add_field(tbl['name'], tbl['datatype'], bool(tbl.get('required')))
 
             data_shapes[shape_name] = input_shape
 

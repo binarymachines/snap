@@ -112,7 +112,7 @@ xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT
 {% for transform in transforms.values() %}
 {{ transform.input_shape.name }} = core.InputShape("{{transform.input_shape.name}}")
 {% for field in transform.input_shape.fields %}
-{{ transform.input_shape.name }}.add_field('{{ field.name }}', {{ field.is_required }})
+{{ transform.input_shape.name }}.add_field('{{ field.name }}', '{{ field.datatype }}', {{ field.is_required }})
 {% endfor %}
 {% endfor %}
 

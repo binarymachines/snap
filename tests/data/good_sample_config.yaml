@@ -17,24 +17,34 @@ globals:
 
 
 service_objects:
+    test_service:
+        class: TestServiceObject
+        init_params:
+
         
-
-
 data_shapes:
         
         default:
             fields:
                         
-        shape1:
+        test_shape:
             fields:
+                - name: required_field
+                - datatype: string
+                - required: True
 
 
 transforms:
+        ping:
+            route:              /ping
+            method:             GET
+            input_shape:        default
+            output_mimetype:    application/json
         
         test:
             route:              /test
             method:             GET
-            input_shape:        default
+            input_shape:        test_shape
             output_mimetype:    application/json
 
         post_test:

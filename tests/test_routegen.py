@@ -3,6 +3,7 @@ import os
 import yaml
 from contextlib import contextmanager
 import py_compile as pc
+from context import snap
 from snap import snap, common
 
 

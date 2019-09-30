@@ -153,38 +153,77 @@ class ComplexEncoder(json.JSONEncoder):
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 
-        
+
+SCALAR_TYPES = {
+    'str': str,
+    'string': str,
+    'float': float,
+    'int': int,
+    'integer': int,
+    'bool': bool,
+    'boolean': bool,
+    'complex': complex
+}
+
+COLLECTION_TYPES = {
+    'list': list,
+    'array': list
+}
+
 class DataField():
-    def __init__(self, name, is_required = False):
+    def __init__(self, name, datatype, is_required = False):
         self.name = name
+        self.datatype = datatype
         self.is_required = is_required
 
-    def validate(self):
-        pass
+    def validate(self, data):
+        # will throw a type conversion error if the data does not conform
+        # to the specified type
+        if self.datatype in SCALAR_TYPES:
+            SCALAR_TYPES[self.datatype](data)
+
+        elif self.datatype in COLLECTION_TYPES:
+            COLLECTION_TYPES[self.datatype](data)
+
+        else:
+            raise Exception('Unrecognized datatype "%s" for datafield "%s".' % (self.datatype, self.name))
 
     def __str__(self):
-        return 'DataField <%s>, required = %s' % (self.name, self.is_required)
+        return 'DataField <%s>, type=%s, required = %s' % (self.name, self.datatype, self.is_required)
     
     
 class InputShape():
     def __init__(self, name):
         self.name = name
-        self.fields = []
+        self._fields = {}
        
-    def add_field(self, field_name, is_required=False):
-        self.fields.append(DataField(field_name, is_required))
-        
-    # doesn't have to be limited to this. Regex for format validation might be nice
+    def add_field(self, field_name, datatype, is_required=False):
+        self._fields[field_name] = DataField(field_name, datatype, is_required)
+
+    def validate_data_format(self, input_data):
+        for field_name, data_field in self._fields.items():
+            # by the time we run this function, we should have already scanned the input data
+            # for required fields; this is just defense-in-depth
+            value = input_data.get(field_name)
+            if value is None and data_field.is_required:
+                raise Exception('Required field "%s" specified in DataShape "%s" not found in input data.' % (field_name, self.name))            
+            data_field.validate(value)
+            
+
     def scan(self, input_data):
         errors = []
-        for f in self.fields:
-            value = input_data.get(f.name)
-            if not value  and f.is_required:
-                errors.append(repr(MissingDataStatus(f.name)))                                
+        for fieldname, data_field in self._fields.items():
+            value = input_data.get(fieldname)
+            if not value  and data_field.is_required:
+                errors.append(repr(MissingDataStatus(fieldname)))                              
         return errors
 
     def field_names(self):
-        return [f.name for f in self.fields]
+        return [k for k in self._fields.keys()]
+
+    @property
+    def fields(self):
+        return self._fields.values()
     
 
 class Action():
@@ -196,8 +235,13 @@ class Action():
 
     def execute(self, input_data, service_object_registry, **kwargs):
         errors = self.input_shape.scan(input_data)
+        # check that all the data is present
         if len(errors):
             raise MissingInputFieldException(errors)
+
+        # check to see if the data formats are correct
+        self.input_shape.validate_data_format(input_data)
+
         return self.transform_function(input_data, service_object_registry, **kwargs)
 
 

@@ -13,7 +13,7 @@ globals:
         project_directory:           $SNAP_TEST_HOME
         transform_function_module:   testbed_transforms
         service_module:              testbed_services 
-        preprocessor_module:         testbed_decode
+        decoder_module:              testbed_decode
 
 
 service_objects:

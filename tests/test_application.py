@@ -6,7 +6,7 @@ import sh
 import json
 import requests
 import yaml
-#from context import snap
+from context import snap
 from snap import core
 from snap import metaobjects as m
 
@@ -38,7 +38,7 @@ class HTTPServiceTest(unittest.TestCase):
         config_file_path = os.path.join(self.project_home,
                                         'data/good_sample_config.yaml')
         with open(config_file_path) as f:
-            self.app_config = yaml.load(f)
+            self.app_config = yaml.safe_load(f)
 
 
     def test_should_listen_on_port_specified_in_config(self):

@@ -28,8 +28,7 @@ class ConfigfileLoadTest(unittest.TestCase):
                            'logfile',
                            'project_directory',
                            'transform_function_module',
-                           'service_module',
-                           'preprocessor_module']
+                           'service_module']
 
         for field in required_fields:
             self.assertTrue(field in self.good_yaml_config['globals'])
@@ -51,8 +50,13 @@ class ConfigfileLoadTest(unittest.TestCase):
         self.assertIn('fields', self.good_yaml_config['data_shapes']['test_shape'])
         
         dsconfig = self.good_yaml_config['data_shapes']['test_shape']
-        for field in datashape_field_required_fields:
-            self.assertIn(field, dsconfig['fields'][0])
+        fieldnames = set()
+        for f in dsconfig['fields']:
+            for key in f: 
+                fieldnames.add(key)
+
+        for field in datashape_field_required_fields:            
+            self.assertIn(field, fieldnames)
 
 
     def test_transform_config_should_contain_required_fields(self):

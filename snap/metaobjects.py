@@ -359,7 +359,7 @@ def load_transforms_from_yaml_config(yaml_cfg):
 def load_shape_fields_from_yaml_config(shape_name, yaml_cfg):
     fields = []
     for field in yaml_cfg['data_shapes'][shape_name].get('fields') or []:
-        fields.append(DataShapeFieldMeta(field['name'], field['type'], field['required']))
+        fields.append(DataShapeFieldMeta(field['name'], field['datatype'], field['required']))
 
     return fields
 
