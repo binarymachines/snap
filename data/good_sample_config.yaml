@@ -13,7 +13,8 @@ globals:
     project_directory:           $SNAP_TEST_HOME
     transform_function_module:   testbed_transforms
     service_module:              testbed_services 
-    decoder_module:              testbed_decode
+    decoder_module:              testbed_decode   # optional module for decoding inbound request content
+    validator_module:            testbed_validate # optional module for validating input datatypes
 
 
 service_objects:
@@ -43,6 +44,16 @@ data_shapes:
               datatype: int
               required: False
 
+    custom_validator_shape:
+        fields:
+            - name: placeholder
+              datatype: string
+              required: True
+
+            - name: data
+              datatype: json
+              required: True
+
 transforms:
     ping:
         route:              /ping
@@ -68,6 +79,12 @@ transforms:
         input_shape:        test_shape_2
         output_mimetype:    application/json
 
+    custom_validator:
+        route:              /customvalidator
+        method:             POST
+        input_shape:        custom_validator_shape
+        output_mimetype:    application/json
+
 error_handlers:
     - error:                NoSuchObjectException
       tx_status_code:       HTTP_NOT_FOUND 
@@ -78,3 +95,7 @@ error_handlers:
 
 decoders:
     application/json:       decode_application_json
+
+
+field_validators:
+    json: validate_json_field

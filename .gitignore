@@ -8,5 +8,5 @@ dist/*
 build/*
 snap_micro.egg-info/*
 test_app.py
-test_transforms.py
+tests/test_transforms.py
 logging_config.yaml

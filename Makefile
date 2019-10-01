@@ -17,8 +17,8 @@ install-deps:
 	pipenv install -e .
 
 test-generate:	
-	cp tests/testbed_transforms.py.tpl testbed_transforms.py
-	export SNAP_TEST_HOME=`pwd`/tests; export PYTHONPATH=`pwd`/tests; scripts/routegen -e data/good_sample_config.yaml > test_app.py
+	cp ./tests/testbed_transforms.py.tpl ./tests/testbed_transforms.py
+	export SNAP_TEST_HOME=`pwd`/tests; export PYTHONPATH=`pwd`/tests; cd tests; ../scripts/routegen -e ../data/good_sample_config.yaml > ../test_app.py
 
 spinup:
 	export SNAP_TEST_HOME=`pwd`/tests; pipenv run python test_app.py --configfile data/good_sample_config.yaml

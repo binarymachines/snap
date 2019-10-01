@@ -101,13 +101,13 @@ app = snap.setup(f_runtime)
 xformer = core.Transformer(app.config.get('services'))
 
 
-#-- snap exception handlers ---
+#-- exception handlers ---
 
 xformer.register_error_code(snap.NullTransformInputDataException, snap.HTTP_BAD_REQUEST)
 xformer.register_error_code(snap.MissingInputFieldException, snap.HTTP_BAD_REQUEST)
 xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT_IMPLEMENTED)
 
-#-- snap data shapes ----------
+#-- data shapes ----------
 
 {% for transform in transforms.values() %}
 {{ transform.input_shape.name }} = core.InputShape("{{transform.input_shape.name}}")
@@ -116,7 +116,7 @@ xformer.register_error_code(snap.TransformNotImplementedException, snap.HTTP_NOT
 {% endfor %}
 {% endfor %}
 
-#-- snap transform loading ----
+#-- transforms ----
 
 {% for transform in transforms.values() %}
 xformer.register_transform('{{transform.name}}', {{ transform.input_shape.name }}, {{ transform.function_name }}, '{{ transform.output_type }}')
@@ -165,7 +165,6 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
         raise err
 
 {% endfor %}
-
 
 
 if __name__ == '__main__':
@@ -269,10 +268,10 @@ from snap.loggers import transform_logger as log
 
 
 {% for f in transform_functions %}
+
 def {{ f }}(input_data, service_objects, **kwargs):
     raise snap.TransformNotImplementedException('{{f}}')
 {% endfor %}
-
 """
 
 UWSGI = """

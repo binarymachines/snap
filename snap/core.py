@@ -18,6 +18,100 @@ CONFIG_FILE_ENV_VAR = 'BUTTONIZE_CFG'
 
 ROUTE_VARIABLE_REGEX = re.compile(r'<([a-zA-Z_-]+):([a-zA-Z_-]+)>')
 
+SCALAR_TYPES = {
+    'str': str,
+    'string': str,
+    'float': float,
+    'int': int,
+    'integer': int,
+    'bool': bool,
+    'boolean': bool,
+    'complex': complex
+}
+
+COLLECTION_TYPES = {
+    'list': list,
+    'array': list
+}
+
+
+class ContentProtocol(object):
+    def __init__(self):
+        self.decoding_map = {}        
+
+
+    def update(self, content_type, decode_function):
+        self.decoding_map[content_type] = decode_function
+        return self
+    
+
+    def decode(self, http_request):
+        ctype = http_request.headers['Content-Type']
+        func = self.decoding_map.get(ctype)
+        if not func:
+            raise ContentDecodingException(ctype)        
+        return func(http_request)
+
+
+def decode_json(http_request):
+    result =  http_request.get_json(silent=True)
+    if not result:
+        return {}
+
+
+def decode_text_plain(http_request):
+    if http_request.data:
+        return json.loads(http_request.data)
+    return {}
+
+
+def decode_form_urlenc(http_request):
+    return convert_multidict(http_request.form)
+
+
+def map_content(http_request):
+    return default_content_protocol.decode(http_request)
+        
+
+def utf8_encode(raw_input_data):
+    input_data = {}
+    for key in raw_input_data:
+        encoded_key = key
+        encoded_value = raw_input_data[key]
+        if key.__class__.__name__ == 'unicode':
+            encoded_key = key.encode('utf-8')
+
+        if encoded_value.__class__.__name__ == 'unicode':
+            encoded_value = encoded_value.encode('utf-8')
+        input_data[encoded_key] = encoded_value
+
+    return input_data
+
+
+def utf8_decode(raw_input_data):
+    output_data = {}
+    for key in raw_input_data:
+        decoded_key = key
+        decoded_value = raw_input_data[key]
+        
+        if key.__class__.__name__ == 'str':
+            decoded_key = key.decode()
+        
+        if decoded_value.__class__.__name__ == 'str':
+            decoded_value = decoded_value.decode()
+        output_data[decoded_key] = decoded_value
+
+    return output_data
+        
+
+default_content_protocol = ContentProtocol()
+default_content_protocol.update('application/json', decode_json)
+default_content_protocol.update('text/plain', decode_text_plain)
+default_content_protocol.update('application/x-www-form-urlencoded', decode_form_urlenc)
+default_content_protocol.update('text/plain; charset=UTF-8', decode_text_plain)
+
+custom_field_type_validators = {}
+
 
 class MissingDataStatus():
     def __init__(self, field_name):
@@ -26,7 +120,12 @@ class MissingDataStatus():
     def __repr__(self):
         return self.message
 
-    
+
+class NonCompliantDataFormat(Exception):
+    def __init__(self, errors):
+        super().__init__(self, "One or more data format violations detected in input data: %s" % (','.join(errors)))
+
+
 class MissingInputFieldException(Exception):
     def __init__(self, missing_data_status_errors):
         Exception.__init__(self, "One or more errors or omissions detected in input data: %s" % (','.join(missing_data_status_errors)))
@@ -69,83 +168,6 @@ def convert_multidict(md):
     return result
 
 
-class ContentProtocol(object):
-    def __init__(self):
-        self.decoding_map = {}        
-
-
-    def update(self, content_type, decode_function):
-        self.decoding_map[content_type] = decode_function
-        return self
-    
-
-    def decode(self, http_request):
-        ctype = http_request.headers['Content-Type']
-        func = self.decoding_map.get(ctype)
-        if not func:
-            raise ContentDecodingException(ctype)        
-        return func(http_request)
-
-
-def decode_json(http_request):
-    result =  http_request.get_json(silent=True)
-    if not result:
-        return {}
-
-
-def decode_text_plain(http_request):
-    if http_request.data:
-        return json.loads(http_request.data)
-    return {}
-
-
-def decode_form_urlenc(http_request):
-    return convert_multidict(http_request.form)
-
-
-default_content_protocol = ContentProtocol()
-default_content_protocol.update('application/json', decode_json)
-default_content_protocol.update('text/plain', decode_text_plain)
-default_content_protocol.update('application/x-www-form-urlencoded', decode_form_urlenc)
-default_content_protocol.update('text/plain; charset=UTF-8', decode_text_plain)
-
-
-def map_content(http_request):
-    return default_content_protocol.decode(http_request)
-        
-
-def utf8_encode(raw_input_data):
-    input_data = {}
-    for key in raw_input_data:
-        encoded_key = key
-        encoded_value = raw_input_data[key]
-        if key.__class__.__name__ == 'unicode':
-            encoded_key = key.encode('utf-8')
-
-        if encoded_value.__class__.__name__ == 'unicode':
-            encoded_value = encoded_value.encode('utf-8')
-        input_data[encoded_key] = encoded_value
-
-    return input_data
-
-
-def utf8_decode(raw_input_data):
-    output_data = {}
-    for key in raw_input_data:
-        decoded_key = key
-        decoded_value = raw_input_data[key]
-        
-        if key.__class__.__name__ == 'str':
-            decoded_key = key.decode()
-        
-        if decoded_value.__class__.__name__ == 'str':
-            decoded_value = decoded_value.decode()
-        
-        output_data[decoded_key] = decoded_value
-
-    return output_data
-        
-        
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, complex):
@@ -154,33 +176,23 @@ class ComplexEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-SCALAR_TYPES = {
-    'str': str,
-    'string': str,
-    'float': float,
-    'int': int,
-    'integer': int,
-    'bool': bool,
-    'boolean': bool,
-    'complex': complex
-}
-
-COLLECTION_TYPES = {
-    'list': list,
-    'array': list
-}
-
 class DataField():
     def __init__(self, name, datatype, is_required = False):
         self.name = name
         self.datatype = datatype
         self.is_required = is_required
 
-    def validate(self, data):
+    def validate(self, value):
         # will throw a type conversion error if the data does not conform
         # to the specified type
-        if self.datatype in SCALAR_TYPES:
-            SCALAR_TYPES[self.datatype](data)
+
+        # if a user-defined field validator has been registered, that should take precedence
+        # over the builtins
+        if self.datatype in custom_field_type_validators:
+            custom_field_type_validators[self.datatype](value)
+
+        elif self.datatype in SCALAR_TYPES:
+            SCALAR_TYPES[self.datatype](value)
 
         elif self.datatype in COLLECTION_TYPES:
             COLLECTION_TYPES[self.datatype](data)
@@ -196,11 +208,13 @@ class InputShape():
     def __init__(self, name):
         self.name = name
         self._fields = {}
-       
+
     def add_field(self, field_name, datatype, is_required=False):
         self._fields[field_name] = DataField(field_name, datatype, is_required)
 
+
     def validate_data_format(self, input_data):
+        errors = []
         for field_name, data_field in self._fields.items():
             # by the time we run this function, we should have already scanned the input data
             # for required fields; this is just defense-in-depth
@@ -209,8 +223,11 @@ class InputShape():
                 raise Exception('Required field "%s" specified in DataShape "%s" not found in input data.' % (field_name, self.name))
 
             if value is not None:
-                data_field.validate(value)
-            
+                try:
+                    data_field.validate(value)
+                except Exception as err:
+                    errors.append('invalid input field "%s": %s' % (field_name, str(err)))
+        return errors
 
     def scan(self, input_data):
         errors = []
@@ -242,7 +259,9 @@ class Action():
             raise MissingInputFieldException(errors)
 
         # check to see if the data formats are correct
-        self.input_shape.validate_data_format(input_data)
+        format_errors = self.input_shape.validate_data_format(input_data)
+        if len(format_errors):
+            raise NonCompliantDataFormat(format_errors)
 
         return self.transform_function(input_data, service_object_registry, **kwargs)
 
@@ -260,7 +279,6 @@ class TransformStatus(object):
 
     def get_error_code(self):
         return self.user_data.get('error_code')
-
 
 
 class Transformer():

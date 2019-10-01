@@ -108,6 +108,29 @@ class HTTPServiceTest(unittest.TestCase):
         response = r.json()
         self.assertIn('test_decoder_called', response)
 
+    def test_custom_field_validator_is_triggered_by_specified_request_field_datatype(self):
+        port = self.app_config['globals']['port']
+
+        json_field_data = {
+            'foo': 'bar',            
+            'counter': 1
+        }
+
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            'placeholder': datetime.datetime.now().isoformat(),
+            'data': json_field_data
+        }
+
+        r = requests.post('http://localhost:%s/customvalidator' % port,
+                          data=json.dumps(payload),
+                          headers=headers)
+        
+        self.assertEqual(r.status_code, 200)
+        #response = r.json()
+        
+
+
 
 def main():
     unittest.main()

@@ -63,7 +63,10 @@ class NoSuchMimeTypeDecoder(Exception):
     def __init__(self, mime_type, function_name, decoder_module_name):
         Exception.__init__(self, 'No content decoder function "%s" has been defined in module %s.py to decode the mime type %s.' % (function_name, decoder_module_name, mime_type))
 
-
+class NoSuchFieldValidator(Exception):
+    def __init__(self, type_name, func_name, module_name):
+        super().__init__(self, 'No field validator function "%s" has been defined in module %s.py to validate the datatype "%s".'
+                         % (func_name, module_name, type_name))
 
 def load_snap_config(mode, app):
     config_file_path = None
@@ -161,6 +164,23 @@ def load_user_content_decoders(yaml_config):
         decode_function = getattr(decoder_module, function_name)
         core.default_content_protocol.update(mime_type, decode_function)
 
+def load_custom_validators(yaml_config):
+    validator_module_name = yaml_config['globals'].get('validator_module')
+    if not validator_module_name:
+        return
+
+    validator_module = __import__(validator_module_name)
+    if not yaml_config.get('field_validators'):
+        return
+
+    validator_config = yaml_config['field_validators']
+    for type_name, func_name in validator_config.items():
+        if not hasattr(validator_module, func_name):
+            raise NoSuchFieldValidator(type_name, func_name, validator_module_name)
+        
+        validator_function = getattr(validator_module, func_name)
+        core.custom_field_type_validators[type_name] = validator_function
+
 
 def setup(app):
     if app.config.get('initialized'):
@@ -173,6 +193,7 @@ def setup(app):
 
     load_default_content_decoders()
     load_user_content_decoders(yaml_config)
+    load_custom_validators(yaml_config)
 
     service_object_tbl = initialize_services(yaml_config)
     app.config['services'] = common.ServiceObjectRegistry(service_object_tbl)
