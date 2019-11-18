@@ -233,7 +233,7 @@ class InputShape():
         errors = []
         for fieldname, data_field in self._fields.items():
             value = input_data.get(fieldname)
-            if not value  and data_field.is_required:
+            if value is None  and data_field.is_required:
                 errors.append(repr(MissingDataStatus(fieldname)))                              
         return errors
 
