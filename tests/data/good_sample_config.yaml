@@ -30,8 +30,8 @@ data_shapes:
         test_shape:
             fields:
                 - name: required_field
-                - datatype: string
-                - required: True
+                  datatype: string
+                  required: True
 
 
 transforms:

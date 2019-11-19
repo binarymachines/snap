@@ -32,7 +32,11 @@ data_shapes:
         fields:
             - name: placeholder
               datatype: string
-              required: True                       
+              required: True 
+
+            - name: optional_field
+              datatype: string
+              required: False                      
 
     test_shape_2:
         fields:
@@ -43,6 +47,12 @@ data_shapes:
             - name: counter
               datatype: int
               required: False
+
+    handle_list_shape:
+        fields:
+            - name: list_field
+              datatype: list
+              required: True
 
     custom_validator_shape:
         fields:
@@ -83,6 +93,12 @@ transforms:
         route:              /customvalidator
         method:             POST
         input_shape:        custom_validator_shape
+        output_mimetype:    application/json
+
+    handle_list:
+        route:              /handlelist
+        method:             POST
+        input_shape:        handle_list_shape
         output_mimetype:    application/json
 
 error_handlers:

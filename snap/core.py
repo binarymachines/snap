@@ -195,7 +195,7 @@ class DataField():
             SCALAR_TYPES[self.datatype](value)
 
         elif self.datatype in COLLECTION_TYPES:
-            COLLECTION_TYPES[self.datatype](data)
+            COLLECTION_TYPES[self.datatype](value)
 
         else:
             raise Exception('Unrecognized datatype "%s" for datafield "%s".' % (self.datatype, self.name))
