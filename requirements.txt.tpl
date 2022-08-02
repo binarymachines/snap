@@ -18,7 +18,7 @@ pkginfo==1.4.1
 pyasn1==0.2.3
 pycparser==2.18
 pyopenssl==19.0.0
-pyyaml==5.1.1
+pyyaml==5.3.1
 requests-toolbelt==0.8.0
 requests==2.20.0
 sh==1.12.14
