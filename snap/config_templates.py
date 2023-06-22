@@ -161,7 +161,7 @@ def {{t.name}}({{ ','.join(t.route_variables) }}):
                         status=transform_status.get_error_code() or snap.HTTP_DEFAULT_ERRORCODE, 
                         mimetype=output_mimetype) 
     except Exception as err:
-        log.error("Exception thrown: ", exc_info=1)        
+        log.error("Exception thrown: ", exc_info=True)        
         raise err
 
 {% endfor %}
