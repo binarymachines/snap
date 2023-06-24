@@ -257,6 +257,9 @@ class RouteGenerator():
 ProgramMode = common.Enum(['GENERATE', 'EXTEND', 'PREVIEW'])
 
 
+def prep_transform_dir(filename):
+    print(f'###______Preparing transform module directory: {filename}', file=sys.stderr)
+    
 
 def main(argv):
     try:
@@ -294,6 +297,9 @@ def main(argv):
         # are we generating or extending code?
         if mode == ProgramMode.GENERATE:
             transform_code = transform_module_template.render(transform_functions=route_gen.generate_transform_function_names(yaml_config))
+
+            prep_transform_dir(transform_module_filename)
+
             with open(transform_module_filename, 'w') as transform_file:
                 transform_file.write(transform_code)
 
