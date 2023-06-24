@@ -18,7 +18,7 @@ from snap import core
 from snap import common
 from snap import metaobjects as m
 from snap import config_templates
-from snap.constants import *
+from snap import constants
 import os, sys
 import argparse
 import docopt
@@ -84,7 +84,7 @@ class Transform(object):
             self.cors_enabled = False
             self.cors_settings = None
 
-        route_var_names = [match.group().lstrip('<').rstrip('>') for match in re.finditer(ROUTE_VARIABLE_REGEX, self.route)]
+        route_var_names = [match.group().lstrip('<').rstrip('>') for match in re.finditer(constants.ROUTE_VARIABLE_REGEX, self.route)]
 
         for name in route_var_names:
             tokens = name.split(':')
@@ -176,7 +176,7 @@ class RouteGenerator():
 
 
     def is_reserved_route(self, route_path):
-        for path_element in RESERVED_ROUTES:
+        for path_element in constants.RESERVED_ROUTES:
             if route_path.lstrip('/').startswith(path_element):
                 return True
         return False
@@ -249,7 +249,6 @@ class RouteGenerator():
         return transforms
 
 
-
     def generate_transform_function_names(self, yaml_config):
         transforms_segment = yaml_config['transforms']
         return ['%s_func' % f for f in transforms_segment]
@@ -262,16 +261,21 @@ ProgramMode = common.Enum(['GENERATE', 'EXTEND', 'PREVIEW'])
 def main(argv):
     try:
         args = docopt.docopt(__doc__)
-        preview = args.get('--preview') or False
-        config_filename = args.get('<initfile>') or DEFAULT_CONFIG_FILENAME
+        
+        sys.path.append(os.getcwd())
+
+        config_filename = args.get('<initfile>') or constants.DEFAULT_CONFIG_FILENAME
         yaml_config = common.read_config_file(config_filename)
+
         snap.configure_logging(yaml_config)
 
         if args['--extend']:
             mode = ProgramMode.EXTEND
+
         elif args['--generate']:
             mode = ProgramMode.GENERATE
-        else:
+
+        elif args['--preview']:
             mode = ProgramMode.PREVIEW
 
         route_gen = RouteGenerator(yaml_config)
@@ -280,7 +284,11 @@ def main(argv):
         template_mgr = common.JinjaTemplateManager(j2env)        
         transform_module_template = j2env.from_string(config_templates.TRANSFORMS)
         transform_module_name = yaml_config['globals']['transform_function_module']
-        transform_module_filename = '%s.py' % transform_module_name
+
+        # Generate the correct filename for module designations which use dot path-notation
+        # 
+        transform_module_filename_base = transform_module_name.replace('.', '/')
+        transform_module_filename =  f'{transform_module_filename_base}.py'
 
 
         # are we generating or extending code?
@@ -305,9 +313,9 @@ def main(argv):
             with open(transform_module_filename, 'a') as transform_file:
                 transform_file.write(transform_code)
                 
-        else: # otherwise we are in preview mode
-            print('PREVIEW mode not yet operational. Watch this space!')
-            
+        elif mode == ProgramMode.PREVIEW:
+            # do not create or extend existing modules; just emit the generated appfile to standard out
+            pass
 
         routing_module_template = j2env.from_string(config_templates.ROUTES)
 
@@ -319,6 +327,7 @@ def main(argv):
         if project_directory_var.startswith('$') and not project_directory:
             raise common.MissingEnvironmentVarException(project_directory_var[1:])
 
+        sys.path.append(project_directory)
 
         print(routing_module_template.render(project_dir=project_directory,
                                              transforms=route_gen.load_transforms(yaml_config),

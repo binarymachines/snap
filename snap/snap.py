@@ -90,7 +90,7 @@ def load_snap_config(mode, app):
         exit(1)
         
     if not config_file_path:
-        print('please set the "configfile" environment variable in the WSGI command string.')
+        print('please set the "SNAP_CONFIG" environment variable in the WSGI command string.')
         exit(1)
         
     return common.read_config_file(config_file_path)

@@ -7,14 +7,15 @@
 #
 
 """Usage: 
-        uwsgen.py [--env=<environment> | --list] <configfile> 
-        uwsgen.py -h | --help
+    uwsgen.py [--env=<environment> | --list] <configfile> 
+    uwsgen.py -h | --help
 
 Arguments:
-        <configfile>      yaml configuration filename
+    <configfile>              yaml configuration filename
+
 Options:
-        --env=<environment>       named configuration context in config file
-        --list                    list the available contexts
+    --env=<environment>       named configuration context in config file
+    --list                    list the available contexts
 """
 
 
@@ -22,7 +23,7 @@ from docopt import docopt
 import yaml
 import jinja2
 import os, sys
-import common
+from snap import common
 
 
 
@@ -69,17 +70,17 @@ if __name__ == '__main__':
     env_table = load_uwsgi_environments(yaml_config)
     
     if not len(env_table.keys()):
-        print 'No uWSGI environment found in config file. Exiting.\n'
+        print('No uWSGI environment found in config file. Exiting.\n')
         exit(0)
 
     if args['--list']:
-        print 'Available uWSGI environments in %s:' % config_filename
-        print '\n'.join(env_table.keys()) 
+        print('Available uWSGI environments in %s:' % config_filename)
+        print('\n'.join(env_table.keys()))
         exit(0)
     
     target_env = None
     if not env and len(env_table.keys()) > 1:
-        print 'The uWSGI config in file %s contains multiple environments. Please specify a target environment.' % args['<configfile>']
+        print('The uWSGI config in file %s contains multiple environments. Please specify a target environment.' % args['<configfile>'])
         exit(0)
 
     elif not env:
@@ -88,7 +89,7 @@ if __name__ == '__main__':
         target_env = env_table.get(env)
         
     if not target_env:
-        print 'No uWSGI environment "%s" found in config file. Exiting.'
+        print('No uWSGI environment "%s" found in config file. Exiting.')
         exit(0)
 
     
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     template_mgr = common.JinjaTemplateManager(j2env)
     initfile_template = template_mgr.get_template('snap_uwsgi.ini.j2')
     
-    print '%s\n\n' % initfile_template.render(uwsgi_config=target_env)
+    print('%s\n\n' % initfile_template.render(uwsgi_config=target_env))
 
     
     
