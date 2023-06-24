@@ -257,7 +257,7 @@ class RouteGenerator():
 ProgramMode = common.Enum(['GENERATE', 'EXTEND', 'PREVIEW'])
 
 
-def prep_transform_dir(filename):
+def prep_transform_module_dir(filename):
     
     target_module_dir = os.path.dirname(filename)
     if not len(target_module_dir):
@@ -269,9 +269,9 @@ def prep_transform_dir(filename):
     # where the transform module goes
     #
     if not os.path.isfile(initpy_path):
+        os.makedirs(initpy_path)
         open(initpy_path, 'a').close()
 
-    
 
 def main(argv):
     try:
@@ -310,7 +310,7 @@ def main(argv):
         if mode == ProgramMode.GENERATE:
             transform_code = transform_module_template.render(transform_functions=route_gen.generate_transform_function_names(yaml_config))
 
-            prep_transform_dir(transform_module_filename)
+            prep_transform_module_dir(transform_module_filename)
 
             with open(transform_module_filename, 'w') as transform_file:
                 transform_file.write(transform_code)
