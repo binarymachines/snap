@@ -268,9 +268,10 @@ def prep_transform_module_dir(filename):
     # If it doesn't exist, create an empty __init__.py file in the directory
     # where the transform module goes
     #
-    if not os.path.isfile(initpy_path):
-        os.makedirs(initpy_path)
-        open(initpy_path, 'a').close()
+
+    dirs = initpy_path.strip('__init__.py')
+    os.makedirs(dirs)
+    open(initpy_path, 'a').close()
 
 
 def main(argv):
