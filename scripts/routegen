@@ -258,7 +258,19 @@ ProgramMode = common.Enum(['GENERATE', 'EXTEND', 'PREVIEW'])
 
 
 def prep_transform_dir(filename):
-    print(f'###______Preparing transform module directory: {filename}', file=sys.stderr)
+    
+    target_module_dir = os.path.dirname(filename)
+    if not len(target_module_dir):
+        return
+    
+    initpy_path = os.path.join(target_module_dir, '__init__.py')
+
+    # If it doesn't exist, create an empty __init__.py file in the directory
+    # where the transform module goes
+    #
+    if not os.path.isfile(initpy_path):
+        open(initpy_path, 'a').close()
+
     
 
 def main(argv):
